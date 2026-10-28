@@ -47,6 +47,44 @@ return [
             'report' => false,
         ],
 
+        /*
+        | Private files (client documents, profile photos) and public website
+        | images (logo, favicon, hero). STORAGE_DRIVER chooses the local disks in
+        | development or DigitalOcean Spaces (S3-compatible) in production. The
+        | database stores the same relative key either way.
+        */
+
+        'private' => [
+            'driver' => env('STORAGE_DRIVER', 'local'),
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'url' => rtrim((string) env('APP_URL', 'http://localhost'), '/').'/private-files',
+            'visibility' => 'private',
+            'key' => env('DO_SPACES_KEY'),
+            'secret' => env('DO_SPACES_SECRET'),
+            'region' => env('DO_SPACES_REGION'),
+            'bucket' => env('DO_SPACES_PRIVATE_BUCKET'),
+            'endpoint' => env('DO_SPACES_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'public_assets' => [
+            'driver' => env('STORAGE_DRIVER', 'local'),
+            'root' => storage_path('app/public'),
+            'url' => env('PUBLIC_ASSETS_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage'),
+            'visibility' => 'public',
+            'key' => env('DO_SPACES_KEY'),
+            'secret' => env('DO_SPACES_SECRET'),
+            'region' => env('DO_SPACES_REGION'),
+            'bucket' => env('DO_SPACES_PUBLIC_BUCKET'),
+            'endpoint' => env('DO_SPACES_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
