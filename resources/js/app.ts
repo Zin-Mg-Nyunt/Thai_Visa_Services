@@ -1,4 +1,6 @@
 import { createInertiaApp } from '@inertiajs/vue3';
+import { initializeLocale } from '@/composables/useLocale';
+import { i18n } from '@/i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -21,6 +23,8 @@ void createInertiaApp({
         }
     },
     withApp: (app) => {
+        app.use(i18n);
+
         app.directive('focus', {
             mounted: (el: HTMLElement, shouldFocus) => {
                 if (shouldFocus.value !== false) {
@@ -33,6 +37,9 @@ void createInertiaApp({
         color: '#00d47f',
     },
 });
+
+// This will apply the saved language (default: Burmese) on page load...
+initializeLocale();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
