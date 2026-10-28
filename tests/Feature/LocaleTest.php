@@ -46,3 +46,7 @@ test('a missing burmese message falls back to english', function () {
     expect(trans('validation.accepted_if', ['attribute' => 'a', 'other' => 'b', 'value' => 'c'], 'my'))
         ->toBe(trans('validation.accepted_if', ['attribute' => 'a', 'other' => 'b', 'value' => 'c'], 'en'));
 });
+
+test('server-side rendering is off because the language is chosen in the browser', function () {
+    expect(config('inertia.ssr.enabled'))->toBeFalse();
+});

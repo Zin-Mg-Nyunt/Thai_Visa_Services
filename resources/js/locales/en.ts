@@ -35,6 +35,68 @@ const en = {
     landing: {
         ourServices: 'Our Services',
         contactUs: 'Contact Us',
+        rights: '© {name}. All rights reserved.',
+    },
+    admin: {
+        comingSoon: 'This section is coming soon.',
+        openMenu: 'Open menu',
+    },
+    auth: {
+        name: 'Name',
+        namePlaceholder: 'Full name',
+        email: 'Email address',
+        password: 'Password',
+        confirmPassword: 'Confirm password',
+        rememberMe: 'Remember me',
+        forgotPassword: 'Forgot your password?',
+        showPassword: 'Show password',
+        hidePassword: 'Hide password',
+        login: {
+            head: 'Log in',
+            title: 'Log in to your account',
+            description: 'Enter your email and password below to log in',
+            submit: 'Log in',
+            noAccount: "Don't have an account?",
+            signUp: 'Sign up',
+        },
+        register: {
+            head: 'Register',
+            title: 'Create an account',
+            description: 'Enter your details below to create your account',
+            submit: 'Create account',
+            haveAccount: 'Already have an account?',
+            logIn: 'Log in',
+        },
+        forgot: {
+            head: 'Forgot password',
+            title: 'Forgot password',
+            description: 'Enter your email to receive a password reset link',
+            submit: 'Email password reset link',
+            returnTo: 'Or, return to',
+            logIn: 'log in',
+        },
+        reset: {
+            head: 'Reset password',
+            title: 'Reset password',
+            description: 'Please enter your new password below',
+            submit: 'Reset password',
+        },
+        confirm: {
+            head: 'Confirm password',
+            title: 'Confirm password',
+            description:
+                'This is a secure area of the application. Please confirm your password before continuing.',
+            submit: 'Confirm password',
+        },
+        verify: {
+            head: 'Email verification',
+            title: 'Email verification',
+            description:
+                'Please verify your email address by clicking on the link we just emailed to you.',
+            sent: 'A new verification link has been sent to the email address you provided during registration.',
+            resend: 'Resend verification email',
+            logOut: 'Log out',
+        },
     },
     language: {
         label: 'Language',

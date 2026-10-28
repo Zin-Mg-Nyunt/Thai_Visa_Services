@@ -3,6 +3,8 @@ import { initializeLocale } from '@/composables/useLocale';
 import { i18n } from '@/i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import ClientLayout from '@/layouts/ClientLayout.vue';
+import PublicLayout from '@/layouts/PublicLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
@@ -13,7 +15,9 @@ void createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':
-                return null;
+                return PublicLayout;
+            case name.startsWith('client/'):
+                return ClientLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

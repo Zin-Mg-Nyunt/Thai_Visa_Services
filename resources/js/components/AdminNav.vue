@@ -1,0 +1,67 @@
+<script setup lang="ts">
+import { Link, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { cn } from '@/lib/utils';
+import { dashboard, logout } from '@/routes';
+import { clients, jobSearch, services, settings } from '@/routes/admin';
+import type { NavItem } from '@/types';
+
+const emit = defineEmits<{
+    navigate: [];
+}>();
+
+const { t } = useI18n();
+const { isCurrentOrParentUrl } = useCurrentUrl();
+
+const items = computed<NavItem[]>(() => [
+    { title: t('nav.dashboard'), href: dashboard() },
+    { title: t('nav.clients'), href: clients() },
+    { title: t('nav.services'), href: services() },
+    { title: t('nav.jobSearch'), href: jobSearch() },
+    { title: t('nav.settings'), href: settings() },
+]);
+
+const handleLogout = () => {
+    router.flushAll();
+    emit('navigate');
+};
+</script>
+
+<template>
+    <div class="flex h-full flex-col justify-between gap-6">
+        <nav class="flex flex-col gap-1" :aria-label="t('nav.dashboard')">
+            <Link
+                v-for="item in items"
+                :key="String(item.title)"
+                :href="item.href"
+                :class="
+                    cn(
+                        'rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                        isCurrentOrParentUrl(item.href)
+                            ? 'bg-sidebar-primary font-semibold text-sidebar-primary-foreground'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    )
+                "
+                @click="emit('navigate')"
+            >
+                {{ item.title }}
+            </Link>
+        </nav>
+
+        <div class="flex flex-col items-start gap-4">
+            <LanguageSwitcher tone="dark" />
+            <Link
+                :href="logout()"
+                as="button"
+                class="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                data-test="logout-button"
+                @click="handleLogout"
+            >
+                {{ t('nav.signOut') }}
+            </Link>
+        </div>
+    </div>
+</template>
