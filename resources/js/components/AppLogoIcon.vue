@@ -1,29 +1,41 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
 
 defineOptions({
     inheritAttrs: false,
 });
 
 type Props = {
+    variant?: 'dark' | 'white';
     className?: HTMLAttributes['class'];
 };
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+    variant: 'dark',
+});
 </script>
 
 <template>
     <svg
         xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 40 42"
-        :class="className"
+        viewBox="0 0 205.856 205.857"
+        role="img"
+        aria-label="Paing Thu"
+        :class="cn('shrink-0', className)"
         v-bind="$attrs"
     >
-        <path
-            fill="currentColor"
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            d="M17.2 5.633 8.6.855 0 5.633v26.51l16.2 9 16.2-9v-8.442l7.6-4.223V9.856l-8.6-4.777-8.6 4.777V18.3l-5.6 3.111V5.633ZM38 18.301l-5.6 3.11v-6.157l5.6-3.11V18.3Zm-1.06-7.856-5.54 3.078-5.54-3.079 5.54-3.078 5.54 3.079ZM24.8 18.3v-6.157l5.6 3.111v6.158L24.8 18.3Zm-1 1.732 5.54 3.078-13.14 7.302-5.54-3.078 13.14-7.3v-.002Zm-16.2 7.89 7.6 4.222V38.3L2 30.966V7.92l5.6 3.111v16.892ZM8.6 9.3 3.06 6.222 8.6 3.143l5.54 3.08L8.6 9.3Zm21.8 15.51-13.2 7.334V38.3l13.2-7.334v-6.156ZM9.6 11.034l5.6-3.11v14.6l-5.6 3.11v-14.6Z"
-        />
+        <g transform="translate(-287.33133,-5609.3044)">
+            <path
+                :class="variant === 'dark' ? 'fill-brand-dark' : 'fill-white'"
+                d="m 0,0 h -112.068 c -11.688,0 -21.162,9.475 -21.162,21.162 V 133.23 c 0,11.688 9.474,21.163 21.162,21.163 H 0 c 11.688,0 21.162,-9.475 21.162,-21.163 V 21.162 C 21.162,9.475 11.688,0 0,0"
+                transform="matrix(1.3333333,0,0,-1.3333333,464.97133,5815.1617)"
+            />
+            <path
+                class="fill-brand"
+                d="m 0,0 -33.185,-33.185 h -6.746 v -6.745 l -11.896,-11.896 v 34.793 h 11.896 v -6.084 l 11.222,11.221 H -71.238 L -59.352,0 -51.827,7.529 V 0 Z"
+                transform="matrix(1.3333333,0,0,-1.3333333,439.80987,5684.7607)"
+            />
+        </g>
     </svg>
 </template>
