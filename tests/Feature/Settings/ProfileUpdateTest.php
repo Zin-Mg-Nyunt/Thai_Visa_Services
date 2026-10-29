@@ -58,3 +58,19 @@ test('a user cannot delete their own account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('the profile updated message follows the selected language', function (string $locale, string $message) {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->withHeader('X-Locale', $locale)
+        ->patch(route('profile.update'), ['name' => 'New Name', 'email' => $user->email])
+        ->assertSessionHasNoErrors();
+
+    app()->setLocale($locale);
+
+    expect(__('Profile updated.'))->toBe($message);
+})->with([
+    'my' => ['my', 'ပရိုဖိုင်ကို ပြင်ဆင်ပြီးပါပြီ။'],
+    'en' => ['en', 'Profile updated.'],
+]);

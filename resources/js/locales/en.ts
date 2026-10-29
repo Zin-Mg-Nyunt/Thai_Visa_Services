@@ -41,6 +41,31 @@ const en = {
         comingSoon: 'This section is coming soon.',
         openMenu: 'Open menu',
     },
+    settings: {
+        title: 'Settings',
+        description: 'Manage your profile and account settings',
+        nav: {
+            profile: 'Profile',
+            security: 'Security',
+        },
+        profile: {
+            head: 'Profile settings',
+            title: 'Profile',
+            description: 'Update your name and email address',
+            unverified: 'Your email address is unverified.',
+            resend: 'Click here to re-send the verification email.',
+            linkSent:
+                'A new verification link has been sent to your email address.',
+        },
+        security: {
+            head: 'Security settings',
+            title: 'Update password',
+            description:
+                'Ensure your account is using a long, random password to stay secure',
+            currentPassword: 'Current password',
+            newPassword: 'New password',
+        },
+    },
     auth: {
         name: 'Name',
         namePlaceholder: 'Full name',
