@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::inertia('admin/dashboard', 'Dashboard')->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::inertia('clients', 'admin/ComingSoon', ['section' => 'clients'])->name('clients');

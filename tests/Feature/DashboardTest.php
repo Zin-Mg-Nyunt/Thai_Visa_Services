@@ -14,3 +14,11 @@ test('authenticated users can visit the dashboard', function () {
     $response = $this->get(route('dashboard'));
     $response->assertOk();
 });
+
+test('the dashboard lives under the admin path and the old path is gone', function () {
+    expect(route('dashboard', absolute: false))->toBe('/admin/dashboard');
+
+    $this->actingAs(User::factory()->create())
+        ->get('/dashboard')
+        ->assertNotFound();
+});
