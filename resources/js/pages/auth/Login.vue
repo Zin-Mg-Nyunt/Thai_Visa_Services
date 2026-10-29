@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -10,15 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
+import { redirect as googleRedirect } from '@/routes/auth/google';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    googleEnabled: boolean;
 }>();
 
 const { t } = useI18n();
+const page = usePage();
 useAuthLayoutProps('login');
 </script>
 
@@ -51,7 +54,9 @@ useAuthLayoutProps('login');
                     autocomplete="email"
                     placeholder="example@email.com"
                 />
-                <InputError :message="errors.email" />
+                <InputError
+                    :message="errors.email || page.props.errors.email"
+                />
             </div>
 
             <div class="grid gap-2">
@@ -96,4 +101,23 @@ useAuthLayoutProps('login');
             </Button>
         </div>
     </Form>
+
+    <div v-if="googleEnabled" class="mt-6 flex flex-col gap-4">
+        <div
+            class="flex items-center gap-3 text-xs text-muted-foreground uppercase"
+        >
+            <span class="h-px flex-1 bg-border" />
+            {{ t('auth.login.or') }}
+            <span class="h-px flex-1 bg-border" />
+        </div>
+        <Button
+            variant="pillOutline"
+            as="a"
+            :href="googleRedirect().url"
+            data-test="google-login-button"
+            class="w-full"
+        >
+            {{ t('auth.login.google') }}
+        </Button>
+    </div>
 </template>

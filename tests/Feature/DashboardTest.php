@@ -22,3 +22,13 @@ test('the dashboard lives under the admin path and the old path is gone', functi
         ->get('/dashboard')
         ->assertNotFound();
 });
+
+test('the signed-in superadmin name and role are shared with the layout', function () {
+    $user = User::factory()->create(['name' => 'Owner Name']);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('auth.user.name', 'Owner Name')
+            ->where('auth.user.role', 'superadmin'));
+});

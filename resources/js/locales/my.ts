@@ -39,6 +39,9 @@ const my: MessageSchema = {
         contactUs: 'ဆက်သွယ်ရန်',
         rights: '© {name}။ မူပိုင်ခွင့်အားလုံး ရယူပြီးဖြစ်သည်။',
     },
+    roles: {
+        superadmin: 'စူပါအက်ဒမင်',
+    },
     admin: {
         comingSoon: 'ဤအပိုင်းကို မကြာမီ ထည့်သွင်းပါမည်။',
         openMenu: 'မီနူးဖွင့်ရန်',
@@ -81,6 +84,8 @@ const my: MessageSchema = {
             title: 'သင့်အကောင့်သို့ ဝင်ရောက်ပါ',
             description: 'ဝင်ရောက်ရန် သင့်အီးမေးလ်နှင့် စကားဝှက်ကို ဖြည့်ပါ',
             submit: 'ဝင်ရောက်မည်',
+            google: 'Google ဖြင့် ဝင်ရောက်ရန်',
+            or: 'သို့မဟုတ်',
         },
         forgot: {
             head: 'စကားဝှက် မေ့နေပါသလား',

@@ -10,16 +10,20 @@ use Symfony\Component\HttpFoundation\Response;
 class SetLocale
 {
     /**
-     * Apply the language the browser has selected (sent in the X-Locale header).
+     * Apply the language the browser has selected: the X-Locale header on
+     * in-page requests, or the locale cookie on full-page navigations such as
+     * the return from Google sign-in.
      *
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->header('X-Locale');
+        foreach ([$request->header('X-Locale'), $request->cookie('locale')] as $locale) {
+            if (is_string($locale) && in_array($locale, config('app.supported_locales'), true)) {
+                App::setLocale($locale);
 
-        if (is_string($locale) && in_array($locale, config('app.supported_locales'), true)) {
-            App::setLocale($locale);
+                break;
+            }
         }
 
         return $next($request);

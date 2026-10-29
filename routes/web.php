@@ -1,8 +1,17 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+Route::middleware(['guest', 'throttle:10,1'])
+    ->prefix('admin/auth/google')
+    ->name('auth.google.')
+    ->group(function () {
+        Route::get('redirect', [GoogleAuthController::class, 'redirect'])->name('redirect');
+        Route::get('callback', [GoogleAuthController::class, 'callback'])->name('callback');
+    });
 
 Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
     Route::inertia('admin/dashboard', 'Dashboard')->name('dashboard');

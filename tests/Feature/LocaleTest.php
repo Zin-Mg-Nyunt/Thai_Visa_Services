@@ -21,6 +21,22 @@ test('the language sent by the browser is applied', function () {
         ->assertInertia(fn (Assert $page) => $page->where('locale', 'en'));
 });
 
+test('the locale cookie is applied on full-page navigations', function () {
+    $this->withUnencryptedCookie('locale', 'en')
+        ->get(route('home'))
+        ->assertInertia(fn (Assert $page) => $page->where('locale', 'en'));
+});
+
+test('the header wins over the cookie and an unsupported header falls back to it', function () {
+    $this->withUnencryptedCookie('locale', 'en')->withHeader('X-Locale', 'my')
+        ->get(route('home'))
+        ->assertInertia(fn (Assert $page) => $page->where('locale', 'my'));
+
+    $this->withUnencryptedCookie('locale', 'en')->withHeader('X-Locale', 'th')
+        ->get(route('home'))
+        ->assertInertia(fn (Assert $page) => $page->where('locale', 'en'));
+});
+
 test('an unsupported language is ignored', function () {
     $this->withHeader('X-Locale', 'th')
         ->get(route('home'))

@@ -15,6 +15,9 @@ return [
 
     'failed' => 'These credentials do not match our records.',
     'password' => 'The provided password is incorrect.',
+    'google_cancelled' => 'Google sign-in was cancelled.',
+    'google_failed' => 'Google sign-in failed. Please try again.',
+    'google_not_allowed' => 'This Google account is not allowed to sign in.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 
 ];

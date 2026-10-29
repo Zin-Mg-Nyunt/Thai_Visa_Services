@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
@@ -7,6 +7,7 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { cn } from '@/lib/utils';
 import { dashboard, logout } from '@/routes';
 import { clients, jobSearch, services, settings } from '@/routes/admin';
+import { edit as editProfile } from '@/routes/profile';
 import type { NavItem } from '@/types';
 
 const emit = defineEmits<{
@@ -14,6 +15,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const page = usePage();
+const user = computed(() => page.props.auth.user);
 const { isCurrentOrParentUrl } = useCurrentUrl();
 
 const items = computed<NavItem[]>(() => [
@@ -52,6 +55,24 @@ const handleLogout = () => {
         </nav>
 
         <div class="flex flex-col items-start gap-4">
+            <Link
+                :href="editProfile()"
+                class="flex w-full flex-col items-start gap-2 rounded-xl bg-sidebar-accent px-4 py-3 transition-colors hover:bg-sidebar-accent/70"
+                data-test="sidebar-user"
+                @click="emit('navigate')"
+            >
+                <span
+                    class="w-full truncate text-sm font-semibold text-sidebar-accent-foreground"
+                >
+                    {{ user.name }}
+                </span>
+                <span
+                    class="rounded-full bg-sidebar-primary px-2.5 py-0.5 text-xs font-semibold text-sidebar-primary-foreground"
+                    data-test="role-badge"
+                >
+                    {{ t(`roles.${user.role}`) }}
+                </span>
+            </Link>
             <LanguageSwitcher tone="dark" />
             <Link
                 :href="logout()"

@@ -37,6 +37,9 @@ const en = {
         contactUs: 'Contact Us',
         rights: '© {name}. All rights reserved.',
     },
+    roles: {
+        superadmin: 'Superadmin',
+    },
     admin: {
         comingSoon: 'This section is coming soon.',
         openMenu: 'Open menu',
@@ -81,6 +84,8 @@ const en = {
             title: 'Log in to your account',
             description: 'Enter your email and password below to log in',
             submit: 'Log in',
+            google: 'Continue with Google',
+            or: 'or',
         },
         forgot: {
             head: 'Forgot password',

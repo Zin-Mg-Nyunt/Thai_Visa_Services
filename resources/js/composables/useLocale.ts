@@ -20,14 +20,20 @@ const getStoredLocale = (): Locale | null => {
     }
 };
 
+const saveCookie = (value: Locale): void => {
+    document.cookie = `${storageKey}=${value}; path=/; max-age=31536000; SameSite=Lax`;
+};
+
 const applyLocale = (value: Locale): void => {
     i18n.global.locale.value = value;
+    saveCookie(value);
     document.documentElement.lang = value === 'my' ? 'my' : 'en';
 };
 
 /**
  * Applies the saved language before the first screen is drawn and sends it to
  * the server with every request, so validation messages use the same language.
+ * A cookie carries it on full-page navigations, which cannot send the header.
  */
 export function initializeLocale(): void {
     if (typeof window === 'undefined') {
