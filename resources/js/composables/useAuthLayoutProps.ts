@@ -2,13 +2,7 @@ import { setLayoutProps } from '@inertiajs/vue3';
 import { watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-type AuthSection =
-    | 'login'
-    | 'register'
-    | 'forgot'
-    | 'reset'
-    | 'confirm'
-    | 'verify';
+type AuthSection = 'login' | 'forgot' | 'reset' | 'confirm' | 'verify';
 
 /**
  * Sets the auth layout title and description, and keeps them in the selected

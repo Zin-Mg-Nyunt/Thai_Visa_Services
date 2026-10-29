@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 dataset('admin sections', [
@@ -21,4 +22,13 @@ test('admins see the placeholder page for each section', function (string $route
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/ComingSoon')
             ->where('section', $section));
+})->with('admin sections');
+
+test('users without the superadmin role are refused', function (string $routeName) {
+    $user = User::factory()->create();
+    DB::table('users')->where('id', $user->id)->update(['role' => 'staff']);
+
+    $this->actingAs($user->fresh())
+        ->get(route($routeName))
+        ->assertForbidden();
 })->with('admin sections');

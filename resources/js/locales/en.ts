@@ -56,16 +56,6 @@ const en = {
             title: 'Log in to your account',
             description: 'Enter your email and password below to log in',
             submit: 'Log in',
-            noAccount: "Don't have an account?",
-            signUp: 'Sign up',
-        },
-        register: {
-            head: 'Register',
-            title: 'Create an account',
-            description: 'Enter your details below to create your account',
-            submit: 'Create account',
-            haveAccount: 'Already have an account?',
-            logIn: 'Log in',
         },
         forgot: {
             head: 'Forgot password',

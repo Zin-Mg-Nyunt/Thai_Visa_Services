@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -95,13 +94,6 @@ useAuthLayoutProps('login');
                 <Spinner v-if="processing" />
                 {{ t('auth.login.submit') }}
             </Button>
-        </div>
-
-        <div class="text-center text-sm text-muted-foreground">
-            {{ t('auth.login.noAccount') }}
-            <TextLink :href="register()" :tabindex="5">{{
-                t('auth.login.signUp')
-            }}</TextLink>
         </div>
     </Form>
 </template>
