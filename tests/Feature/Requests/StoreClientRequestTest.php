@@ -78,3 +78,12 @@ test('a birthday in the future and an unknown gender are rejected', function () 
 
     expect($errors)->toHaveKeys(['birthday', 'gender']);
 });
+
+test('birthday and gender errors are shown in Burmese when the locale is Burmese', function () {
+    app()->setLocale('my');
+
+    $errors = storeClientErrors(['birthday' => now()->addDay()->toDateString(), 'gender' => 'robot'] + validClientInput());
+
+    expect($errors['birthday'])->toBe(['မွေးနေ့ သည် ယနေ့ထက် စောသော ရက်စွဲ ဖြစ်ရပါမည်။'])
+        ->and($errors['gender'])->toBe(['ရွေးချယ်ထားသော ကျား/မ သည် မမှန်ကန်ပါ။']);
+});

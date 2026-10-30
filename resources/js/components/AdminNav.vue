@@ -6,7 +6,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { cn } from '@/lib/utils';
 import { dashboard, logout } from '@/routes';
-import { clients, jobSearch, services, settings } from '@/routes/admin';
+import { jobSearch, services, settings } from '@/routes/admin';
+import { index as clients } from '@/routes/admin/clients';
 import { edit as editProfile } from '@/routes/profile';
 import type { NavItem } from '@/types';
 
@@ -54,10 +55,13 @@ const handleLogout = () => {
             </Link>
         </nav>
 
-        <div class="flex flex-col items-start gap-4">
+        <div
+            class="flex flex-col gap-3 rounded-2xl bg-sidebar-accent p-3"
+            data-test="sidebar-card"
+        >
             <Link
                 :href="editProfile()"
-                class="flex w-full flex-col items-start gap-2 rounded-xl bg-sidebar-accent px-4 py-3 transition-colors hover:bg-sidebar-accent/70"
+                class="flex w-full flex-col items-start gap-2 rounded-xl px-2 py-2 transition-colors hover:bg-sidebar/40"
                 data-test="sidebar-user"
                 @click="emit('navigate')"
             >
@@ -73,11 +77,13 @@ const handleLogout = () => {
                     {{ t(`roles.${user.role}`) }}
                 </span>
             </Link>
-            <LanguageSwitcher tone="dark" />
+            <div class="border-t border-sidebar-border pt-3">
+                <LanguageSwitcher tone="dark" />
+            </div>
             <Link
                 :href="logout()"
                 as="button"
-                class="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                class="w-full rounded-xl px-2 py-2 text-left text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar/40"
                 data-test="logout-button"
                 @click="handleLogout"
             >

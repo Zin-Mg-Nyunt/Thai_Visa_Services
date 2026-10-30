@@ -44,6 +44,51 @@ const en = {
         comingSoon: 'This section is coming soon.',
         openMenu: 'Open menu',
     },
+    clients: {
+        title: 'Clients',
+        new: 'New client',
+        searchPlaceholder: 'Search by name or phone',
+        empty: 'No clients found.',
+        columns: {
+            name: 'Name',
+            phone: 'Phone',
+            birthday: 'Birthday',
+            gender: 'Gender',
+        },
+        gender: {
+            male: 'Male',
+            female: 'Female',
+        },
+        pagination: {
+            showing: 'Showing {from}–{to} of {total}',
+            page: 'Page {current} of {last}',
+            previous: 'Previous',
+            next: 'Next',
+        },
+        form: {
+            name: 'Name',
+            phone: 'Phone',
+            phoneHint:
+                'Use international format, for example +66 81 234 5678. A number starting with 0 is saved as a Thai number (+66).',
+            birthday: 'Birthday',
+            gender: 'Gender',
+            genderPlaceholder: 'Select gender',
+            remarks: 'Remarks',
+            remarksPlaceholder: 'Optional note',
+        },
+        create: {
+            head: 'New client',
+            title: 'New client',
+        },
+        edit: {
+            head: 'Edit client',
+            title: 'Edit client',
+        },
+        show: {
+            profile: 'Profile',
+            noRemarks: 'No remarks',
+        },
+    },
     settings: {
         title: 'Settings',
         description: 'Manage your profile and account settings',

@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 dataset('admin sections', [
-    'clients' => ['admin.clients', 'clients'],
     'services' => ['admin.services', 'services'],
     'job search' => ['admin.job-search', 'jobSearch'],
     'settings' => ['admin.settings', 'settings'],

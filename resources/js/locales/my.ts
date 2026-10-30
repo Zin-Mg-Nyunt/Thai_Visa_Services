@@ -46,6 +46,51 @@ const my: MessageSchema = {
         comingSoon: 'ဤအပိုင်းကို မကြာမီ ထည့်သွင်းပါမည်။',
         openMenu: 'မီနူးဖွင့်ရန်',
     },
+    clients: {
+        title: 'ဖောက်သည်များ',
+        new: 'ဖောက်သည်အသစ်',
+        searchPlaceholder: 'အမည် သို့မဟုတ် ဖုန်းနံပါတ်ဖြင့် ရှာပါ',
+        empty: 'ဖောက်သည် မတွေ့ပါ။',
+        columns: {
+            name: 'အမည်',
+            phone: 'ဖုန်း',
+            birthday: 'မွေးနေ့',
+            gender: 'ကျား/မ',
+        },
+        gender: {
+            male: 'ကျား',
+            female: 'မ',
+        },
+        pagination: {
+            showing: 'စုစုပေါင်း {total} ခုအနက် {from}–{to} ကို ပြထားသည်',
+            page: 'စာမျက်နှာ {current} / {last}',
+            previous: 'ရှေ့',
+            next: 'နောက်',
+        },
+        form: {
+            name: 'အမည်',
+            phone: 'ဖုန်းနံပါတ်',
+            phoneHint:
+                'နိုင်ငံတကာပုံစံဖြင့် ထည့်ပါ၊ ဥပမာ +66 81 234 5678။ 0 ဖြင့်စသော နံပါတ်ကို ထိုင်းနံပါတ် (+66) အဖြစ် သိမ်းပါမည်။',
+            birthday: 'မွေးနေ့',
+            gender: 'ကျား/မ',
+            genderPlaceholder: 'ကျား/မ ရွေးပါ',
+            remarks: 'မှတ်ချက်',
+            remarksPlaceholder: 'ထပ်ဆောင်းမှတ်ချက် (မဖြည့်လည်းရသည်)',
+        },
+        create: {
+            head: 'ဖောက်သည်အသစ်',
+            title: 'ဖောက်သည်အသစ်',
+        },
+        edit: {
+            head: 'ဖောက်သည် ပြင်ဆင်ရန်',
+            title: 'ဖောက်သည် ပြင်ဆင်ရန်',
+        },
+        show: {
+            profile: 'ပရိုဖိုင်',
+            noRemarks: 'မှတ်ချက် မရှိပါ',
+        },
+    },
     settings: {
         title: 'ဆက်တင်များ',
         description: 'သင့်ပရိုဖိုင်နှင့် အကောင့်ဆက်တင်များကို စီမံပါ',
