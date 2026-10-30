@@ -56,3 +56,20 @@ test('the tracking token cannot be set by mass assignment', function () {
 
     expect($client->unique_token)->not->toBe('chosen-by-the-caller');
 });
+
+test('phone numbers are stored in international format', function (string $typed) {
+    $client = Client::factory()->create(['phone' => $typed]);
+
+    expect($client->fresh()->phone)->toBe('+66812345678');
+})->with([
+    'local number with spaces' => '081 234 5678',
+    'international with dashes' => '+66 81-234-5678',
+    'double zero prefix' => '0066812345678',
+    'brackets and dots' => '(081) 234.5678',
+]);
+
+test('a phone number from another country keeps its country code', function () {
+    $client = Client::factory()->create(['phone' => '+95 9 123 456 789']);
+
+    expect($client->fresh()->phone)->toBe('+959123456789');
+});

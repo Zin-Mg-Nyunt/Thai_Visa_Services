@@ -181,8 +181,9 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'phone' => [
+            'regex' => 'The phone number must be in international format, for example +66 81 234 5678.',
+            'unique' => 'A client with this phone number already exists.',
         ],
     ],
 
