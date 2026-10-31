@@ -59,3 +59,17 @@ test('a client cannot take the phone number of another client', function () {
 
     expect($errors['phone'])->toBe(['A client with this phone number already exists.']);
 });
+
+test('a client may take the phone number of a deleted client', function () {
+    Client::factory()->create(['phone' => '+66899999999'])->delete();
+    $client = Client::factory()->create();
+
+    $errors = updateClientErrors($client, [
+        'name' => $client->name,
+        'phone' => '089 999 9999',
+        'birthday' => '1995-03-12',
+        'gender' => 'male',
+    ]);
+
+    expect($errors)->toBe([]);
+});

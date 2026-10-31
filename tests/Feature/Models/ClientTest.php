@@ -23,6 +23,33 @@ test('two clients cannot share a phone number', function () {
     Client::factory()->create(['phone' => '+66812345678']);
 })->throws(UniqueConstraintViolationException::class);
 
+test('a deleted client and an active client can share a phone number', function () {
+    $deleted = Client::factory()->create(['phone' => '+66812345678']);
+    $deleted->delete();
+
+    $active = Client::factory()->create(['phone' => '+66812345678']);
+
+    expect($active->phone)->toBe($deleted->phone)
+        ->and($active->id)->not->toBe($deleted->id)
+        ->and(Client::count())->toBe(1)
+        ->and(Client::withTrashed()->count())->toBe(2);
+});
+
+test('several deleted clients can share a phone number with one active client', function () {
+    Client::factory()->create(['phone' => '+66812345678'])->delete();
+    Client::factory()->create(['phone' => '+66812345678'])->delete();
+    Client::factory()->create(['phone' => '+66812345678']);
+
+    expect(Client::withTrashed()->where('phone', '+66812345678')->count())->toBe(3);
+});
+
+test('a phone number that an active client uses stays unique after another client with it is deleted', function () {
+    Client::factory()->create(['phone' => '+66812345678'])->delete();
+    Client::factory()->create(['phone' => '+66812345678']);
+
+    Client::factory()->create(['phone' => '+66812345678']);
+})->throws(UniqueConstraintViolationException::class);
+
 test('a client without a phone number cannot be created', function () {
     Client::factory()->create(['phone' => null]);
 })->throws(QueryException::class);

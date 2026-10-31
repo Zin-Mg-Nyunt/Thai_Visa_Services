@@ -23,8 +23,8 @@ trait ClientValidationRules
                 'string',
                 'regex:/^\+[1-9]\d{7,14}$/',
                 $client === null
-                    ? Rule::unique(Client::class)
-                    : Rule::unique(Client::class)->ignore($client),
+                    ? Rule::unique(Client::class)->withoutTrashed()
+                    : Rule::unique(Client::class)->withoutTrashed()->ignore($client),
             ],
             'birthday' => ['required', 'date', 'before:today'],
             'gender' => ['required', Rule::enum(Gender::class)],

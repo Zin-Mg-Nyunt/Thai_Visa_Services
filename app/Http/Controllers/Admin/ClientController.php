@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DeleteClientRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
@@ -102,5 +103,18 @@ class ClientController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Client updated.')]);
 
         return to_route('admin.clients.show', $client);
+    }
+
+    /**
+     * Delete a client after the admin has typed the client's phone number.
+     * The record is soft-deleted so reports keep their history.
+     */
+    public function destroy(DeleteClientRequest $request, Client $client): RedirectResponse
+    {
+        $client->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Client deleted.')]);
+
+        return to_route('admin.clients.index');
     }
 }

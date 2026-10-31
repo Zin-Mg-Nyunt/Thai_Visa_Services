@@ -48,6 +48,12 @@ test('a phone number that exists in another format is rejected as a duplicate', 
     expect($errors['phone'])->toBe(['A client with this phone number already exists.']);
 });
 
+test('a phone number that only a deleted client has is accepted', function () {
+    Client::factory()->create(['phone' => '+66812345678'])->delete();
+
+    expect(storeClientErrors(validClientInput()))->toBe([]);
+});
+
 test('the duplicate phone message is shown in Burmese when the locale is Burmese', function () {
     app()->setLocale('my');
     Client::factory()->create(['phone' => '+66812345678']);

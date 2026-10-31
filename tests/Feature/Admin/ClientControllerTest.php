@@ -16,7 +16,7 @@ function newClientInput(): array
 test('guests are redirected to the login page', function (string $method, string $routeName) {
     $client = Client::factory()->create();
 
-    $this->{$method}(route($routeName, in_array($routeName, ['admin.clients.show', 'admin.clients.edit', 'admin.clients.update']) ? $client : []))
+    $this->{$method}(route($routeName, in_array($routeName, ['admin.clients.show', 'admin.clients.edit', 'admin.clients.update', 'admin.clients.destroy']) ? $client : []))
         ->assertRedirect(route('login'));
 })->with([
     'index' => ['get', 'admin.clients.index'],
@@ -25,6 +25,7 @@ test('guests are redirected to the login page', function (string $method, string
     'show' => ['get', 'admin.clients.show'],
     'edit' => ['get', 'admin.clients.edit'],
     'update' => ['put', 'admin.clients.update'],
+    'destroy' => ['delete', 'admin.clients.destroy'],
 ]);
 
 test('users without the superadmin role are refused', function () {
@@ -116,6 +117,22 @@ describe('store', function () {
             ->and($client->unique_token)->not->toBeEmpty();
     });
 
+    test('creates a new record when the phone number belonged to a deleted client', function () {
+        $deleted = Client::factory()->create(['phone' => '+66812345678']);
+        $deleted->delete();
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.clients.store'), newClientInput())
+            ->assertSessionHasNoErrors();
+
+        $created = Client::firstOrFail();
+
+        expect($created->id)->not->toBe($deleted->id)
+            ->and($created->phone)->toBe('+66812345678')
+            ->and($created->unique_token)->not->toBe($deleted->unique_token)
+            ->and(Client::withTrashed()->find($deleted->id)->trashed())->toBeTrue();
+    });
+
     test('rejects a duplicate phone number typed in another format', function () {
         Client::factory()->create(['phone' => '+66812345678']);
 
@@ -203,5 +220,64 @@ describe('update', function () {
             ->assertSessionHasErrors('phone');
 
         expect($client->fresh()->phone)->not->toBe('+66899999999');
+    });
+});
+
+describe('destroy', function () {
+    test('soft-deletes the client after the phone number is typed and returns to the list', function () {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('admin.clients.destroy', $client), ['confirmation' => '+66812345678'])
+            ->assertRedirect(route('admin.clients.index'));
+
+        expect(Client::find($client->id))->toBeNull()
+            ->and(Client::withTrashed()->find($client->id)->deleted_at)->not->toBeNull();
+    });
+
+    test('accepts the phone number typed in another format', function () {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('admin.clients.destroy', $client), ['confirmation' => '081 234 5678'])
+            ->assertRedirect(route('admin.clients.index'));
+
+        expect(Client::find($client->id))->toBeNull();
+    });
+
+    test('keeps the client when the confirmation is missing or wrong', function (?string $confirmation) {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('admin.clients.destroy', $client), array_filter(['confirmation' => $confirmation]))
+            ->assertSessionHasErrors('confirmation');
+
+        expect(Client::find($client->id))->not->toBeNull();
+    })->with([
+        'missing' => null,
+        'another phone number' => '+66899999999',
+        'the client name' => 'Aung Min',
+    ]);
+
+    test('a deleted client no longer appears in the list', function () {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('admin.clients.destroy', $client), ['confirmation' => '+66812345678']);
+
+        $this->get(route('admin.clients.index'))
+            ->assertInertia(fn (Assert $page) => $page->has('clients.data', 0));
+    });
+
+    test('is refused for a user without the superadmin role', function () {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+        $user = User::factory()->create();
+        DB::table('users')->where('id', $user->id)->update(['role' => 'staff']);
+
+        $this->actingAs($user->fresh())
+            ->delete(route('admin.clients.destroy', $client), ['confirmation' => '+66812345678'])
+            ->assertForbidden();
+
+        expect(Client::find($client->id))->not->toBeNull();
     });
 });

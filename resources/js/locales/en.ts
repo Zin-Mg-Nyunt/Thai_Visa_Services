@@ -84,6 +84,12 @@ const en = {
             head: 'Edit client',
             title: 'Edit client',
         },
+        delete: {
+            title: 'Delete this client?',
+            description:
+                'The client will be removed from the lists, and their profile photo and PDF documents will be permanently erased. This cannot be undone. Payment totals and the client count stay in the reports.',
+            confirmLabel: 'Type {phone} to confirm',
+        },
         show: {
             profile: 'Profile',
             noRemarks: 'No remarks',

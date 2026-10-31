@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { edit, index } from '@/routes/admin/clients';
@@ -14,6 +16,23 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const person = computed(() => props.client.data);
+
+const isDeleteOpen = ref(false);
+const isDeleting = ref(false);
+
+const deleteError = ref('');
+
+const deleteClient = (confirmation: string) => {
+    router.delete(destroy.url(person.value.id), {
+        data: { confirmation },
+        onStart: () => {
+            isDeleting.value = true;
+            deleteError.value = '';
+        },
+        onError: (errors) => (deleteError.value = errors.confirmation ?? ''),
+        onFinish: () => (isDeleting.value = false),
+    });
+};
 
 const details = computed(() => [
     {
@@ -39,6 +58,14 @@ const details = computed(() => [
         <div class="flex items-center gap-3">
             <Button as-child variant="pillOutline">
                 <Link :href="index()">{{ t('common.back') }}</Link>
+            </Button>
+            <Button
+                variant="pillOutline"
+                class="border-destructive text-destructive hover:bg-destructive hover:text-white"
+                data-test="delete-client-button"
+                @click="isDeleteOpen = true"
+            >
+                {{ t('common.delete') }}
             </Button>
             <Button as-child variant="pill">
                 <Link :href="edit(person.id)" data-test="edit-client-link">{{
@@ -77,4 +104,16 @@ const details = computed(() => [
             </div>
         </dl>
     </section>
+    <ConfirmDialog
+        v-model:open="isDeleteOpen"
+        :title="t('clients.delete.title')"
+        :description="t('clients.delete.description')"
+        :required-text="person.phone"
+        :required-text-label="
+            t('clients.delete.confirmLabel', { phone: person.phone })
+        "
+        :error="deleteError"
+        :processing="isDeleting"
+        @confirm="deleteClient"
+    />
 </template>
