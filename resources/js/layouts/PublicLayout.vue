@@ -14,13 +14,13 @@ const name = usePage().props.name;
     <div class="flex min-h-svh flex-col bg-background">
         <header class="bg-brand-dark text-white">
             <div
-                class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8"
+                class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8"
             >
-                <Link :href="home()" class="flex items-center gap-3">
+                <Link :href="home()" class="flex min-w-0 items-center gap-3">
                     <AppLogoIcon variant="white" class="size-10 rounded-lg" />
-                    <span class="text-lg font-bold">{{ name }}</span>
+                    <span class="truncate text-lg font-bold">{{ name }}</span>
                 </Link>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <LanguageSwitcher tone="dark" />
                     <Button as-child class="rounded-full font-semibold">
                         <Link :href="login()">{{

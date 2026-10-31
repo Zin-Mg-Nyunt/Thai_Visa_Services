@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { update } from '@/routes/password';
+import { pageTitle } from '@/lib/pageTitle';
 
 const props = defineProps<{
     token: string;
@@ -24,7 +25,7 @@ useAuthLayoutProps('reset');
 </script>
 
 <template>
-    <Head :title="t('auth.reset.head')" />
+    <Head :title="pageTitle('auth.reset.head')" />
 
     <Form
         v-bind="update.form()"

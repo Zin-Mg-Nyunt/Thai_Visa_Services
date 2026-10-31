@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { send } from '@/routes/verification';
+import { pageTitle } from '@/lib/pageTitle';
 
 const { t } = useI18n();
 const page = usePage();
@@ -17,7 +18,7 @@ const user = computed(() => page.props.auth.user);
 </script>
 
 <template>
-    <Head :title="t('settings.profile.head')" />
+    <Head :title="pageTitle('settings.profile.head')" />
 
     <h1 class="sr-only">{{ t('settings.profile.head') }}</h1>
 

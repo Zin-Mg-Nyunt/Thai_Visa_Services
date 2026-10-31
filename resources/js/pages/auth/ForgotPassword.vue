@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
+import { pageTitle } from '@/lib/pageTitle';
 
 defineProps<{
     status?: string;
@@ -20,7 +21,7 @@ useAuthLayoutProps('forgot');
 </script>
 
 <template>
-    <Head :title="t('auth.forgot.head')" />
+    <Head :title="pageTitle('auth.forgot.head')" />
 
     <div
         v-if="status"

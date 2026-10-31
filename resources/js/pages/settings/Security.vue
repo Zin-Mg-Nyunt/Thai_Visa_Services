@@ -7,6 +7,7 @@ import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { pageTitle } from '@/lib/pageTitle';
 
 // oxfmt-ignore
 type Props = {
@@ -19,7 +20,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-    <Head :title="t('settings.security.head')" />
+    <Head :title="pageTitle('settings.security.head')" />
 
     <h1 class="sr-only">{{ t('settings.security.head') }}</h1>
 

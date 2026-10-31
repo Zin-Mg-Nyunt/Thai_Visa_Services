@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { ShieldCheck, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
@@ -17,10 +18,12 @@ const sidebarNavItems = computed<NavItem[]>(() => [
     {
         title: t('settings.nav.profile'),
         href: editProfile(),
+        icon: UserRound,
     },
     {
         title: t('settings.nav.security'),
         href: editSecurity(),
+        icon: ShieldCheck,
     },
 ]);
 

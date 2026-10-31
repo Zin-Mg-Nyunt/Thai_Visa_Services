@@ -281,3 +281,15 @@ describe('destroy', function () {
         expect(Client::find($client->id))->not->toBeNull();
     });
 });
+
+describe('tracking access', function () {
+    test('the detail page receives the tracking link', function () {
+        $client = Client::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.show', $client))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('trackingUrl', url("/track/{$client->unique_token}"))
+                ->missing('client.data.unique_token'));
+    });
+});

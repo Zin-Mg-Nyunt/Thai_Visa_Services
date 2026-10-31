@@ -44,7 +44,6 @@ const my: MessageSchema = {
     },
     admin: {
         comingSoon: 'ဤအပိုင်းကို မကြာမီ ထည့်သွင်းပါမည်။',
-        openMenu: 'မီနူးဖွင့်ရန်',
     },
     clients: {
         title: 'ဖောက်သည်များ',
@@ -95,6 +94,18 @@ const my: MessageSchema = {
         show: {
             profile: 'ပရိုဖိုင်',
             noRemarks: 'မှတ်ချက် မရှိပါ',
+        },
+        tracking: {
+            generateQr: 'QR ကုဒ် ထုတ်ရန်',
+            scanHint: 'QR ကုဒ်ကို စကင်ဖတ်ပြီး သင့်ဖုန်းနံပါတ်၏ နောက်ဆုံးဂဏန်း ၄ လုံးကို ရိုက်ထည့်ပါ။',
+            title: 'လက်လှမ်းမီမှု မျှဝေရန်',
+            description:
+                'ဤလင့်ခ် သို့မဟုတ် QR ကုဒ်ကို ဖောက်သည်ထံ ပို့ပါ။ ဝင်ရောက်ရန် ဖုန်းနံပါတ်၏ နောက်ဆုံးဂဏန်း ၄ လုံးလည်း လိုအပ်သည်။',
+            linkLabel: 'ခြေရာခံလင့်ခ်',
+            copy: 'လင့်ခ် ကူးယူရန်',
+            copied: 'လင့်ခ်ကို ကူးယူပြီးပါပြီ',
+            qrAlt: 'ခြေရာခံလင့်ခ်၏ QR ကုဒ်',
+            downloadCard: 'ကတ် ဒေါင်းလုဒ်လုပ်ရန်',
         },
     },
     settings: {
@@ -171,8 +182,13 @@ const my: MessageSchema = {
     },
     language: {
         label: 'ဘာသာစကား',
+        switchTo: 'ဘာသာစကားကို {language} သို့ ပြောင်းရန်',
         en: 'EN',
-        my: 'မြန်မာ',
+        my: 'MY',
+        name: {
+            en: 'English',
+            my: 'မြန်မာ',
+        },
     },
 };
 

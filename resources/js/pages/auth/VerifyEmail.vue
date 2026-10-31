@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
+import { pageTitle } from '@/lib/pageTitle';
 
 defineProps<{
     status?: string;
@@ -17,7 +18,7 @@ useAuthLayoutProps('verify');
 </script>
 
 <template>
-    <Head :title="t('auth.verify.head')" />
+    <Head :title="pageTitle('auth.verify.head')" />
 
     <div
         v-if="status === 'verification-link-sent'"

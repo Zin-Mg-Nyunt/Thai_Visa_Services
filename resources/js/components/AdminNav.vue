@@ -1,36 +1,24 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { LogOut, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { useAdminNavItems } from '@/composables/useAdminNavItems';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { cn } from '@/lib/utils';
-import { dashboard, logout } from '@/routes';
-import { jobSearch, services, settings } from '@/routes/admin';
-import { index as clients } from '@/routes/admin/clients';
+import { logout } from '@/routes';
 import { edit as editProfile } from '@/routes/profile';
-import type { NavItem } from '@/types';
-
-const emit = defineEmits<{
-    navigate: [];
-}>();
 
 const { t } = useI18n();
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const { isCurrentOrParentUrl } = useCurrentUrl();
 
-const items = computed<NavItem[]>(() => [
-    { title: t('nav.dashboard'), href: dashboard() },
-    { title: t('nav.clients'), href: clients() },
-    { title: t('nav.services'), href: services() },
-    { title: t('nav.jobSearch'), href: jobSearch() },
-    { title: t('nav.settings'), href: settings() },
-]);
+const items = useAdminNavItems();
 
 const handleLogout = () => {
     router.flushAll();
-    emit('navigate');
 };
 </script>
 
@@ -43,14 +31,14 @@ const handleLogout = () => {
                 :href="item.href"
                 :class="
                     cn(
-                        'rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                        'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
                         isCurrentOrParentUrl(item.href)
                             ? 'bg-sidebar-primary font-semibold text-sidebar-primary-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     )
                 "
-                @click="emit('navigate')"
             >
+                <component :is="item.icon" class="size-5 shrink-0" />
                 {{ item.title }}
             </Link>
         </nav>
@@ -63,12 +51,12 @@ const handleLogout = () => {
                 :href="editProfile()"
                 class="flex w-full flex-col items-start gap-2 rounded-xl px-2 py-2 transition-colors hover:bg-sidebar/40"
                 data-test="sidebar-user"
-                @click="emit('navigate')"
             >
                 <span
-                    class="w-full truncate text-sm font-semibold text-sidebar-accent-foreground"
+                    class="flex w-full items-center gap-2 text-sm font-semibold text-sidebar-accent-foreground"
                 >
-                    {{ user.name }}
+                    <UserRound class="size-4 shrink-0" />
+                    <span class="truncate">{{ user.name }}</span>
                 </span>
                 <span
                     class="rounded-full bg-sidebar-primary px-2.5 py-0.5 text-xs font-semibold text-sidebar-primary-foreground"
@@ -83,10 +71,11 @@ const handleLogout = () => {
             <Link
                 :href="logout()"
                 as="button"
-                class="w-full rounded-xl px-2 py-2 text-left text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar/40"
+                class="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar/40"
                 data-test="logout-button"
                 @click="handleLogout"
             >
+                <LogOut class="size-4 shrink-0" />
                 {{ t('nav.signOut') }}
             </Link>
         </div>

@@ -42,7 +42,6 @@ const en = {
     },
     admin: {
         comingSoon: 'This section is coming soon.',
-        openMenu: 'Open menu',
     },
     clients: {
         title: 'Clients',
@@ -93,6 +92,19 @@ const en = {
         show: {
             profile: 'Profile',
             noRemarks: 'No remarks',
+        },
+        tracking: {
+            generateQr: 'Generate QR code',
+            scanHint:
+                'Scan the QR code, then enter the last 4 digits of your phone number.',
+            title: 'Share access',
+            description:
+                'Send this link or QR code to the client. They also need the last 4 digits of their phone number to sign in.',
+            linkLabel: 'Tracking link',
+            copy: 'Copy link',
+            copied: 'Link copied',
+            qrAlt: 'QR code for the tracking link',
+            downloadCard: 'Download card',
         },
     },
     settings: {
@@ -171,8 +183,13 @@ const en = {
     },
     language: {
         label: 'Language',
+        switchTo: 'Switch language to {language}',
         en: 'EN',
-        my: 'မြန်မာ',
+        my: 'MY',
+        name: {
+            en: 'English',
+            my: 'မြန်မာ',
+        },
     },
 };
 

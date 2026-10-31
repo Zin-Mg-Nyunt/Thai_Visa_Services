@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import type { PaginatedClients } from '@/types';
@@ -26,7 +27,7 @@ const { t } = useI18n();
                 })
             }}
         </span>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
             <Button
                 v-if="links.prev"
                 as-child
@@ -35,9 +36,16 @@ const { t } = useI18n();
                 class="cursor-pointer"
                 preserve-scroll
             >
-                <Link :href="links.prev" preserve-scroll>{{
-                    t('clients.pagination.previous')
-                }}</Link>
+                <Link
+                    :href="links.prev"
+                    :aria-label="t('clients.pagination.previous')"
+                    preserve-scroll
+                >
+                    <ChevronLeft class="size-4" />
+                    <span class="hidden sm:inline">{{
+                        t('clients.pagination.previous')
+                    }}</span>
+                </Link>
             </Button>
             <Button
                 v-else
@@ -45,8 +53,12 @@ const { t } = useI18n();
                 size="sm"
                 disabled
                 type="button"
+                :aria-label="t('clients.pagination.previous')"
             >
-                {{ t('clients.pagination.previous') }}
+                <ChevronLeft class="size-4" />
+                <span class="hidden sm:inline">{{
+                    t('clients.pagination.previous')
+                }}</span>
             </Button>
             <span>
                 {{
@@ -60,9 +72,14 @@ const { t } = useI18n();
                 <Link
                     :href="links.next"
                     class="cursor-pointer"
+                    :aria-label="t('clients.pagination.next')"
                     preserve-scroll
-                    >{{ t('clients.pagination.next') }}</Link
                 >
+                    <span class="hidden sm:inline">{{
+                        t('clients.pagination.next')
+                    }}</span>
+                    <ChevronRight class="size-4" />
+                </Link>
             </Button>
             <Button
                 v-else
@@ -70,8 +87,12 @@ const { t } = useI18n();
                 size="sm"
                 disabled
                 type="button"
+                :aria-label="t('clients.pagination.next')"
             >
-                {{ t('clients.pagination.next') }}
+                <span class="hidden sm:inline">{{
+                    t('clients.pagination.next')
+                }}</span>
+                <ChevronRight class="size-4" />
             </Button>
         </div>
     </div>

@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { Menu } from '@lucide/vue';
-import { ref } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { LogOut } from '@lucide/vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AdminBottomNav from '@/components/AdminBottomNav.vue';
 import AdminNav from '@/components/AdminNav.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import { Button } from '@/components/ui/button';
-import {
-    Sheet,
-    SheetContent,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { Toaster } from '@/components/ui/sonner';
-import { dashboard } from '@/routes';
+import { dashboard, logout } from '@/routes';
+import { edit as editProfile } from '@/routes/profile';
 
 const { t } = useI18n();
-const isMenuOpen = ref(false);
+const page = usePage();
+const siteName = page.props.name;
+const user = computed(() => page.props.auth.user);
+
+const handleLogout = () => {
+    router.flushAll();
+};
 </script>
 
 <template>
@@ -24,51 +26,73 @@ const isMenuOpen = ref(false);
         <aside
             class="fixed inset-y-0 left-0 hidden w-60 flex-col gap-8 bg-sidebar p-4 lg:flex"
         >
-            <Link :href="dashboard()" class="w-fit">
+            <Link :href="dashboard()" class="flex w-fit items-center gap-2">
                 <AppLogoIcon variant="white" class="size-12 rounded-xl" />
+                <span
+                    class="hidden text-lg font-bold text-sidebar-foreground sm:inline"
+                >
+                    {{ siteName }}
+                </span>
             </Link>
             <AdminNav class="min-h-0 flex-1" />
         </aside>
 
         <header
-            class="sticky top-0 z-30 flex items-center justify-between bg-sidebar px-4 py-3 lg:hidden"
+            class="sticky top-0 z-30 flex items-center justify-between gap-2 bg-sidebar px-3 py-2 lg:hidden"
+            data-test="top-bar"
         >
-            <Link :href="dashboard()">
+            <Link
+                :href="dashboard()"
+                class="flex shrink-0 items-center gap-3"
+                :aria-label="siteName"
+            >
                 <AppLogoIcon variant="white" class="size-10 rounded-lg" />
-            </Link>
-            <Sheet v-model:open="isMenuOpen">
-                <SheetTrigger as-child>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        :aria-label="t('admin.openMenu')"
-                    >
-                        <Menu />
-                    </Button>
-                </SheetTrigger>
-                <SheetContent
-                    side="left"
-                    class="w-64 border-sidebar-border bg-sidebar p-4"
+                <span
+                    class="hidden text-lg font-bold text-sidebar-foreground sm:inline"
                 >
-                    <SheetTitle class="sr-only">{{
-                        t('admin.openMenu')
-                    }}</SheetTitle>
-                    <AppLogoIcon
-                        variant="white"
-                        class="mb-8 size-12 rounded-xl"
-                    />
-                    <AdminNav
-                        class="h-[calc(100%-5rem)]"
-                        @navigate="isMenuOpen = false"
-                    />
-                </SheetContent>
-            </Sheet>
+                    {{ siteName }}
+                </span>
+            </Link>
+
+            <div class="flex min-w-0 items-center justify-end gap-2">
+                <Link
+                    :href="editProfile()"
+                    class="flex min-w-0 flex-col items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-sidebar-accent"
+                    data-test="top-bar-user"
+                >
+                    <span
+                        class="max-w-20 truncate text-sm font-semibold text-sidebar-foreground sm:max-w-40"
+                    >
+                        {{ user.name }}
+                    </span>
+                    <span
+                        class="shrink-0 rounded-full bg-sidebar-primary px-2 py-0.5 text-xs font-semibold text-sidebar-primary-foreground"
+                        data-test="top-bar-role-badge"
+                    >
+                        {{ t(`roles.${user.role}`) }}
+                    </span>
+                </Link>
+                <LanguageSwitcher tone="dark" />
+                <Link
+                    :href="logout()"
+                    as="button"
+                    class="flex size-9 shrink-0 items-center justify-center rounded-full text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                    :aria-label="t('nav.signOut')"
+                    :title="t('nav.signOut')"
+                    data-test="top-bar-logout-button"
+                    @click="handleLogout"
+                >
+                    <LogOut class="size-5" />
+                </Link>
+            </div>
         </header>
 
-        <main class="min-w-0 p-4 md:p-8 lg:pl-68">
+        <main
+            class="min-w-0 overflow-x-clip p-4 pb-24 md:p-8 md:pb-28 lg:pb-8 lg:pl-68"
+        >
             <slot />
         </main>
-        <Toaster />
+        <AdminBottomNav />
+        <Toaster :mobile-offset="{ bottom: 88 }" />
     </div>
 </template>

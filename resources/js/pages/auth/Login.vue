@@ -13,6 +13,7 @@ import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { redirect as googleRedirect } from '@/routes/auth/google';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+import { pageTitle } from '@/lib/pageTitle';
 
 defineProps<{
     status?: string;
@@ -26,7 +27,7 @@ useAuthLayoutProps('login');
 </script>
 
 <template>
-    <Head :title="t('auth.login.head')" />
+    <Head :title="pageTitle('auth.login.head')" />
 
     <div
         v-if="status"
@@ -60,7 +61,9 @@ useAuthLayoutProps('login');
             </div>
 
             <div class="grid gap-2">
-                <div class="flex items-center justify-between">
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-3"
+                >
                     <Label for="password">{{ t('auth.password') }}</Label>
                     <TextLink
                         v-if="canResetPassword"

@@ -41,6 +41,14 @@ class Client extends Model
     }
 
     /**
+     * The link the client opens (or scans as a QR code) to reach the PIN page.
+     */
+    public function trackingUrl(): string
+    {
+        return url("/track/{$this->unique_token}");
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { pageTitle } from '@/lib/pageTitle';
 
 const props = defineProps<{
     section: 'clients' | 'services' | 'jobSearch' | 'settings';
@@ -12,7 +13,7 @@ const title = computed(() => t(`nav.${props.section}`));
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle(`nav.${section}`)" />
 
     <h1 class="text-2xl font-bold text-brand-dark">{{ title }}</h1>
     <p class="mt-2 text-muted-foreground">{{ t('admin.comingSoon') }}</p>

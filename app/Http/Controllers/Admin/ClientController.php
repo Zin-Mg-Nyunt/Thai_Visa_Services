@@ -78,6 +78,7 @@ class ClientController extends Controller
 
         return Inertia::render('admin/clients/Show', [
             'client' => ClientResource::make($client),
+            'trackingUrl' => $client->trackingUrl(),
         ]);
     }
 

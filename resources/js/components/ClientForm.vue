@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link, useForm } from '@inertiajs/vue3';
+import { Save, X } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import {
     store,
@@ -46,7 +47,7 @@ const submit = () => {
 
 <template>
     <form
-        class="max-w-3xl space-y-6 rounded-2xl border bg-card p-6 shadow-xs"
+        class="max-w-3xl space-y-6 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
         @submit.prevent="submit"
     >
         <div class="grid gap-6 md:grid-cols-2">
@@ -132,16 +133,23 @@ const submit = () => {
             </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3">
-            <Button as-child variant="pillOutline">
-                <Link :href="cancelHref()">{{ t('common.cancel') }}</Link>
+        <div
+            class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end"
+        >
+            <Button as-child variant="pillOutline" class="w-full sm:w-auto">
+                <Link :href="cancelHref()">
+                    <X class="size-4" />
+                    {{ t('common.cancel') }}
+                </Link>
             </Button>
             <Button
                 type="submit"
                 variant="pill"
+                class="w-full sm:w-auto"
                 :disabled="form.processing"
                 data-test="save-client-button"
             >
+                <Save class="size-4" />
                 {{ t('common.save') }}
             </Button>
         </div>

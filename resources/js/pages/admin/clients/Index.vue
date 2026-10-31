@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Cake, Phone, Plus, Search, UserRound } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { formatDate } from '@/lib/format';
 import { create, index, show } from '@/routes/admin/clients';
 import type { PaginatedClients } from '@/types';
+import { pageTitle } from '@/lib/pageTitle';
 
 const props = defineProps<{
     clients: PaginatedClients;
@@ -33,31 +35,78 @@ watchDebounced(
 </script>
 
 <template>
-    <Head :title="t('clients.title')" />
+    <Head :title="pageTitle('clients.title')" />
 
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-2xl font-bold text-brand-dark">
             {{ t('clients.title') }}
         </h1>
         <Button as-child variant="pill">
-            <Link :href="create()" data-test="new-client-link">{{
-                t('clients.new')
-            }}</Link>
+            <Link
+                :href="create()"
+                :aria-label="t('clients.new')"
+                :title="t('clients.new')"
+                data-test="new-client-link"
+            >
+                <Plus class="size-4" />
+                <span class="hidden sm:inline">{{ t('clients.new') }}</span>
+            </Link>
         </Button>
     </div>
 
     <section class="space-y-4 rounded-2xl border bg-card p-4 shadow-xs md:p-6">
-        <Input
-            v-model="query"
-            type="search"
-            class="h-11 rounded-xl"
-            :placeholder="t('clients.searchPlaceholder')"
-            :aria-label="t('common.search')"
-            data-test="client-search"
-        />
+        <div class="relative">
+            <Search
+                class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+                v-model="query"
+                type="search"
+                class="h-11 rounded-xl pl-10"
+                :placeholder="t('clients.searchPlaceholder')"
+                :aria-label="t('common.search')"
+                data-test="client-search"
+            />
+        </div>
 
-        <div v-if="clients.data.length" class="overflow-x-auto">
-            <table class="w-full min-w-xl text-left text-sm">
+        <ul v-if="clients.data.length" class="space-y-3 md:hidden">
+            <li
+                v-for="client in clients.data"
+                :key="client.id"
+                class="rounded-xl border p-4 text-sm"
+            >
+                <Link
+                    :href="show(client.id)"
+                    class="block font-semibold wrap-break-word text-brand-dark hover:underline"
+                >
+                    {{ client.name }}
+                </Link>
+                <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                    <dt class="flex items-center gap-1.5 text-muted-foreground">
+                        <Phone class="size-3.5" />
+                        {{ t('clients.columns.phone') }}
+                    </dt>
+                    <dd class="text-right break-all">{{ client.phone }}</dd>
+                    <dt class="flex items-center gap-1.5 text-muted-foreground">
+                        <Cake class="size-3.5" />
+                        {{ t('clients.columns.birthday') }}
+                    </dt>
+                    <dd class="text-right">
+                        {{ formatDate(client.birthday) }}
+                    </dd>
+                    <dt class="flex items-center gap-1.5 text-muted-foreground">
+                        <UserRound class="size-3.5" />
+                        {{ t('clients.columns.gender') }}
+                    </dt>
+                    <dd class="text-right">
+                        {{ t(`clients.gender.${client.gender}`) }}
+                    </dd>
+                </dl>
+            </li>
+        </ul>
+
+        <div v-if="clients.data.length" class="hidden overflow-x-auto md:block">
+            <table class="w-full text-left text-sm">
                 <thead
                     class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                 >

@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { store } from '@/routes/password/confirm';
+import { pageTitle } from '@/lib/pageTitle';
 
 const { t } = useI18n();
 useAuthLayoutProps('confirm');
 </script>
 
 <template>
-    <Head :title="t('auth.confirm.head')" />
+    <Head :title="pageTitle('auth.confirm.head')" />
 
     <Form
         v-bind="store.form()"

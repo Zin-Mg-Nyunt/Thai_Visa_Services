@@ -12,7 +12,11 @@ const name = usePage().props.name;
 
     <section class="bg-brand-dark text-white">
         <div class="mx-auto max-w-6xl px-4 py-20 md:px-8 md:py-28">
-            <h1 class="text-4xl font-bold md:text-5xl">{{ name }}</h1>
+            <h1
+                class="text-3xl font-bold wrap-break-word sm:text-4xl md:text-5xl"
+            >
+                {{ name }}
+            </h1>
             <div class="mt-8 flex flex-wrap gap-3">
                 <Button as-child class="rounded-full font-semibold">
                     <a href="#services">{{ t('landing.ourServices') }}</a>
