@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -21,6 +21,10 @@ const isDeleteOpen = ref(false);
 const isDeleting = ref(false);
 
 const deleteError = ref('');
+
+watch(isDeleteOpen, () => {
+    deleteError.value = '';
+});
 
 const deleteClient = (confirmation: string) => {
     router.delete(destroy.url(person.value.id), {
@@ -61,7 +65,7 @@ const details = computed(() => [
             </Button>
             <Button
                 variant="pillOutline"
-                class="border-destructive text-destructive hover:bg-destructive hover:text-white"
+                class="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 data-test="delete-client-button"
                 @click="isDeleteOpen = true"
             >
