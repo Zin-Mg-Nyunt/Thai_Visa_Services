@@ -93,6 +93,21 @@ const en = {
             profile: 'Profile',
             noRemarks: 'No remarks',
         },
+        pinLog: {
+            title: 'Wrong PIN log',
+            description:
+                "Wrong PINs typed on this client's link, newest first. The PIN itself is never saved. Five wrong tries lock the link for 15 minutes.",
+            locked: 'The link is locked. About {minutes} min left.',
+            unlock: 'Unlock link',
+            empty: 'No wrong PINs so far.',
+            time: 'Time',
+            ip: 'IP address',
+            browser: 'Browser',
+            result: 'Result',
+            wrong: 'Wrong PIN',
+            lockedResult: 'Locked the link',
+            latest: 'Showing the latest {count} wrong PINs.',
+        },
         tracking: {
             generateQr: 'Generate QR code',
             scanHint:
@@ -180,6 +195,16 @@ const en = {
             resend: 'Resend verification email',
             logOut: 'Log out',
         },
+    },
+    track: {
+        head: 'Track your case',
+        title: 'Track your case',
+        description:
+            'Enter your 4-digit PIN (last 4 digits of your phone number)',
+        pinLabel: 'PIN',
+        digitLabel: 'PIN digit {number}',
+        locked: 'Too many wrong PINs. This link is locked. Please try again in {minutes} minutes.',
+        submit: 'View my progress',
     },
     language: {
         label: 'Language',

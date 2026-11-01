@@ -2,9 +2,18 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Client\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+Route::middleware('throttle:60,1')
+    ->prefix('track')
+    ->name('track.')
+    ->group(function () {
+        Route::get('{client:unique_token}', [TrackingController::class, 'show'])->name('show');
+        Route::post('{client:unique_token}', [TrackingController::class, 'verify'])->name('verify');
+    });
 
 Route::middleware(['guest', 'throttle:10,1'])
     ->prefix('admin/auth/google')
@@ -18,6 +27,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
     Route::inertia('admin/dashboard', 'Dashboard')->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::post('clients/{client}/unlock', [ClientController::class, 'unlock'])->name('clients.unlock');
         Route::resource('clients', ClientController::class);
         Route::inertia('services', 'admin/ComingSoon', ['section' => 'services'])->name('services');
         Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');

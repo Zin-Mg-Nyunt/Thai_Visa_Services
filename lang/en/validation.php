@@ -185,6 +185,10 @@ return [
             'regex' => 'The phone number must be in international format, for example +66 81 234 5678.',
             'unique' => 'A client with this phone number already exists.',
         ],
+        'pin' => [
+            'digits' => 'Enter your 4-digit PIN.',
+            'required' => 'Enter your 4-digit PIN.',
+        ],
         'confirmation' => [
             'in' => 'The phone number you typed does not match this client.',
             'required' => 'Type the client\'s phone number to confirm.',

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Client\TrackingPinGuard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeleteClientRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Http\Resources\ClientPinAttemptResource;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +18,11 @@ use Inertia\Response;
 
 class ClientController extends Controller
 {
+    /**
+     * How many of the latest wrong PINs the detail page lists.
+     */
+    private const PIN_ATTEMPTS_SHOWN = 15;
+
     /**
      * List clients, newest first, optionally filtered by name or phone number.
      */
@@ -79,7 +86,24 @@ class ClientController extends Controller
         return Inertia::render('admin/clients/Show', [
             'client' => ClientResource::make($client),
             'trackingUrl' => $client->trackingUrl(),
+            'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
+            'pinAttempts' => ClientPinAttemptResource::collection($client->pinAttempts()->limit(self::PIN_ATTEMPTS_SHOWN)->get()),
         ]);
+    }
+
+    /**
+     * Lift a PIN lock early, for example when the real client was locked out by someone else's wrong tries.
+     * The audit log is kept.
+     */
+    public function unlock(Client $client): RedirectResponse
+    {
+        Gate::authorize('update', $client);
+
+        (new TrackingPinGuard($client))->reset();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Client link unlocked.')]);
+
+        return to_route('admin.clients.show', $client);
     }
 
     /**

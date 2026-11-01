@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Client;
+use App\Models\ClientPinAttempt;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -291,5 +293,92 @@ describe('tracking access', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->where('trackingUrl', url("/track/{$client->unique_token}"))
                 ->missing('client.data.unique_token'));
+    });
+});
+
+describe('wrong PIN log and unlock', function () {
+    function lockClient(Client $client): void
+    {
+        foreach (range(1, 5) as $attempt) {
+            test()->post(route('track.verify', $client->unique_token), ['pin' => '0000']);
+        }
+    }
+
+    test('the detail page lists only this client\'s wrong PINs, newest first', function () {
+        $client = Client::factory()->create();
+        $other = Client::factory()->create();
+        $older = ClientPinAttempt::factory()->for($client)->create(['created_at' => now()->subHour()]);
+        $newer = ClientPinAttempt::factory()->for($client)->create(['created_at' => now()]);
+        ClientPinAttempt::factory()->for($other)->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.show', $client))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('lockedMinutes', 0)
+                ->has('pinAttempts.data', 2)
+                ->where('pinAttempts.data.0.id', $newer->id)
+                ->where('pinAttempts.data.1.id', $older->id));
+    });
+
+    test('the detail page shows only the latest 20 wrong PINs', function () {
+        $client = Client::factory()->create();
+        ClientPinAttempt::factory()->count(25)->for($client)->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.show', $client))
+            ->assertInertia(fn (Assert $page) => $page->has('pinAttempts.data', 20));
+    });
+
+    test('the detail page reports a locked link', function () {
+        $client = Client::factory()->create();
+        lockClient($client);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.show', $client))
+            ->assertInertia(fn (Assert $page) => $page->where('lockedMinutes', 15)->has('pinAttempts.data', 5));
+    });
+
+    test('an admin can unlock the link and the log is kept', function () {
+        $client = Client::factory()->create(['phone' => '+66812345678']);
+        lockClient($client);
+
+        $this->post(route('track.verify', $client->unique_token), ['pin' => '5678'])
+            ->assertSessionHasErrors('pin');
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.clients.unlock', $client))
+            ->assertRedirect(route('admin.clients.show', $client));
+
+        expect($client->pinAttempts()->count())->toBe(5);
+
+        $this->post(route('track.verify', $client->unique_token), ['pin' => '5678'])
+            ->assertRedirect('/client/profile');
+    });
+
+    test('unlocking also gives five fresh attempts and leaves other clients alone', function () {
+        $client = Client::factory()->create();
+        $other = Client::factory()->create();
+        lockClient($client);
+        lockClient($other);
+
+        $this->actingAs(User::factory()->create())->post(route('admin.clients.unlock', $client));
+
+        $this->post(route('track.verify', $client->unique_token), ['pin' => '0000'])
+            ->assertSessionHasErrors(['pin' => trans_choice('auth.pin_incorrect', 4)]);
+        $this->post(route('track.verify', $other->unique_token), ['pin' => '0000'])
+            ->assertSessionHasErrors(['pin' => __('auth.pin_throttle', ['minutes' => 15])]);
+    });
+
+    test('only a superadmin can unlock', function () {
+        $client = Client::factory()->create();
+        lockClient($client);
+
+        $this->post(route('admin.clients.unlock', $client))->assertRedirect(route('login'));
+
+        $user = User::factory()->create();
+        DB::table('users')->where('id', $user->id)->update(['role' => 'staff']);
+        $this->actingAs($user->fresh())->post(route('admin.clients.unlock', $client))->assertForbidden();
+
+        expect(Cache::get("track-pin:{$client->id}:lock"))->not->toBeNull();
     });
 });

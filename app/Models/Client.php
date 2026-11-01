@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -41,11 +42,29 @@ class Client extends Model
     }
 
     /**
+     * Wrong PINs typed on this client's tracking link, newest first.
+     *
+     * @return HasMany<ClientPinAttempt, $this>
+     */
+    public function pinAttempts(): HasMany
+    {
+        return $this->hasMany(ClientPinAttempt::class)->latest()->latest('id');
+    }
+
+    /**
      * The link the client opens (or scans as a QR code) to reach the PIN page.
      */
     public function trackingUrl(): string
     {
-        return url("/track/{$this->unique_token}");
+        return route('track.show', ['client' => $this->unique_token]);
+    }
+
+    /**
+     * The 4-digit PIN a client types on the tracking page: the last 4 digits of their phone number.
+     */
+    public function pin(): string
+    {
+        return substr(preg_replace('/\D/', '', $this->phone) ?? '', -4);
     }
 
     /**

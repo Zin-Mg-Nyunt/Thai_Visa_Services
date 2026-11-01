@@ -6,6 +6,7 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 import ClientLayout from '@/layouts/ClientLayout.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import TrackLayout from '@/layouts/TrackLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -16,6 +17,8 @@ void createInertiaApp({
         switch (true) {
             case name === 'Welcome':
                 return PublicLayout;
+            case name === 'client/Track':
+                return TrackLayout;
             case name.startsWith('client/'):
                 return ClientLayout;
             case name.startsWith('auth/'):

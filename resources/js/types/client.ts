@@ -10,6 +10,14 @@ export type Client = {
     created_at: string | null;
 };
 
+export type PinAttempt = {
+    id: number;
+    ip_address: string;
+    user_agent: string | null;
+    caused_lock: boolean;
+    created_at: string;
+};
+
 export type PaginatedClients = {
     data: Client[];
     links: { prev: string | null; next: string | null };

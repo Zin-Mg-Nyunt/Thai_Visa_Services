@@ -13,15 +13,18 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PinAttemptLog from '@/components/PinAttemptLog.vue';
 import TrackingAccess from '@/components/TrackingAccess.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { edit, index } from '@/routes/admin/clients';
-import type { Client } from '@/types';
+import type { Client, PinAttempt } from '@/types';
 
 const props = defineProps<{
     client: { data: Client };
     trackingUrl: string;
+    lockedMinutes: number;
+    pinAttempts: { data: PinAttempt[] };
 }>();
 
 const { t } = useI18n();
@@ -151,6 +154,12 @@ const details = computed(() => [
             </div>
         </dl>
     </section>
+
+    <PinAttemptLog
+        :client-id="person.id"
+        :attempts="pinAttempts.data"
+        :locked-minutes="lockedMinutes"
+    />
 
     <ConfirmDialog
         v-model:open="isDeleteOpen"
