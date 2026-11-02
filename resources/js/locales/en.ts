@@ -206,6 +206,12 @@ const en = {
         locked: 'Too many wrong PINs. This link is locked. Please try again in {minutes} minutes.',
         submit: 'View my progress',
     },
+    clientArea: {
+        head: 'My profile',
+        welcome: 'Welcome, {name}',
+        intro: 'You are signed in. Your case progress will appear here.',
+        signOut: 'Sign out',
+    },
     language: {
         label: 'Language',
         switchTo: 'Switch language to {language}',

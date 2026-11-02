@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Actions\Client\ClientPortalSession;
 use App\Actions\Client\TrackingPinGuard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VerifyTrackingPinRequest;
@@ -18,9 +19,14 @@ class TrackingController extends Controller
     /**
      * Show the PIN screen for a tracking link. Nothing about the client is sent to the page,
      * only how long the link stays locked, so the form can stay disabled after a reload.
+     * A client already signed in with this link goes straight to their profile.
      */
-    public function show(Request $request, Client $client): Response
+    public function show(Request $request, Client $client): Response|RedirectResponse
     {
+        if ((new ClientPortalSession($request->session()))->isSignedIn($client)) {
+            return to_route('client.profile', $client->unique_token);
+        }
+
         $guard = new TrackingPinGuard($client);
 
         return Inertia::render('client/Track', [
@@ -55,10 +61,9 @@ class TrackingController extends Controller
 
         $guard->recordSuccess();
 
-        $request->session()->regenerate();
-        $request->session()->put('client_id', $client->id);
+        (new ClientPortalSession($request->session()))->signIn($client);
 
-        return redirect('/client/profile');
+        return to_route('client.profile', $client->unique_token);
     }
 
     private function isLocked(TrackingPinGuard $guard): void

@@ -320,13 +320,13 @@ describe('wrong PIN log and unlock', function () {
                 ->where('pinAttempts.data.1.id', $older->id));
     });
 
-    test('the detail page shows only the latest 20 wrong PINs', function () {
+    test('the detail page shows only the latest 15 wrong PINs', function () {
         $client = Client::factory()->create();
         ClientPinAttempt::factory()->count(25)->for($client)->create();
 
         $this->actingAs(User::factory()->create())
             ->get(route('admin.clients.show', $client))
-            ->assertInertia(fn (Assert $page) => $page->has('pinAttempts.data', 20));
+            ->assertInertia(fn (Assert $page) => $page->has('pinAttempts.data', 15));
     });
 
     test('the detail page reports a locked link', function () {
@@ -352,7 +352,7 @@ describe('wrong PIN log and unlock', function () {
         expect($client->pinAttempts()->count())->toBe(5);
 
         $this->post(route('track.verify', $client->unique_token), ['pin' => '5678'])
-            ->assertRedirect('/client/profile');
+            ->assertRedirect(route('client.profile', $client->unique_token));
     });
 
     test('unlocking also gives five fresh attempts and leaves other clients alone', function () {

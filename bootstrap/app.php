@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureClientSession;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -19,7 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
 
-        $middleware->alias(['role' => EnsureUserHasRole::class]);
+        $middleware->alias([
+            'role' => EnsureUserHasRole::class,
+            'client.session' => EnsureClientSession::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

@@ -69,10 +69,10 @@ describe('verify', function () {
         $client = clientWithPhone('+66812345678');
 
         submitPin($client, '5678')
-            ->assertRedirect('/client/profile')
+            ->assertRedirect(route('client.profile', $client->unique_token))
             ->assertSessionHasNoErrors();
 
-        expect(session('client_id'))->toBe($client->id);
+        expect(session('client_ids'))->toBe([$client->id]);
     });
 
     test('a wrong PIN is refused and opens no session', function () {
@@ -80,7 +80,7 @@ describe('verify', function () {
 
         failPin($client)->assertSessionHasErrors('pin');
 
-        expect(session()->has('client_id'))->toBeFalse();
+        expect(session()->has('client_ids'))->toBeFalse();
     });
 
     test('the PIN must be 4 digits', function (?string $pin) {
@@ -89,7 +89,7 @@ describe('verify', function () {
         $this->post(route('track.verify', $client->unique_token), array_filter(['pin' => $pin]))
             ->assertSessionHasErrors('pin');
 
-        expect(session()->has('client_id'))->toBeFalse();
+        expect(session()->has('client_ids'))->toBeFalse();
     })->with([
         'missing' => null,
         'too short' => '567',
@@ -153,7 +153,7 @@ describe('remaining attempts', function () {
             failPin($client);
         }
 
-        submitPin($client, '5678')->assertRedirect('/client/profile');
+        submitPin($client, '5678')->assertRedirect(route('client.profile', $client->unique_token));
 
         failPin($client)->assertSessionHasErrors(['pin' => trans_choice('auth.pin_incorrect', 4)]);
     });
@@ -169,7 +169,7 @@ describe('account lock', function () {
 
         submitPin($client, '5678')->assertSessionHasErrors(['pin' => lockedMessage(15)]);
 
-        expect(session()->has('client_id'))->toBeFalse();
+        expect(session()->has('client_ids'))->toBeFalse();
     });
 
     test('the lock lasts 15 minutes from the fifth wrong PIN, not from the first', function () {
@@ -185,7 +185,7 @@ describe('account lock', function () {
 
         $this->travel(2)->minutes();
 
-        submitPin($client, '5678')->assertRedirect('/client/profile');
+        submitPin($client, '5678')->assertRedirect(route('client.profile', $client->unique_token));
     });
 
     test('attempts spread over hours still lock at the fifth and then hold for 15 minutes', function () {
@@ -202,7 +202,7 @@ describe('account lock', function () {
         submitPin($client, '5678')->assertSessionHasErrors('pin');
 
         $this->travel(2)->minutes();
-        submitPin($client, '5678')->assertRedirect('/client/profile');
+        submitPin($client, '5678')->assertRedirect(route('client.profile', $client->unique_token));
     });
 
     test('wrong PINs while locked do not extend the lock', function () {
@@ -249,7 +249,7 @@ describe('account lock', function () {
             ->get(route('track.show', $client->unique_token))
             ->assertInertia(fn (Assert $page) => $page->where('lockedMinutes', 15));
 
-        expect(session()->has('client_id'))->toBeFalse();
+        expect(session()->has('client_ids'))->toBeFalse();
     });
 
     test('the remaining attempts are shared by all addresses', function () {
@@ -274,7 +274,7 @@ describe('account lock', function () {
 
         $this->travel(15)->minutes();
 
-        submitPin($client, '5678', '10.0.2.1')->assertRedirect('/client/profile');
+        submitPin($client, '5678', '10.0.2.1')->assertRedirect(route('client.profile', $client->unique_token));
     });
 
     test('another client is not affected', function () {
@@ -285,7 +285,7 @@ describe('account lock', function () {
             failPin($client, '10.0.0.1');
         }
 
-        submitPin($other, '1111', '10.0.0.1')->assertRedirect('/client/profile');
+        submitPin($other, '1111', '10.0.0.1')->assertRedirect(route('client.profile', $other->unique_token));
         failPin($other, '10.0.0.2')->assertSessionHasErrors(['pin' => trans_choice('auth.pin_incorrect', 4)]);
     });
 });

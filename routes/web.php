@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Client\ProfileController;
+use App\Http\Controllers\Client\SessionController;
 use App\Http\Controllers\Client\TrackingController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +15,14 @@ Route::middleware('throttle:60,1')
     ->group(function () {
         Route::get('{client:unique_token}', [TrackingController::class, 'show'])->name('show');
         Route::post('{client:unique_token}', [TrackingController::class, 'verify'])->name('verify');
+    });
+
+Route::middleware('client.session')
+    ->prefix('client/{client:unique_token}')
+    ->name('client.')
+    ->group(function () {
+        Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+        Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
     });
 
 Route::middleware(['guest', 'throttle:10,1'])
