@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
@@ -21,6 +23,7 @@ use Illuminate\Support\Str;
  * @property Carbon $birthday
  * @property Gender $gender
  * @property string|null $remarks
+ * @property string|null $photo_path
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -31,14 +34,51 @@ class Client extends Model
     /** @use HasFactory<ClientFactory> */
     use HasFactory, SoftDeletes;
 
+    public const PHOTO_DISK = 'private';
+
+    public const PHOTO_DIRECTORY = 'client-photos';
+
+    public const PHOTO_MAX_KILOBYTES = 2048;
+
     /**
-     * Give every new client a long random tracking token.
+     * Give every new client a long random tracking token, and erase the photo file when a client is deleted.
      */
     protected static function booted(): void
     {
         static::creating(function (Client $client): void {
             $client->unique_token ??= Str::random(48);
         });
+
+        static::deleting(function (Client $client): void {
+            $client->erasePhoto();
+        });
+    }
+
+    /**
+     * A temporary signed link to the photo, or null when there is none. The photo route also
+     * checks who is asking, so the link alone is not enough to see the photo.
+     */
+    public function photoUrl(): ?string
+    {
+        if ($this->photo_path === null) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute('client-photos.show', now()->addHour(), ['client' => $this->id]);
+    }
+
+    /**
+     * Delete the photo file and forget its path.
+     */
+    public function erasePhoto(): void
+    {
+        if ($this->photo_path === null) {
+            return;
+        }
+
+        Storage::disk(self::PHOTO_DISK)->delete($this->photo_path);
+
+        $this->forceFill(['photo_path' => null])->saveQuietly();
     }
 
     /**

@@ -13,7 +13,7 @@ export type Client = {
 export type ClientProfile = Pick<
     Client,
     'name' | 'phone' | 'birthday' | 'gender'
->;
+> & { photo_url: string | null };
 
 export type PinAttempt = {
     id: number;

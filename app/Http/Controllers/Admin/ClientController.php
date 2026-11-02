@@ -86,6 +86,7 @@ class ClientController extends Controller
         return Inertia::render('admin/clients/Show', [
             'client' => ClientResource::make($client),
             'trackingUrl' => $client->trackingUrl(),
+            'photoUrl' => $client->photoUrl(),
             'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
             'pinAttempts' => ClientPinAttemptResource::collection($client->pinAttempts()->limit(self::PIN_ATTEMPTS_SHOWN)->get()),
         ]);

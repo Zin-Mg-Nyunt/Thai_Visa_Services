@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import ClientAvatar from '@/components/ClientAvatar.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,6 +20,7 @@ import { renderTrackingCard } from '@/lib/trackingCard';
 const props = defineProps<{
     clientName: string;
     url: string;
+    photoUrl?: string | null;
 }>();
 
 const { t } = useI18n();
@@ -45,6 +47,7 @@ const downloadCard = async () => {
         clientName: props.clientName,
         hint: t('clients.tracking.scanHint'),
         qrDataUrl: qrDataUrl.value,
+        photoUrl: props.photoUrl,
         logo: headerRef.value?.querySelector('svg') ?? null,
     });
 
@@ -103,12 +106,11 @@ const downloadCard = async () => {
                 class="-mt-8 flex flex-col items-center px-4 text-center sm:-mt-10 sm:px-5"
                 data-test="tracking-client"
             >
-                <div
-                    class="flex size-16 items-center justify-center rounded-full bg-mint text-2xl font-bold text-brand-dark ring-4 ring-background sm:size-20 sm:text-3xl"
-                    aria-hidden="true"
-                >
-                    {{ clientName.charAt(0).toUpperCase() }}
-                </div>
+                <ClientAvatar
+                    :name="clientName"
+                    :photo-url="photoUrl"
+                    class="size-16 text-2xl ring-4 ring-background sm:size-20 sm:text-3xl"
+                />
                 <p
                     class="mt-2 max-w-full text-lg font-bold wrap-break-word text-brand-dark sm:mt-3 sm:text-xl"
                 >

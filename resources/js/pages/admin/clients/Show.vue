@@ -12,6 +12,8 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
+import ClientAvatar from '@/components/ClientAvatar.vue';
+import ClientPhotoActions from '@/components/ClientPhotoActions.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PinAttemptLog from '@/components/PinAttemptLog.vue';
 import TrackingAccess from '@/components/TrackingAccess.vue';
@@ -23,6 +25,7 @@ import type { Client, PinAttempt } from '@/types';
 const props = defineProps<{
     client: { data: Client };
     trackingUrl: string;
+    photoUrl: string | null;
     lockedMinutes: number;
     pinAttempts: { data: PinAttempt[] };
 }>();
@@ -89,7 +92,11 @@ const details = computed(() => [
                     <span class="hidden sm:inline">{{ t('common.back') }}</span>
                 </Link>
             </Button>
-            <TrackingAccess :client-name="person.name" :url="trackingUrl" />
+            <TrackingAccess
+                :client-name="person.name"
+                :url="trackingUrl"
+                :photo-url="photoUrl"
+            />
             <Button
                 variant="pillOutline"
                 class="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
@@ -117,12 +124,11 @@ const details = computed(() => [
 
     <section class="max-w-xl rounded-2xl border bg-card p-4 shadow-xs sm:p-6">
         <div class="flex items-center gap-4">
-            <div
-                class="flex size-16 shrink-0 items-center justify-center rounded-full bg-mint text-xl font-bold text-brand-dark"
-                aria-hidden="true"
-            >
-                {{ person.name.charAt(0).toUpperCase() }}
-            </div>
+            <ClientAvatar
+                :name="person.name"
+                :photo-url="photoUrl"
+                class="size-16 text-xl"
+            />
             <div class="min-w-0">
                 <p class="truncate text-lg font-semibold text-brand-dark">
                     {{ person.name }}
@@ -135,6 +141,12 @@ const details = computed(() => [
                 </p>
             </div>
         </div>
+
+        <ClientPhotoActions
+            class="mt-4"
+            :client-id="person.id"
+            :has-photo="photoUrl !== null"
+        />
 
         <dl class="mt-6 divide-y">
             <div

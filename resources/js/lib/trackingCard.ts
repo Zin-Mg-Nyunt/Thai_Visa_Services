@@ -3,6 +3,8 @@ export type TrackingCardOptions = {
     clientName: string;
     hint: string;
     qrDataUrl: string;
+    /** The client's photo; the first letter of the name is drawn when there is none or it cannot load. */
+    photoUrl?: string | null;
     /** The logo shown in the modal; its computed fills are copied so it renders outside the page. */
     logo: SVGSVGElement | null;
 };
@@ -107,9 +109,12 @@ export async function renderTrackingCard(
         document.fonts.load(`400 12px ${FONT_FAMILY}`, options.hint),
     ]);
 
-    const [qrImage, logoImage] = await Promise.all([
+    const [qrImage, logoImage, photoImage] = await Promise.all([
         loadImage(options.qrDataUrl),
         options.logo ? logoToImage(options.logo) : Promise.resolve(null),
+        options.photoUrl
+            ? loadImage(options.photoUrl).catch(() => null)
+            : Promise.resolve(null),
     ]);
 
     const contentWidth = CARD_WIDTH - PADDING * 2;
@@ -182,13 +187,42 @@ export async function renderTrackingCard(
     context.beginPath();
     context.arc(CARD_WIDTH / 2, avatarCenterY, avatarRadius, 0, Math.PI * 2);
     context.fill();
-    context.fillStyle = brandDark;
-    context.font = `700 36px ${FONT_FAMILY}`;
-    context.fillText(
-        Array.from(options.clientName)[0]?.toUpperCase() ?? '',
-        CARD_WIDTH / 2,
-        avatarCenterY + 2,
-    );
+
+    if (photoImage) {
+        // Fill the circle with the photo, cropping the longer side like object-fit: cover.
+        const side = Math.min(photoImage.width, photoImage.height);
+
+        context.save();
+        context.beginPath();
+        context.arc(
+            CARD_WIDTH / 2,
+            avatarCenterY,
+            avatarRadius,
+            0,
+            Math.PI * 2,
+        );
+        context.clip();
+        context.drawImage(
+            photoImage,
+            (photoImage.width - side) / 2,
+            (photoImage.height - side) / 2,
+            side,
+            side,
+            CARD_WIDTH / 2 - avatarRadius,
+            avatarCenterY - avatarRadius,
+            avatarRadius * 2,
+            avatarRadius * 2,
+        );
+        context.restore();
+    } else {
+        context.fillStyle = brandDark;
+        context.font = `700 36px ${FONT_FAMILY}`;
+        context.fillText(
+            Array.from(options.clientName)[0]?.toUpperCase() ?? '',
+            CARD_WIDTH / 2,
+            avatarCenterY + 2,
+        );
+    }
 
     context.font = `700 22px ${FONT_FAMILY}`;
     context.fillStyle = brandDark;

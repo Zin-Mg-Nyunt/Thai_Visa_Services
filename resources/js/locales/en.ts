@@ -108,6 +108,14 @@ const en = {
             lockedResult: 'Locked the link',
             latest: 'Showing the latest {count} wrong PINs.',
         },
+        photo: {
+            upload: 'Upload photo',
+            change: 'Change photo',
+            remove: 'Remove photo',
+            hint: 'JPG only, up to 2 MB. It is made smaller on your device before upload.',
+            invalidType: 'Choose a JPG photo.',
+            unreadable: 'This photo could not be read. Choose another JPG.',
+        },
         tracking: {
             generateQr: 'Generate QR code',
             scanHint:

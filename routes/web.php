@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Client\PhotoController;
 use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\SessionController;
 use App\Http\Controllers\Client\TrackingController;
@@ -16,6 +18,10 @@ Route::middleware('throttle:60,1')
         Route::get('{client:unique_token}', [TrackingController::class, 'show'])->name('show');
         Route::post('{client:unique_token}', [TrackingController::class, 'verify'])->name('verify');
     });
+
+Route::get('client-photos/{client}', [PhotoController::class, 'show'])
+    ->middleware('signed')
+    ->name('client-photos.show');
 
 Route::middleware('client.session')
     ->prefix('client/{client:unique_token}')
@@ -38,6 +44,8 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('clients/{client}/unlock', [ClientController::class, 'unlock'])->name('clients.unlock');
+        Route::post('clients/{client}/photo', [ClientPhotoController::class, 'update'])->name('clients.photo.update');
+        Route::delete('clients/{client}/photo', [ClientPhotoController::class, 'destroy'])->name('clients.photo.destroy');
         Route::resource('clients', ClientController::class);
         Route::inertia('services', 'admin/ComingSoon', ['section' => 'services'])->name('services');
         Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');

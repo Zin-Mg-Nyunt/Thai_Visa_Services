@@ -4,6 +4,7 @@ import { Cake, LogOut, Phone, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Client/SessionController';
+import ClientAvatar from '@/components/ClientAvatar.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
@@ -54,13 +55,14 @@ const signOut = () => {
     <Head :title="pageTitle('clientArea.head')" />
 
     <section class="rounded-2xl border bg-card p-4 shadow-xs sm:p-6">
-        <div class="flex items-center gap-4">
-            <div
-                class="flex size-16 shrink-0 items-center justify-center rounded-full bg-mint text-xl font-bold text-brand-dark"
-                aria-hidden="true"
-            >
-                {{ person.name.charAt(0).toUpperCase() }}
-            </div>
+        <div
+            class="flex flex-col items-center gap-3 text-center sm:flex-row sm:gap-4 sm:text-left"
+        >
+            <ClientAvatar
+                :name="person.name"
+                :photo-url="person.photo_url"
+                class="size-24 text-4xl sm:size-28 sm:text-5xl"
+            />
             <div class="min-w-0">
                 <h1
                     class="text-xl font-bold wrap-break-word text-brand-dark"

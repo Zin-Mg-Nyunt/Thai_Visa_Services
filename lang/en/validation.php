@@ -189,6 +189,13 @@ return [
             'digits' => 'Enter your 4-digit PIN.',
             'required' => 'Enter your 4-digit PIN.',
         ],
+        'photo' => [
+            'required' => 'Choose a JPG photo.',
+            'file' => 'Choose a JPG photo.',
+            'mimes' => 'The photo must be a JPG file.',
+            'max' => 'The photo must not be larger than 2 MB.',
+            'uploaded' => 'The photo could not be uploaded. Please try a smaller photo.',
+        ],
         'confirmation' => [
             'in' => 'The phone number you typed does not match this client.',
             'required' => 'Type the client\'s phone number to confirm.',

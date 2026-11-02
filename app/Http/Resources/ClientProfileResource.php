@@ -24,6 +24,7 @@ class ClientProfileResource extends JsonResource
             'phone' => $this->phone,
             'birthday' => $this->birthday->toDateString(),
             'gender' => $this->gender->value,
+            'photo_url' => $this->photoUrl(),
         ];
     }
 }

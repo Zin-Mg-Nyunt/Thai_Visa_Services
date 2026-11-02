@@ -25,6 +25,7 @@ test('a client with a PIN session sees their own page', function () {
                 'phone' => $client->phone,
                 'birthday' => $client->birthday->toDateString(),
                 'gender' => $client->gender->value,
+                'photo_url' => null,
             ]));
 });
 
