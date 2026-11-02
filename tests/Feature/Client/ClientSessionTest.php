@@ -20,7 +20,12 @@ test('a client with a PIN session sees their own page', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/Profile')
             ->where('token', $client->unique_token)
-            ->where('clientName', $client->name));
+            ->where('profile.data', [
+                'name' => $client->name,
+                'phone' => $client->phone,
+                'birthday' => $client->birthday->toDateString(),
+                'gender' => $client->gender->value,
+            ]));
 });
 
 test('without a client session the client pages send the visitor to that client\'s PIN page', function () {
@@ -132,9 +137,9 @@ describe('two clients on one browser', function () {
         signInClient($second, '1111');
 
         $this->get(route('client.profile', $first->unique_token))
-            ->assertInertia(fn (Assert $page) => $page->where('clientName', $first->name));
+            ->assertInertia(fn (Assert $page) => $page->where('profile.data.name', $first->name));
         $this->get(route('client.profile', $second->unique_token))
-            ->assertInertia(fn (Assert $page) => $page->where('clientName', $second->name));
+            ->assertInertia(fn (Assert $page) => $page->where('profile.data.name', $second->name));
     });
 
     test('signing out the first client returns to their own PIN page and keeps the second signed in', function () {
@@ -151,4 +156,38 @@ describe('two clients on one browser', function () {
             ->assertRedirect(route('track.show', $first->unique_token));
         $this->get(route('client.profile', $second->unique_token))->assertOk();
     });
+});
+
+test('the profile data never includes the tracking token, the id or the agency remarks', function () {
+    $client = Client::factory()->create(['phone' => '+66812345678', 'remarks' => 'Private agency note']);
+    signInClient($client, '5678');
+
+    $response = $this->get(route('client.profile', $client->unique_token))->assertOk();
+
+    expect(json_encode($response->viewData('page')['props']['profile']))
+        ->not->toContain($client->unique_token)
+        ->not->toContain('Private agency note');
+
+    expect(json_encode($response->viewData('page')['props']))->not->toContain('Private agency note');
+
+    $response->assertInertia(fn (Assert $page) => $page
+        ->missing('profile.data.id')
+        ->missing('profile.data.unique_token')
+        ->missing('profile.data.remarks'));
+});
+
+test('each client sees only their own details', function () {
+    $first = Client::factory()->create(['name' => 'First Client', 'phone' => '+66812345678']);
+    $second = Client::factory()->create(['name' => 'Second Client', 'phone' => '+66899991111']);
+
+    signInClient($second, '1111');
+
+    $response = $this->get(route('client.profile', $second->unique_token))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('profile.data.name', 'Second Client')
+            ->where('profile.data.phone', $second->phone));
+
+    expect(json_encode($response->viewData('page')['props']))
+        ->not->toContain('First Client')
+        ->not->toContain($first->phone);
 });

@@ -10,6 +10,11 @@ export type Client = {
     created_at: string | null;
 };
 
+export type ClientProfile = Pick<
+    Client,
+    'name' | 'phone' | 'birthday' | 'gender'
+>;
+
 export type PinAttempt = {
     id: number;
     ip_address: string;

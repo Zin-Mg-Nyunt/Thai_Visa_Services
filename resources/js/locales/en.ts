@@ -209,7 +209,9 @@ const en = {
     clientArea: {
         head: 'My profile',
         welcome: 'Welcome, {name}',
-        intro: 'You are signed in. Your case progress will appear here.',
+        intro: 'Your case progress will appear here.',
+        detailsTitle: 'Your details',
+        contactAgency: 'If any detail is wrong, please contact the agency.',
         signOut: 'Sign out',
     },
     language: {
