@@ -12,15 +12,19 @@ const name = usePage().props.name;
 
 <template>
     <div class="flex min-h-svh flex-col bg-background">
-        <header class="bg-brand-dark text-white">
+        <header class="sticky top-0 z-40 bg-brand-dark text-white shadow-sm">
             <div
-                class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8"
+                class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8"
             >
                 <Link :href="home()" class="flex min-w-0 items-center gap-3">
                     <AppLogoIcon variant="white" class="size-10 rounded-lg" />
-                    <span class="truncate text-lg font-bold">{{ name }}</span>
+                    <span class="hidden truncate text-lg font-bold sm:inline">{{
+                        name
+                    }}</span>
                 </Link>
-                <div class="flex flex-wrap items-center gap-3">
+                <div
+                    class="flex shrink-0 flex-col-reverse items-end gap-2 sm:flex-row sm:items-center sm:gap-3"
+                >
                     <LanguageSwitcher tone="dark" />
                     <Button as-child class="rounded-full font-semibold">
                         <Link :href="login()">{{

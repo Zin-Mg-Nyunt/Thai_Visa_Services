@@ -36,6 +36,54 @@ const en = {
         ourServices: 'Our Services',
         contactUs: 'Contact Us',
         rights: '© {name}. All rights reserved.',
+        hero: {
+            eyebrow: 'Visa & employment services',
+            titleStart: 'Visas and work permits,',
+            titleHighlight: 'handled with care.',
+            description:
+                'We help workers and employers with visas, work permits and job placement in Thailand, with clear progress tracking at every step.',
+            photoTag: 'Sample photo',
+        },
+        about: {
+            eyebrow: 'About',
+            title: 'Who we are',
+            experienceTitle: 'Experience',
+            experienceText:
+                '10+ years helping clients with Thai visa and employment paperwork.',
+            missionTitle: 'Mission',
+            missionText:
+                'Make visa and work-permit services simple, transparent and reliable.',
+            helpTitle: 'How we help',
+            helpText:
+                'Dedicated support, honest pricing and live status tracking for every case.',
+        },
+        services: {
+            eyebrow: 'Services',
+            title: 'What we do for you',
+            workPermitTitle: 'Work Permit',
+            workPermitText: 'Work permit applications and document delivery.',
+            passportTitle: 'Passport',
+            passportText: 'Passport services including Bath and MOU.',
+            pinkCardTitle: 'Pink Card',
+            pinkCardText: 'Pink card application support.',
+            reportTitle: '90 Days Report',
+            reportText: 'Reporting every 90 days, handled for you.',
+            ciTitle: 'CI',
+            ciText: 'Certificate of identity services.',
+            jobSearchTitle: 'Job Search',
+            jobSearchText: 'Matching workers with hiring companies.',
+        },
+        stats: {
+            clients: 'Clients served',
+            services: 'Services provided',
+        },
+        contact: {
+            eyebrow: 'Contact',
+            title: 'Talk to us',
+            address: 'Bangkok, Thailand',
+            callNow: 'Call now',
+            message: 'Message us',
+        },
     },
     roles: {
         superadmin: 'Superadmin',
