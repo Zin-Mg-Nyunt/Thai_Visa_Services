@@ -38,7 +38,6 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'parent_id',
-    'key',
     'title',
     'title_my',
     'public_description',
@@ -56,6 +55,7 @@ class Service extends Model
     /**
      * The fixed key of the Job Search service, so code finds it even if an admin renames it.
      * Only linking a worker to a job order creates its client-service records.
+     * The key is not fillable: only code that sets it explicitly (forceCreate) can give a service a key.
      */
     public const JOB_SEARCH_KEY = 'job_search';
 
@@ -79,6 +79,9 @@ class Service extends Model
             if (! $service->isSubService()) {
                 return;
             }
+
+            // Sub-services never appear on the landing page, on every save, including edits.
+            $service->show_on_website = false;
 
             if ($service->exists && ! $service->isDirty(['parent_id', 'key'])) {
                 return;

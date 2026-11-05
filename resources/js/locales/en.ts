@@ -22,6 +22,10 @@ const en = {
         complete: 'Complete',
         cancel: 'Cancel',
     },
+    serviceAvailability: {
+        active: 'Active',
+        inactive: 'Inactive',
+    },
     paymentStatus: {
         unpaid: 'Unpaid',
         deposit: 'Deposit',
@@ -176,6 +180,84 @@ const en = {
             copied: 'Link copied',
             qrAlt: 'QR code for the tracking link',
             downloadCard: 'Download card',
+        },
+    },
+    services: {
+        title: 'Services',
+        new: 'New service',
+        addSubService: 'Add sub-service',
+        empty: 'No services yet.',
+        defaultFee: 'Default fee',
+        noFee: 'No default fee',
+        subServices: 'Sub-services',
+        subServicesCount: '{count} sub-services',
+        noSubServices: 'No sub-services yet.',
+        subServiceOf: 'Sub-service of {name}',
+        untitled: 'Untitled service',
+        jobSearchNote:
+            'Job Search is managed from its own module. It cannot have sub-services and cannot be deleted.',
+        stats: {
+            totalClients: 'Total clients',
+            inProgress: 'In progress',
+            complete: 'Complete',
+            totalReceived: 'Total received',
+            notAvailable: '–',
+        },
+        details: {
+            title: 'Service details',
+            titleEn: 'Title (English)',
+            titleMy: 'Title (Burmese)',
+            parent: 'Parent service',
+            none: 'None',
+            status: 'Status',
+            defaultFee: 'Default fee',
+            hasDocuments: 'Has documents',
+            showOnWebsite: 'Show on website',
+            description: 'Public description',
+            descriptionEn: 'English',
+            descriptionMy: 'Burmese',
+            yes: 'Yes',
+            no: 'No',
+            notSet: 'Not set',
+        },
+        form: {
+            titleEn: 'Title (English)',
+            titleMy: 'Title (Burmese)',
+            parent: 'Parent service',
+            parentNone: 'None (main service)',
+            parentHint:
+                'Choose a parent to make this a sub-service. Sub-services are not shown on the website.',
+            parentLocked:
+                'This service stays a main service because it has sub-services or is the Job Search service.',
+            status: 'Status',
+            defaultFee: 'Default fee (฿)',
+            feeHint:
+                'Optional. A sub-service without a fee uses its main service fee.',
+            options: 'Options',
+            hasDocuments: 'Has documents',
+            showOnWebsite: 'Show on website',
+            subServiceNotShown: 'Sub-services are never shown on the website.',
+            descriptionTitle: 'Public description',
+            descriptionEn: 'English',
+            descriptionMy: 'Burmese',
+            languageHint:
+                'Enter a title and a description in at least one language.',
+        },
+        create: {
+            head: 'New service',
+            title: 'New service',
+            subTitle: 'New sub-service',
+        },
+        edit: {
+            head: 'Edit service',
+            title: 'Edit service',
+        },
+        delete: {
+            title: 'Delete this service?',
+            description:
+                'The service disappears from the lists and the website and can no longer be chosen for new clients. Its sub-services, clients, payments and reports stay unchanged.',
+            subDescription:
+                'The sub-service can no longer be chosen for new clients. Existing clients, payments and reports stay unchanged.',
         },
     },
     settings: {

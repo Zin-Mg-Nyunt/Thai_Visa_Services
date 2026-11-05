@@ -6,11 +6,13 @@ import { statusTones, toneClasses } from '@/lib/status';
 import type {
     JobOrderStatus,
     PaymentStatus,
+    ServiceAvailability,
     ServiceStatus,
 } from '@/lib/status';
 
 type Props =
     | { kind: 'serviceStatus'; status: ServiceStatus }
+    | { kind: 'serviceAvailability'; status: ServiceAvailability }
     | { kind: 'paymentStatus'; status: PaymentStatus }
     | { kind: 'jobOrderStatus'; status: JobOrderStatus };
 

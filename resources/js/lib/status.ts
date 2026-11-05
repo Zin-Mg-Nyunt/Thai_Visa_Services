@@ -2,7 +2,13 @@ export type ServiceStatus = 'inProgress' | 'complete' | 'cancel';
 export type PaymentStatus = 'unpaid' | 'deposit' | 'fullyPaid';
 export type JobOrderStatus = 'open' | 'done' | 'cancelled';
 
-export type StatusKind = 'serviceStatus' | 'paymentStatus' | 'jobOrderStatus';
+export type ServiceAvailability = 'active' | 'inactive';
+
+export type StatusKind =
+    | 'serviceStatus'
+    | 'serviceAvailability'
+    | 'paymentStatus'
+    | 'jobOrderStatus';
 
 export type StatusTone = 'pending' | 'success' | 'danger' | 'neutral';
 
@@ -11,6 +17,10 @@ export const statusTones: Record<StatusKind, Record<string, StatusTone>> = {
         inProgress: 'pending',
         complete: 'success',
         cancel: 'danger',
+    },
+    serviceAvailability: {
+        active: 'success',
+        inactive: 'neutral',
     },
     paymentStatus: {
         unpaid: 'danger',

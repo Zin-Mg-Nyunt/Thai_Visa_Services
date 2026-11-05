@@ -72,7 +72,7 @@ class ServiceSeeder extends Seeder
             'show_on_website' => true,
         ]);
 
-        Service::create([
+        Service::forceCreate([
             'key' => Service::JOB_SEARCH_KEY,
             'title' => 'Job Search',
             'title_my' => 'အလုပ်ရှာဖွေရေး',

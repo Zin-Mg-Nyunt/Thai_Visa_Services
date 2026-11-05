@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPhotoController;
+use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Client\PhotoController;
 use App\Http\Controllers\Client\ProfileController;
@@ -47,7 +48,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::post('clients/{client}/photo', [ClientPhotoController::class, 'update'])->name('clients.photo.update');
         Route::delete('clients/{client}/photo', [ClientPhotoController::class, 'destroy'])->name('clients.photo.destroy');
         Route::resource('clients', ClientController::class);
-        Route::inertia('services', 'admin/ComingSoon', ['section' => 'services'])->name('services');
+        Route::resource('services', ServiceController::class);
         Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');
         Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');
     });

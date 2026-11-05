@@ -8,7 +8,8 @@ import {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard } from '@/routes';
-import { jobSearch, services, settings } from '@/routes/admin';
+import { jobSearch, settings } from '@/routes/admin';
+import { index as services } from '@/routes/admin/services';
 import { index as clients } from '@/routes/admin/clients';
 import type { NavItem } from '@/types';
 

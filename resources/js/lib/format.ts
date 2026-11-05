@@ -33,3 +33,17 @@ export function formatDateTime(value: string): string {
         minute: '2-digit',
     });
 }
+
+/**
+ * Formats an amount in Thai baht in the selected language, for example ฿ 8,000.
+ * The amount is a decimal string from the server ("8000.00"). Intl formats the string
+ * exactly, so it is never turned into a float on the way.
+ */
+export function formatMoney(value: string): string {
+    const locale = i18n.global.locale.value === 'my' ? 'my-MM' : 'en-GB';
+    const formatter = new Intl.NumberFormat(locale, {
+        maximumFractionDigits: 2,
+    });
+
+    return `฿ ${formatter.format(value as Intl.StringNumericLiteral)}`;
+}

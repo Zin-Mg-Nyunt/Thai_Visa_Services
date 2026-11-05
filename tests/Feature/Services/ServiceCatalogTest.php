@@ -78,6 +78,17 @@ describe('job search key', function () {
             ->and(seededService('Passport')->isJobSearch())->toBeFalse();
     });
 
+    test('the key cannot be mass-assigned', function () {
+        $service = Service::create([
+            'key' => Service::JOB_SEARCH_KEY,
+            'title' => 'Fake Job Search',
+            'public_description' => 'Not the real one.',
+        ]);
+
+        expect($service->fresh()->key)->toBeNull()
+            ->and($service->isJobSearch())->toBeFalse();
+    });
+
     test('renaming Job Search does not lose it', function () {
         $this->seed(ServiceSeeder::class);
 
