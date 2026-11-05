@@ -82,6 +82,14 @@ class Client extends Model
     }
 
     /**
+     * @return HasMany<ClientService, $this>
+     */
+    public function clientServices(): HasMany
+    {
+        return $this->hasMany(ClientService::class);
+    }
+
+    /**
      * Wrong PINs typed on this client's tracking link, newest first.
      *
      * @return HasMany<ClientPinAttempt, $this>
