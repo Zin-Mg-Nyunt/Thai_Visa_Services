@@ -190,29 +190,42 @@ describe('create', function () {
         expect($passport->children()->count())->toBe(6);
     });
 
-    test('a title in one language is enough and the description is optional', function () {
+    test('a title and a description in one language are enough', function () {
         $this->actingAs($this->admin)
             ->post(route('admin.services.store'), newServiceInput([
                 'title' => null,
+                'public_description' => null,
+            ]))
+            ->assertSessionHasNoErrors();
+
+        expect(Service::count())->toBe(1);
+    });
+
+    test('a main service needs a title and a description in at least one language', function () {
+        $this->actingAs($this->admin)
+            ->post(route('admin.services.store'), newServiceInput([
+                'title' => null,
+                'title_my' => null,
+                'public_description' => '',
+                'public_description_my' => null,
+            ]))
+            ->assertSessionHasErrors(['title', 'title_my', 'public_description', 'public_description_my']);
+
+        expect(Service::count())->toBe(0);
+    });
+
+    test('a sub-service does not need a description', function () {
+        $passport = Service::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.services.store'), newServiceInput([
+                'parent_id' => $passport->id,
                 'public_description' => null,
                 'public_description_my' => null,
             ]))
             ->assertSessionHasNoErrors();
 
-        expect(Service::count())->toBe(1)
-            ->and(Service::first()->public_description)->toBeNull();
-    });
-
-    test('a service needs a title in at least one language', function () {
-        $this->actingAs($this->admin)
-            ->post(route('admin.services.store'), newServiceInput([
-                'title' => null,
-                'title_my' => null,
-            ]))
-            ->assertSessionHasErrors(['title', 'title_my'])
-            ->assertSessionDoesntHaveErrors(['public_description', 'public_description_my']);
-
-        expect(Service::count())->toBe(0);
+        expect($passport->children()->sole()->public_description)->toBeNull();
     });
 
     test('rejects a parent that is a sub-service, Job Search, deleted or missing', function (Closure $makeParent) {

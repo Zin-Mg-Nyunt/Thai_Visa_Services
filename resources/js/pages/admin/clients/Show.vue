@@ -46,8 +46,11 @@ const person = computed(() => props.client.data);
 const titleOf = (service: { title: string | null; title_my: string | null }) =>
     localised(service.title, service.title_my) || t('services.untitled');
 
+const dateOrDash = (value: string | null) =>
+    value ? formatDate(value) : t('clientServices.notAvailable');
+
 const dateRange = (service: ClientService) =>
-    `${service.start_date ? formatDate(service.start_date) : '—'} → ${service.end_date ? formatDate(service.end_date) : '—'}`;
+    `${dateOrDash(service.start_date)} → ${dateOrDash(service.end_date)}`;
 
 const serviceRows = (service: ClientService) => [
     { label: t('clientServices.fee'), value: formatMoney(service.fee) },

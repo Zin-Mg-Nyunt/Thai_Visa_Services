@@ -215,7 +215,9 @@ describe('editing a service', function () {
                 ->component('admin/clients/services/Edit')
                 ->where('clientService.data.service.title', 'Passport')
                 ->where('clientService.data.sub_service.title', 'Bath')
-                ->where('subServiceOptions', fn ($subs) => collect($subs)->pluck('title')->all() === ['Bath', 'MOU']));
+                ->where('subServiceOptions', fn ($subs) => collect($subs)->pluck('title')->all() === ['Bath', 'MOU'])
+                ->where('subServiceOptions.0.default_fee', '3000.00')
+                ->where('serviceDefaultFee', '3500.00'));
     });
 
     test('keeps the current sub-service in the list even after it becomes inactive', function () {
@@ -227,6 +229,33 @@ describe('editing a service', function () {
         $this->actingAs($this->admin)
             ->put(route('admin.clients.services.update', [$this->client, $this->record]), clientServiceInput($this->passport, ['sub_service_id' => $this->bath->id, 'fee' => '3000']))
             ->assertSessionHasNoErrors();
+    });
+
+    test('keeps the current sub-service in the list even after it is deleted', function () {
+        $this->bath->delete();
+
+        $this->actingAs($this->admin)->get(route('admin.clients.services.edit', [$this->client, $this->record]))
+            ->assertInertia(fn (Assert $page) => $page->where('subServiceOptions', fn ($subs) => collect($subs)->pluck('title')->all() === ['Bath', 'MOU']));
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.clients.services.update', [$this->client, $this->record]), clientServiceInput($this->passport, ['sub_service_id' => $this->bath->id, 'fee' => '3000']))
+            ->assertSessionHasNoErrors();
+    });
+
+    test('does not offer or accept other deleted or inactive sub-services', function () {
+        $inactive = Service::factory()->subServiceOf($this->passport)->create(['title' => 'Old', 'status' => ServiceAvailability::Inactive]);
+        $deleted = tap(Service::factory()->subServiceOf($this->passport)->create(['title' => 'Gone']))->delete();
+
+        $this->actingAs($this->admin)->get(route('admin.clients.services.edit', [$this->client, $this->record]))
+            ->assertInertia(fn (Assert $page) => $page->where('subServiceOptions', fn ($subs) => collect($subs)->pluck('title')->all() === ['Bath', 'MOU']));
+
+        foreach ([$inactive, $deleted] as $subService) {
+            $this->actingAs($this->admin)
+                ->put(route('admin.clients.services.update', [$this->client, $this->record]), clientServiceInput($this->passport, ['sub_service_id' => $subService->id]))
+                ->assertSessionHasErrors('sub_service_id');
+        }
+
+        expect($this->record->refresh()->sub_service_id)->toBe($this->bath->id);
     });
 
     test('changes the sub-service, status, dates, fee and remarks', function () {

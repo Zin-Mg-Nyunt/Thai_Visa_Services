@@ -18,7 +18,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatMoney } from '@/lib/format';
 import { localised } from '@/lib/service';
+import { serviceStatusKey } from '@/lib/status';
 import { show } from '@/routes/admin/clients';
 import type {
     Client,
@@ -35,6 +37,8 @@ const props = defineProps<{
     clientService?: ClientService;
     /** Editing: the sub-services the record can switch between. */
     subServiceOptions?: SubServiceOption[];
+    /** Editing: the default fee of the record's service, used when the chosen sub-service has none. */
+    serviceDefaultFee?: string | null;
 }>();
 
 const { t } = useI18n();
@@ -89,9 +93,6 @@ const subServiceValue = computed({
 
 const statuses = ['in_progress', 'complete'] as const;
 
-const statusKey = (status: (typeof statuses)[number]) =>
-    status === 'in_progress' ? 'inProgress' : status;
-
 // The fee follows the chosen service (its sub-service fee first) until the admin types their own.
 const feeTouched = ref(false);
 
@@ -105,6 +106,56 @@ watch([selectedService, selectedSub], () => {
         selectedService.value?.default_fee ??
         '';
 });
+
+// Editing: changing the sub-service sets the fee to its default fee (or the service's), and a notice
+// under the fee says what changed. Going back to the saved sub-service restores the saved fee.
+const savedSubServiceId = props.clientService?.sub_service_id ?? null;
+const savedFee = props.clientService?.fee ?? '';
+const feeNotice = ref<{ from: string; to: string; name: string } | null>(
+    null,
+);
+
+watch(
+    () => form.sub_service_id,
+    (subServiceId) => {
+        if (!props.clientService) {
+            return;
+        }
+
+        if (subServiceId === savedSubServiceId) {
+            form.fee = savedFee;
+            feeNotice.value = null;
+
+            return;
+        }
+
+        const subFee = selectedSub.value?.default_fee ?? null;
+        const defaultFee = subFee ?? props.serviceDefaultFee ?? null;
+
+        if (defaultFee === null || defaultFee === form.fee) {
+            feeNotice.value = null;
+
+            return;
+        }
+
+        const source =
+            subFee !== null && selectedSub.value
+                ? selectedSub.value
+                : props.clientService.service;
+
+        feeNotice.value = {
+            from: form.fee,
+            to: defaultFee,
+            name: source ? titleOf(source) : '',
+        };
+        form.fee = defaultFee;
+    },
+);
+
+const onFeeInput = () => {
+    feeTouched.value = true;
+    feeNotice.value = null;
+};
 
 const textareaClass =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm';
@@ -216,7 +267,7 @@ const submit = () => {
                                 :key="status"
                                 :value="status"
                             >
-                                {{ t(`serviceStatus.${statusKey(status)}`) }}
+                                {{ t(`serviceStatus.${serviceStatusKey(status)}`) }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -234,8 +285,24 @@ const submit = () => {
                         step="0.01"
                         inputmode="decimal"
                         :aria-invalid="!!form.errors.fee"
-                        @input="feeTouched = true"
+                        @input="onFeeInput"
                     />
+                    <p
+                        v-if="feeNotice"
+                        class="rounded-xl border border-brand/30 bg-brand/10 px-3 py-2 text-xs font-medium text-brand-dark"
+                        role="status"
+                        data-test="fee-changed-notice"
+                    >
+                        {{
+                            t('clientServices.form.feeChanged', {
+                                from: feeNotice.from
+                                    ? formatMoney(feeNotice.from)
+                                    : t('clientServices.notAvailable'),
+                                to: formatMoney(feeNotice.to),
+                                name: feeNotice.name,
+                            })
+                        }}
+                    </p>
                     <p v-if="!isEditing" class="text-xs text-muted-foreground">
                         {{ t('clientServices.form.feeHint') }}
                     </p>

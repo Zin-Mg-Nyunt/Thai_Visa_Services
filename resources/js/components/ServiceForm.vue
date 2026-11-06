@@ -84,7 +84,13 @@ const submit = () => {
                     {{ t('services.details.title') }}
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    {{ t('services.form.languageHint') }}
+                    {{
+                        t(
+                            isSubService
+                                ? 'services.form.subServiceLanguageHint'
+                                : 'services.form.languageHint',
+                        )
+                    }}
                 </p>
             </div>
 

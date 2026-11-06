@@ -202,6 +202,8 @@ const en = {
             fee: 'Service fee (฿)',
             feeHint:
                 "Filled from the sub-service fee, or the service's default fee. You can change it.",
+            feeChanged:
+                'The fee changed from {from} to {to}, the default fee of {name}. Change it if you agreed a different price with the client.',
             startDate: 'Start date',
             endDate: 'End date',
             remarks: 'Remarks',
@@ -274,7 +276,9 @@ const en = {
             descriptionEn: 'English',
             descriptionMy: 'Burmese',
             languageHint:
-                'Enter a title in at least one language. The description is optional.',
+                'Enter a title and a description in at least one language.',
+            subServiceLanguageHint:
+                'Enter a title in at least one language. The description is optional for a sub-service.',
         },
         create: {
             head: 'New service',

@@ -45,6 +45,7 @@ class ClientServiceController extends Controller
 
     /**
      * Show the form for editing a client's service. The service itself stays fixed; only its sub-service and details change.
+     * The service's default fee is sent so the form can fill the fee when the sub-service changes to one without a fee.
      */
     public function edit(Client $client, ClientService $clientService): Response
     {
@@ -56,6 +57,7 @@ class ClientServiceController extends Controller
             'client' => ClientResource::make($client),
             'clientService' => ClientServiceResource::make($clientService),
             'subServiceOptions' => $this->subServiceOptions($clientService),
+            'serviceDefaultFee' => $clientService->service->default_fee,
         ]);
     }
 
@@ -94,16 +96,19 @@ class ClientServiceController extends Controller
     }
 
     /**
-     * The sub-services this record can switch between: the service's active sub-services plus the one it already has.
+     * The sub-services this record can switch between: the service's active sub-services plus the one it already has,
+     * even if that one was made inactive or deleted since, so the record can still be saved as it is.
      *
      * @return array<int, array{id: int, title: string|null, title_my: string|null, default_fee: string|null}>
      */
     private function subServiceOptions(ClientService $clientService): array
     {
-        return Service::query()
+        return Service::withTrashed()
             ->where('parent_id', $clientService->service_id)
             ->where(function ($query) use ($clientService): void {
-                $query->where('status', ServiceAvailability::Active);
+                $query->where(fn ($available) => $available
+                    ->where('status', ServiceAvailability::Active)
+                    ->whereNull('deleted_at'));
 
                 if ($clientService->sub_service_id !== null) {
                     $query->orWhere('id', $clientService->sub_service_id);

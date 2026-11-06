@@ -15,8 +15,8 @@ trait ClientServiceValidationRules
      * Get the validation rules for the details of a client's service.
      *
      * The service itself is chosen only when it is added (see serviceChoiceRules); an existing record keeps its service.
-     * A sub-service is optional: it must be an active sub-service of the record's service, or the one the record
-     * already has. Cancel is not offered here; cancelling a service has its own rules and refund field.
+     * A sub-service is optional: it must be an active, not deleted sub-service of the record's service, or the one
+     * the record already has, even if it was made inactive or deleted since. Cancel is not offered here; cancelling a service has its own rules and refund field.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
@@ -28,9 +28,10 @@ trait ClientServiceValidationRules
                 'integer',
                 Rule::exists(Service::class, 'id')
                     ->where('parent_id', $serviceId)
-                    ->whereNull('deleted_at')
                     ->where(function ($query) use ($clientService): void {
-                        $query->where('status', ServiceAvailability::Active->value);
+                        $query->where(fn ($available) => $available
+                            ->where('status', ServiceAvailability::Active->value)
+                            ->whereNull('deleted_at'));
 
                         if ($clientService?->sub_service_id !== null) {
                             $query->orWhere('id', $clientService->sub_service_id);

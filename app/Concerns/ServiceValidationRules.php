@@ -13,7 +13,8 @@ trait ServiceValidationRules
     /**
      * Get the validation rules used to validate service and sub-service records.
      *
-     * A title is needed in at least one language; the public description is optional. A parent must be an
+     * A title is needed in at least one language. A main service also needs a public description in at least
+     * one language, because main services are the ones shown on the website; it is optional for a sub-service. A parent must be an
      * existing main service other than Job Search; Job Search itself and a service that already
      * has sub-services stay main services.
      *
@@ -24,8 +25,8 @@ trait ServiceValidationRules
         return [
             'title' => ['nullable', 'string', 'max:255', 'required_without:title_my'],
             'title_my' => ['nullable', 'string', 'max:255', 'required_without:title'],
-            'public_description' => ['nullable', 'string', 'max:2000'],
-            'public_description_my' => ['nullable', 'string', 'max:2000'],
+            'public_description' => ['nullable', 'string', 'max:2000', 'required_without_all:parent_id,public_description_my'],
+            'public_description_my' => ['nullable', 'string', 'max:2000', 'required_without_all:parent_id,public_description'],
             'parent_id' => [
                 'nullable',
                 'integer',
@@ -59,6 +60,8 @@ trait ServiceValidationRules
         return [
             'title.required_without' => __('Enter a title in English or Burmese.'),
             'title_my.required_without' => __('Enter a title in English or Burmese.'),
+            'public_description.required_without_all' => __('Enter a public description in English or Burmese.'),
+            'public_description_my.required_without_all' => __('Enter a public description in English or Burmese.'),
             'parent_id.exists' => __('Choose a main service as the parent.'),
         ];
     }
