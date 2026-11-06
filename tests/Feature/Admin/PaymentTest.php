@@ -1,11 +1,13 @@
 <?php
 
+use App\Enums\ClientServiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -114,6 +116,32 @@ describe('recording a payment', function () {
 
         expect(Payment::count())->toBe(0);
     });
+
+    test('a cancelled service takes no payment', function () {
+        $this->record->update(['status' => ClientServiceStatus::Cancel]);
+
+        $this->actingAs($this->admin)->post($this->url, paymentInput())->assertForbidden();
+
+        expect(Payment::count())->toBe(0);
+    });
+
+    test('a payment fills the balance left after earlier payments, never more', function () {
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '4000']))->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '1000.01']))->assertSessionHasErrors('amount');
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '1000']))->assertSessionHasNoErrors();
+
+        expect($this->record->refresh()->received())->toBe('5000.00');
+    });
+
+    test('today is the agency\'s date in Bangkok, not the UTC date', function () {
+        // 20:00 UTC on 6 November is 03:00 on 7 November in Bangkok.
+        $this->travelTo(CarbonImmutable::parse('2026-11-06 20:00:00', 'UTC'));
+
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['paid_at' => '2026-11-07']))->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['paid_at' => '2026-11-08']))->assertSessionHasErrors('paid_at');
+
+        expect(Payment::sole()->paid_at->toDateString())->toBe('2026-11-07');
+    });
 });
 
 describe('first payment when adding a service', function () {
@@ -145,6 +173,14 @@ describe('first payment when adding a service', function () {
             ->and($saved->paymentStatus())->toBe(PaymentStatus::Deposit);
     });
 
+    test('the first payment is dated today in Bangkok, not the UTC date', function () {
+        $this->travelTo(CarbonImmutable::parse('2026-11-06 20:00:00', 'UTC'));
+
+        $this->actingAs($this->admin)->post($this->store, ($this->input)(['received_now' => '3000']))->assertSessionHasNoErrors();
+
+        expect(Payment::sole()->paid_at->toDateString())->toBe('2026-11-07');
+    });
+
     test('paying the whole fee is fully paid, not a deposit', function () {
         $this->actingAs($this->admin)->post($this->store, ($this->input)(['received_now' => '8000']))->assertSessionHasNoErrors();
 
@@ -163,10 +199,25 @@ describe('first payment when adding a service', function () {
 
         expect(ClientService::count())->toBe(1)
             ->and(Payment::count())->toBe(0);
-    })->with(['8000.01', '-1']);
+    })->with(['8000.01', '-1', 'abc']);
 });
 
 describe('client page', function () {
+    test('adds up the loaded payments once and again only when they are reloaded', function () {
+        Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => 1000]);
+        $record = ClientService::with('payments')->find($this->record->id);
+
+        DB::enableQueryLog();
+        expect($record->received())->toBe('1000.00')
+            ->and($record->remaining())->toBe('4000.00')
+            ->and($record->paymentStatus())->toBe(PaymentStatus::Deposit)
+            ->and(DB::getQueryLog())->toBeEmpty();
+
+        Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => 500]);
+
+        expect($record->load('payments')->received())->toBe('1500.00');
+    });
+
     test('shows received, remaining, payment status, history and totals', function () {
         $second = ClientService::factory()->create(['client_id' => $this->client->id, 'fee' => 2000]);
         Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => 1000, 'paid_at' => '2026-10-01']);

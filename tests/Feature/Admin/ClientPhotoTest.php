@@ -173,6 +173,18 @@ describe('viewing', function () {
             ->assertHeader('Content-Type', 'image/jpeg');
     });
 
+    test('the browser is told never to keep a copy of the photo', function () {
+        $client = clientWithPhoto();
+
+        $cacheControl = $this->actingAs(User::factory()->create())
+            ->get($client->photoUrl())
+            ->headers->get('Cache-Control');
+
+        expect($cacheControl)->toContain('no-store')
+            ->and($cacheControl)->toContain('private')
+            ->and($cacheControl)->not->toContain('max-age');
+    });
+
     test('a signed-in client opens only their own photo', function () {
         $client = clientWithPhoto();
         $other = Client::factory()->create(['phone' => '+66899991111']);

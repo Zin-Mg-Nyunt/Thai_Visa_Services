@@ -7,6 +7,7 @@ use App\Actions\Client\TrackingPinGuard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VerifyTrackingPinRequest;
 use App\Models\Client;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -38,11 +39,21 @@ class TrackingController extends Controller
     /**
      * Check the 4-digit PIN. Wrong PINs are counted for the client as a whole, written to its audit log, and the visitor is told how many tries are left.
      * Once the tries run out the link is locked for 15 minutes, and even the right PIN is refused.
+     * Checks for one client run one at a time, so guesses sent together are all counted.
      */
     public function verify(VerifyTrackingPinRequest $request, Client $client): RedirectResponse
     {
         $guard = new TrackingPinGuard($client);
 
+        try {
+            return $guard->oneCheckAtATime(fn () => $this->check($request, $client, $guard));
+        } catch (LockTimeoutException) {
+            throw ValidationException::withMessages(['pin' => __('auth.pin_busy')]);
+        }
+    }
+
+    private function check(VerifyTrackingPinRequest $request, Client $client, TrackingPinGuard $guard): RedirectResponse
+    {
         $this->isLocked($guard);
 
         if (! hash_equals($client->pin(), $request->validated('pin'))) {

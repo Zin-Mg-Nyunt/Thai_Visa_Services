@@ -26,22 +26,28 @@ class ClientController extends Controller
     private const PIN_ATTEMPTS_SHOWN = 15;
 
     /**
-     * List clients, newest first, optionally filtered by name or phone number.
+     * The longest search text that is used; anything after it is ignored.
+     */
+    private const SEARCH_MAX_LENGTH = 100;
+
+    /**
+     * List clients, newest first, optionally filtered by name or phone number. The search text is cut to
+     * 100 characters, and % and _ in it are searched for as themselves, not as wildcards.
      */
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Client::class);
 
-        $search = trim($request->string('q')->toString());
+        $search = mb_substr(trim($request->string('q')->toString()), 0, self::SEARCH_MAX_LENGTH);
         $phoneSearch = Client::normalisePhone($search);
 
         $clients = Client::query()
             ->when($search !== '', function ($query) use ($search, $phoneSearch) {
                 $query->where(function ($query) use ($search, $phoneSearch) {
-                    $query->where('name', 'like', "%{$search}%");
+                    $query->whereRaw("name like ? escape '!'", ['%'.$this->escapeLike($search).'%']);
 
                     if (preg_match('/\d/', $phoneSearch) === 1) {
-                        $query->orWhere('phone', 'like', "%{$phoneSearch}%");
+                        $query->orWhereRaw("phone like ? escape '!'", ['%'.$this->escapeLike($phoneSearch).'%']);
                     }
                 });
             })
@@ -155,5 +161,14 @@ class ClientController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Client deleted.')]);
 
         return to_route('admin.clients.index');
+    }
+
+    /**
+     * Make % and _ match themselves in a LIKE pattern. "!" is the escape character because, unlike a
+     * backslash, it means the same in MySQL and SQLite.
+     */
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 }

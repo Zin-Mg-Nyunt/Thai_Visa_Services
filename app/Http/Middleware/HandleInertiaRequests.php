@@ -27,7 +27,8 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Define the props that are shared by default.
+     * Define the props that are shared by default. Only the user fields the pages use are shared,
+     * never the whole model (Google ID, two-factor fields and so on stay on the server).
      *
      * @see https://inertiajs.com/shared-data
      *
@@ -40,7 +41,15 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'locale' => app()->getLocale(),
             'auth' => [
-                'user' => $request->user(),
+                // Built only when a page is rendered. The raw role is read, as the role middleware does,
+                // so an account with an unknown role is refused with 403 instead of failing here.
+                'user' => fn () => $request->user() === null ? null : [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'role' => $request->user()->getRawOriginal('role'),
+                    'email_verified_at' => $request->user()->email_verified_at?->toIso8601String(),
+                ],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * One service taken by one client: its status, fee and refund. service_id is always the main service;
@@ -49,6 +50,16 @@ class ClientService extends Model
     use HasFactory;
 
     /**
+     * The loaded payments that $receivedTotal was added up from, so the sum is worked out once per list.
+     *
+     * @var Collection<int, Payment>|null
+     */
+    private ?Collection $receivedFrom = null;
+
+    /** @var numeric-string */
+    private string $receivedTotal = '0.00';
+
+    /**
      * @return BelongsTo<Client, $this>
      */
     public function client(): BelongsTo
@@ -84,14 +95,31 @@ class ClientService extends Model
 
     /**
      * Money received so far, a decimal string. Exact: amounts are added as decimal strings, never floats.
-     * Uses the loaded payments when there are any, so a list of services does not query once per row.
+     * Uses the loaded payments when there are any, so a list of services does not query once per row, and adds
+     * them up only once: remaining(), paymentStatus() and the page totals all reuse the sum.
      *
      * @return numeric-string
      */
     public function received(): string
     {
-        $payments = $this->relationLoaded('payments') ? $this->payments : $this->payments()->get();
+        if (! $this->relationLoaded('payments')) {
+            return $this->sumOf($this->payments()->get());
+        }
 
+        if ($this->receivedFrom !== $this->payments) {
+            $this->receivedFrom = $this->payments;
+            $this->receivedTotal = $this->sumOf($this->payments);
+        }
+
+        return $this->receivedTotal;
+    }
+
+    /**
+     * @param  Collection<int, Payment>  $payments
+     * @return numeric-string
+     */
+    private function sumOf(Collection $payments): string
+    {
         return $payments->reduce(fn (string $total, Payment $payment) => bcadd($total, $payment->amount, 2), '0.00');
     }
 

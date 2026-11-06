@@ -75,6 +75,27 @@ describe('index', function () {
                 ->where('search', 'aung'));
     });
 
+    test('% and _ in the search are matched as themselves, not as wildcards', function (string $typed, array $expected) {
+        Client::factory()->create(['name' => 'Aung Min']);
+        Client::factory()->create(['name' => 'Ko_Ko 100%']);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.index', ['q' => $typed]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('clients.data', fn ($clients) => collect($clients)->pluck('name')->all() === $expected));
+    })->with([
+        'percent' => ['%', ['Ko_Ko 100%']],
+        'underscore' => ['_', ['Ko_Ko 100%']],
+        'escape character' => ['!', []],
+    ]);
+
+    test('a very long search is cut to 100 characters', function () {
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.clients.index', ['q' => str_repeat('a', 500)]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('search', str_repeat('a', 100)));
+    });
+
     test('searches by phone number however it is typed', function (string $typed) {
         Client::factory()->create(['name' => 'Aung Min', 'phone' => '+66812345678']);
         Client::factory()->create(['name' => 'Su Su', 'phone' => '+66899999999']);

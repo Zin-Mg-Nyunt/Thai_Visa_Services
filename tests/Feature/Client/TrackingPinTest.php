@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -170,6 +172,26 @@ describe('account lock', function () {
         submitPin($client, '5678')->assertSessionHasErrors(['pin' => lockedMessage(15)]);
 
         expect(session()->has('client_ids'))->toBeFalse();
+    });
+
+    test('a PIN is not checked while another check for the same client is still running', function () {
+        Sleep::fake(syncWithCarbon: true);
+        $client = clientWithPhone('+66812345678');
+        Cache::lock("track-pin:{$client->id}:check", 10)->get();
+
+        submitPin($client, '5678')->assertSessionHasErrors(['pin' => __('auth.pin_busy')]);
+
+        expect(session()->has('client_ids'))->toBeFalse()
+            ->and($client->pinAttempts()->count())->toBe(0);
+    });
+
+    test('the check lock is released after every check, right or wrong', function () {
+        $client = clientWithPhone('+66812345678');
+
+        failPin($client)->assertSessionHasErrors('pin');
+        submitPin($client, '5678')->assertSessionHasNoErrors();
+
+        expect(Cache::lock("track-pin:{$client->id}:check", 10)->get())->toBeTrue();
     });
 
     test('the lock lasts 15 minutes from the fifth wrong PIN, not from the first', function () {

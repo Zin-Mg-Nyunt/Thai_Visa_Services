@@ -2,12 +2,17 @@
 
 namespace App\Policies;
 
+use App\Enums\ClientServiceStatus;
+use App\Models\ClientService;
 use App\Models\User;
 
 class PaymentPolicy
 {
-    public function create(User $user): bool
+    /**
+     * A cancelled service takes no more payments; its money is settled by the cancel flow and its refund.
+     */
+    public function create(User $user, ClientService $clientService): bool
     {
-        return $user->isSuperadmin();
+        return $user->isSuperadmin() && $clientService->status !== ClientServiceStatus::Cancel;
     }
 }

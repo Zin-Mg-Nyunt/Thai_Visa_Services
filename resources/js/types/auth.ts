@@ -1,13 +1,10 @@
+/** Only these fields of the signed-in user are shared with the pages (HandleInertiaRequests). */
 export type User = {
     id: number;
     name: string;
     email: string;
-    avatar?: string;
     role: 'superadmin';
     email_verified_at: string | null;
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown;
 };
 
 export type Auth = {

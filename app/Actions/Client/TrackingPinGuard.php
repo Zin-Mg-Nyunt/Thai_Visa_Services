@@ -3,6 +3,8 @@
 namespace App\Actions\Client;
 
 use App\Models\Client;
+use Closure;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -20,11 +22,37 @@ class TrackingPinGuard
 
     private const FAILURE_COUNT_SECONDS = 86400;
 
+    /**
+     * How long a PIN check waits for another check on the same client to finish.
+     */
+    public const CHECK_WAIT_SECONDS = 3;
+
+    /**
+     * The longest one PIN check may hold the client's lock, in case a request dies while holding it.
+     */
+    private const CHECK_LOCK_SECONDS = 10;
+
     private string $scope;
 
     public function __construct(Client $client)
     {
         $this->scope = "track-pin:{$client->id}";
+    }
+
+    /**
+     * Run a PIN check while no other check runs for this client. Without it, guesses sent at the same
+     * moment would all pass the lock check before any of them was counted, getting past the try limit.
+     *
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $check
+     * @return TResult
+     *
+     * @throws LockTimeoutException when another check still holds the client after the wait
+     */
+    public function oneCheckAtATime(Closure $check): mixed
+    {
+        return Cache::lock("{$this->scope}:check", self::CHECK_LOCK_SECONDS)->block(self::CHECK_WAIT_SECONDS, $check);
     }
 
     /**

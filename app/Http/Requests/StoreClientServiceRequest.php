@@ -28,7 +28,7 @@ class StoreClientServiceRequest extends FormRequest
     {
         return $this->serviceChoiceRules()
             + $this->clientServiceRules(null, $this->integer('service_id'))
-            + ['received_now' => ['nullable', 'numeric', 'min:0', 'decimal:0,2', 'lte:fee']];
+            + ['received_now' => ['bail', 'nullable', 'numeric', 'min:0', 'decimal:0,2', 'lte:fee']];
     }
 
     /**

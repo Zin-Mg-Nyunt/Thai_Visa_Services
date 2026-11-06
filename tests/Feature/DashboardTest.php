@@ -32,3 +32,13 @@ test('the signed-in superadmin name and role are shared with the layout', functi
             ->where('auth.user.name', 'Owner Name')
             ->where('auth.user.role', 'superadmin'));
 });
+
+test('only the user fields the pages need are shared, never Google or two-factor details', function () {
+    $user = User::factory()->create();
+    $user->forceFill(['google_id' => 'google-123'])->save();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('auth.user', fn ($shared) => collect($shared)->keys()->sort()->values()->all() === ['email', 'email_verified_at', 'id', 'name', 'role']));
+});

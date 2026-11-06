@@ -34,11 +34,12 @@ class ClientServiceController extends Controller
     }
 
     /**
-     * Add a service to a client. If the client already paid something, it is recorded as the first payment (cash, today).
+     * Add a service to a client. If the client already paid something, it is recorded as the first payment:
+     * cash, dated today in the agency's time zone (Bangkok), not UTC.
      */
     public function store(StoreClientServiceRequest $request, Client $client): RedirectResponse
     {
-        $received = number_format((float) ($request->validated('received_now') ?? 0), 2, '.', '');
+        $received = (string) ($request->validated('received_now') ?? '0');
 
         DB::transaction(function () use ($request, $client, $received): void {
             $clientService = $client->clientServices()->create($request->safe()->except('received_now'));
@@ -46,7 +47,7 @@ class ClientServiceController extends Controller
             if (bccomp($received, '0', 2) === 1) {
                 $clientService->payments()->create([
                     'amount' => $received,
-                    'paid_at' => today(),
+                    'paid_at' => today(config('app.display_timezone'))->toDateString(),
                     'method' => PaymentMethod::Cash,
                     'created_by' => $request->user()->id,
                 ]);

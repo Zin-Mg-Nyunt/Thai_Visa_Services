@@ -19,6 +19,7 @@ return [
     'google_failed' => 'Google sign-in failed. Please try again.',
     'google_not_allowed' => 'This Google account is not allowed to sign in.',
     'pin_incorrect' => 'Incorrect PIN. You have :count attempt remaining.|Incorrect PIN. You have :count attempts remaining.',
+    'pin_busy' => 'Your PIN could not be checked just now. Please try again.',
     'pin_throttle' => 'Too many wrong PINs. This link is locked. Please try again in :minutes minutes.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 
