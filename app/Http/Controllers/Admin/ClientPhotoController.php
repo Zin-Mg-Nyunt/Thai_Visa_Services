@@ -7,8 +7,6 @@ use App\Http\Requests\UpdateClientPhotoRequest;
 use App\Models\Client;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ClientPhotoController extends Controller
@@ -18,15 +16,7 @@ class ClientPhotoController extends Controller
      */
     public function update(UpdateClientPhotoRequest $request, Client $client): RedirectResponse
     {
-        $oldPath = $client->photo_path;
-
-        $client->forceFill([
-            'photo_path' => $request->file('photo')->storeAs(Client::PHOTO_DIRECTORY, Str::uuid().'.jpg', Client::PHOTO_DISK),
-        ])->save();
-
-        if ($oldPath !== null) {
-            Storage::disk(Client::PHOTO_DISK)->delete($oldPath);
-        }
+        $client->replacePhoto($request->file('photo'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Photo saved.')]);
 

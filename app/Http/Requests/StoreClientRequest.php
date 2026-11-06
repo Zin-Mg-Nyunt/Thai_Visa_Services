@@ -25,12 +25,12 @@ class StoreClientRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Get the validation rules that apply to the request. A profile photo can be added with the client; it is optional.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        return $this->clientRules();
+        return $this->clientRules() + ['photo' => ['nullable', ...$this->photoRules()]];
     }
 }

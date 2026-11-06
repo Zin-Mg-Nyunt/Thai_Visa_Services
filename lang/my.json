@@ -23,5 +23,9 @@
     "Payment recorded.": "ငွေပေးချေမှုကို မှတ်တမ်းတင်ပြီးပါပြီ။",
     "The payment cannot be more than the remaining balance.": "ပေးချေငွေသည် ကျန်ငွေထက် မများရပါ။",
     "The payment date cannot be in the future.": "ပေးချေသည့်ရက်သည် အနာဂတ်ရက် မဖြစ်ရပါ။",
-    "The amount received now cannot be more than the fee.": "ယခု ရရှိငွေသည် ဝန်ဆောင်ခထက် မများရပါ။"
+    "The amount received now cannot be more than the fee.": "ယခု ရရှိငွေသည် ဝန်ဆောင်ခထက် မများရပါ။",
+    "Service cancelled.": "ဝန်ဆောင်မှုကို ပယ်ဖျက်ပြီးပါပြီ။",
+    "Only a service that is in progress can be cancelled.": "လုပ်ဆောင်နေဆဲ ဝန်ဆောင်မှုကိုသာ ပယ်ဖျက်နိုင်သည်။",
+    "The cancel refund cannot be more than the money kept.": "ပယ်ဖျက်မှု ပြန်အမ်းငွေသည် ကျန်ရှိငွေထက် မများရပါ။",
+    "Service updated. The fee is below the money received, so the extra is recorded as a refund.": "ဝန်ဆောင်မှုကို ပြင်ဆင်ပြီးပါပြီ။ ဝန်ဆောင်ခသည် ရရှိငွေထက် နည်းသောကြောင့် ပိုငွေကို ပြန်အမ်းငွေအဖြစ် မှတ်တမ်းတင်ထားပါသည်။"
 }

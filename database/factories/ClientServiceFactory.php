@@ -29,8 +29,8 @@ class ClientServiceFactory extends Factory
             'end_date' => null,
             'fee' => fake()->numberBetween(1000, 10000),
             'refund_amount' => 0,
+            'cancel_refund_amount' => 0,
             'cancelled_at' => null,
-            'remarks' => null,
         ];
     }
 

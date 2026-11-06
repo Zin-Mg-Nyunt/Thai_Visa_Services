@@ -33,6 +33,16 @@ trait ClientValidationRules
     }
 
     /**
+     * The rules for a profile photo: JPG only, at most 2 MB. The type is read from the file's content, not its name.
+     *
+     * @return array<int, string>
+     */
+    protected function photoRules(): array
+    {
+        return ['file', 'mimes:jpg,jpeg', 'max:'.Client::PHOTO_MAX_KILOBYTES];
+    }
+
+    /**
      * Put the phone number into international format before it is validated,
      * so a duplicate is found whatever way it was typed.
      */

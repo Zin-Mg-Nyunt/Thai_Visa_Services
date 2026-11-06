@@ -194,12 +194,42 @@ const en = {
         remaining: 'Remaining',
         payment: 'Payment',
         notAvailable: '–',
+        kept: 'Kept',
+        refund: 'Refund',
+        cancelRefund: 'Cancel refund',
+        remarks: {
+            history: 'Remarks ({count})',
+            automatic: 'Automatic',
+            unknownAuthor: 'Deleted user',
+            refundAdded:
+                'Fee changed from {from} to {to} after {received} was received. {refund} is to be refunded to the client.',
+            refundCleared:
+                'Fee changed from {from} to {to}. No refund is due any more.',
+            cancelled:
+                'Service cancelled after {received} was received. Cancel refund {cancelRefund}. Kept {kept}.',
+            cancelledWithRefund:
+                'Service cancelled after {received} was received. Refund {refund} from fee changes, cancel refund {cancelRefund}. Kept {kept}.',
+        },
+        cancel: {
+            button: 'Cancel service',
+            title: 'Cancel this service?',
+            kept: 'Kept {amount}',
+            description:
+                'The service stays in the list as history with Cancel status. Nothing more is owed on it and no new payments can be added. This cannot be undone.',
+            refund: 'Cancel refund (฿)',
+            refundHint:
+                'It is taken off what you keep, and cannot be more than {amount}. Optional. If you do not fill it, the cancel refund will be set to 0.',
+            keep: 'Keep service',
+            confirm: 'Cancel service',
+        },
         summary: {
             services: 'Services',
-            received: 'Total received',
+            received: 'Total received (after refunds)',
             remaining: 'Remaining',
         },
         form: {
+            cancelledNotice:
+                'This service is cancelled. You can only add a remark.',
             service: 'Service',
             servicePlaceholder: 'Select a service',
             serviceLocked:
@@ -216,7 +246,12 @@ const en = {
             receivedNow: 'Received now (฿)',
             receivedNowHint:
                 'Optional. If the client paid something today, it is saved as the first cash payment.',
-            remarks: 'Remarks',
+            remark: 'Remark',
+            addRemark: 'Add a remark',
+            remarkHint:
+                'Saved to the list of remarks with your name and the time. Earlier remarks stay as they are.',
+            refundWarning:
+                '{received} is already received, more than this fee. When you save, {refund} will be recorded as a refund to the client.',
         },
         create: {
             head: 'Add service',

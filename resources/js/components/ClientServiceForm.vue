@@ -8,6 +8,8 @@ import {
     update,
 } from '@/actions/App/Http/Controllers/Admin/ClientServiceController';
 import InputError from '@/components/InputError.vue';
+import RemarkList from '@/components/RemarkList.vue';
+import StatusBadge from '@/components/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,11 +41,16 @@ const props = defineProps<{
     subServiceOptions?: SubServiceOption[];
     /** Editing: the default fee of the record's service, used when the chosen sub-service has none. */
     serviceDefaultFee?: string | null;
+    /** Editing: the money received so far, to warn when the fee goes below it. */
+    received?: string;
 }>();
 
 const { t } = useI18n();
 
 const isEditing = computed(() => props.clientService !== undefined);
+
+// A cancelled service is history: only a new remark can be added.
+const isLocked = computed(() => props.clientService?.status === 'cancel');
 
 const form = useForm({
     service_id: null as number | null,
@@ -57,7 +64,7 @@ const form = useForm({
     end_date: props.clientService?.end_date ?? '',
     fee: props.clientService?.fee ?? '',
     received_now: '',
-    remarks: props.clientService?.remarks ?? '',
+    remark: '',
 });
 
 const titleOf = (option: { title: string | null; title_my: string | null }) =>
@@ -156,6 +163,43 @@ const onFeeInput = () => {
     feeNotice.value = null;
 };
 
+// Editing: a fee below the money received turns the extra into a refund when saved. Worked out in whole
+// satang read from the digits, so no float is involved; the server works out the refund itself.
+const toSatang = (value: string): number | null => {
+    const match = /^\s*(\d*)(?:\.(\d{0,2}))?\s*$/.exec(value);
+
+    if (!match || (match[1] === '' && !match[2])) {
+        return null;
+    }
+
+    return (
+        Number(match[1] || '0') * 100 + Number((match[2] ?? '').padEnd(2, '0'))
+    );
+};
+
+const fromSatang = (satang: number) =>
+    `${Math.floor(satang / 100)}.${String(satang % 100).padStart(2, '0')}`;
+
+const refundPreview = computed(() => {
+    if (
+        !isEditing.value ||
+        isLocked.value ||
+        props.received === undefined ||
+        String(form.fee).trim() === ''
+    ) {
+        return null;
+    }
+
+    const received = toSatang(props.received);
+    const fee = toSatang(String(form.fee));
+
+    if (received === null || fee === null || received <= fee) {
+        return null;
+    }
+
+    return fromSatang(received - fee);
+});
+
 const textareaClass =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm';
 
@@ -176,6 +220,13 @@ const submit = () => {
         <section
             class="space-y-6 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
         >
+            <p
+                v-if="isLocked"
+                class="rounded-xl border bg-muted/50 p-3 text-sm text-muted-foreground"
+                data-test="cancelled-notice"
+            >
+                {{ t('clientServices.form.cancelledNotice') }}
+            </p>
             <div class="grid gap-6 md:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="service_id">{{
@@ -224,7 +275,7 @@ const submit = () => {
                     <Label for="sub_service_id">{{
                         t('clientServices.form.subService')
                     }}</Label>
-                    <Select v-model="subServiceValue">
+                    <Select v-model="subServiceValue" :disabled="isLocked">
                         <SelectTrigger
                             id="sub_service_id"
                             class="w-full"
@@ -252,7 +303,13 @@ const submit = () => {
                     <Label for="status">{{
                         t('clientServices.form.status')
                     }}</Label>
-                    <Select v-model="form.status">
+                    <StatusBadge
+                        v-if="isLocked"
+                        kind="serviceStatus"
+                        status="cancel"
+                        class="w-fit"
+                    />
+                    <Select v-else v-model="form.status">
                         <SelectTrigger
                             id="status"
                             class="w-full"
@@ -281,6 +338,7 @@ const submit = () => {
                     <Label for="fee">{{ t('clientServices.form.fee') }}</Label>
                     <Input
                         id="fee"
+                        :disabled="isLocked"
                         v-model="form.fee"
                         name="fee"
                         type="number"
@@ -303,6 +361,19 @@ const submit = () => {
                                     : t('clientServices.notAvailable'),
                                 to: formatMoney(feeNotice.to),
                                 name: feeNotice.name,
+                            })
+                        }}
+                    </p>
+                    <p
+                        v-if="refundPreview && received"
+                        class="rounded-xl border border-warning-foreground/20 bg-warning px-3 py-2 text-xs font-medium text-warning-foreground"
+                        role="alert"
+                        data-test="refund-warning"
+                    >
+                        {{
+                            t('clientServices.form.refundWarning', {
+                                received: formatMoney(received),
+                                refund: formatMoney(refundPreview),
                             })
                         }}
                     </p>
@@ -338,6 +409,7 @@ const submit = () => {
                     }}</Label>
                     <Input
                         id="start_date"
+                        :disabled="isLocked"
                         v-model="form.start_date"
                         name="start_date"
                         type="date"
@@ -352,6 +424,7 @@ const submit = () => {
                     }}</Label>
                     <Input
                         id="end_date"
+                        :disabled="isLocked"
                         v-model="form.end_date"
                         name="end_date"
                         type="date"
@@ -362,19 +435,29 @@ const submit = () => {
             </div>
 
             <div class="grid gap-2">
-                <Label for="remarks">{{
-                    t('clientServices.form.remarks')
+                <Label for="remark">{{
+                    isEditing
+                        ? t('clientServices.form.addRemark')
+                        : t('clientServices.form.remark')
                 }}</Label>
                 <textarea
-                    id="remarks"
-                    v-model="form.remarks"
-                    name="remarks"
+                    id="remark"
+                    v-model="form.remark"
+                    name="remark"
                     rows="3"
                     :class="textareaClass"
                     :placeholder="t('clients.form.remarksPlaceholder')"
-                    :aria-invalid="!!form.errors.remarks"
+                    :aria-invalid="!!form.errors.remark"
                 />
-                <InputError :message="form.errors.remarks" />
+                <p class="text-xs text-muted-foreground">
+                    {{ t('clientServices.form.remarkHint') }}
+                </p>
+                <InputError :message="form.errors.remark" />
+                <RemarkList
+                    v-if="clientService?.remarks?.length"
+                    class="mt-2 border-t text-sm"
+                    :remarks="clientService.remarks"
+                />
             </div>
         </section>
 

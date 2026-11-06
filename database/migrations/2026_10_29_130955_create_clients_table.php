@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->string('unique_token')->unique();
+            $table->string('photo_path')->nullable();
             $table->string('name');
             $table->string('phone')->unique();
             $table->date('birthday');

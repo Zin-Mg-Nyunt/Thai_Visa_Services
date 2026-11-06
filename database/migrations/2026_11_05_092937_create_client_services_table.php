@@ -21,9 +21,10 @@ return new class extends Migration
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->decimal('fee', 12, 2)->default(0);
+            // Refund: set from fee changes. Cancel refund: entered when the service is cancelled. Kept = received minus both.
             $table->decimal('refund_amount', 12, 2)->default(0);
+            $table->decimal('cancel_refund_amount', 12, 2)->default(0);
             $table->timestamp('cancelled_at')->nullable();
-            $table->text('remarks')->nullable();
             $table->timestamps();
 
             // The database checks that a chosen sub-service belongs to the service. A NULL sub-service skips the check.

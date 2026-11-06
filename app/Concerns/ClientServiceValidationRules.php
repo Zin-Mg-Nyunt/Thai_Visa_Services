@@ -17,6 +17,7 @@ trait ClientServiceValidationRules
      * The service itself is chosen only when it is added (see serviceChoiceRules); an existing record keeps its service.
      * A sub-service is optional: it must be an active, not deleted sub-service of the record's service, or the one
      * the record already has, even if it was made inactive or deleted since. Cancel is not offered here; cancelling a service has its own rules and refund field.
+     * The remark is optional and is added to the service's list of remarks; earlier remarks never change.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
@@ -42,7 +43,7 @@ trait ClientServiceValidationRules
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'fee' => ['required', 'numeric', 'min:0', 'max:9999999999.99', 'decimal:0,2'],
-            'remarks' => ['nullable', 'string', 'max:2000'],
+            'remark' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

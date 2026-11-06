@@ -20,7 +20,7 @@ function paymentInput(array $overrides = []): array
 {
     return [
         'amount' => '1000.00',
-        'paid_at' => today()->toDateString(),
+        'paid_at' => today(config('app.display_timezone'))->toDateString(),
         'method' => 'cash',
         'note' => null,
         ...$overrides,
@@ -154,7 +154,7 @@ describe('first payment when adding a service', function () {
             'start_date' => null,
             'end_date' => null,
             'fee' => '8000',
-            'remarks' => null,
+            'remark' => null,
             ...$overrides,
         ];
         $this->store = route('admin.clients.services.store', $this->client);
@@ -168,7 +168,7 @@ describe('first payment when adding a service', function () {
 
         expect($payment->amount)->toBe('3000.00')
             ->and($payment->method->value)->toBe('cash')
-            ->and($payment->paid_at->toDateString())->toBe(today()->toDateString())
+            ->and($payment->paid_at->toDateString())->toBe(today(config('app.display_timezone'))->toDateString())
             ->and($payment->created_by)->toBe($this->admin->id)
             ->and($saved->paymentStatus())->toBe(PaymentStatus::Deposit);
     });

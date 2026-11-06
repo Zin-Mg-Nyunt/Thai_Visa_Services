@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Concerns\HandlesMoney;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
 use App\Models\Client;
@@ -15,6 +16,8 @@ use Inertia\Inertia;
 
 class PaymentController extends Controller
 {
+    use HandlesMoney;
+
     /**
      * Record a payment on a client's service. The ledger only grows: received money, remaining balance
      * and payment status are worked out from its rows.
@@ -24,7 +27,7 @@ class PaymentController extends Controller
      */
     public function store(StorePaymentRequest $request, Client $client, ClientService $clientService): RedirectResponse
     {
-        $amount = (string) $request->validated('amount');
+        $amount = $this->money($request->validated('amount'));
 
         DB::transaction(function () use ($request, $clientService, $amount): void {
             $locked = ClientService::query()->lockForUpdate()->findOrFail($clientService->id);

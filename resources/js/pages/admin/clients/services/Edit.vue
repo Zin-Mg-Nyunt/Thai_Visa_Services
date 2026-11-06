@@ -10,6 +10,7 @@ defineProps<{
     clientService: { data: ClientService };
     subServiceOptions: SubServiceOption[];
     serviceDefaultFee: string | null;
+    received: string;
 }>();
 
 const { t } = useI18n();
@@ -30,5 +31,6 @@ const { t } = useI18n();
         :client-service="clientService.data"
         :sub-service-options="subServiceOptions"
         :service-default-fee="serviceDefaultFee"
+        :received="received"
     />
 </template>

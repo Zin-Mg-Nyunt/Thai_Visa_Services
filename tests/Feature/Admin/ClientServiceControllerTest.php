@@ -22,7 +22,7 @@ function clientServiceInput(Service $service, array $overrides = []): array
         'start_date' => '2026-10-01',
         'end_date' => null,
         'fee' => '8000.00',
-        'remarks' => null,
+        'remark' => null,
         ...$overrides,
     ];
 }
@@ -187,13 +187,13 @@ describe('adding a service', function () {
         'negative fee' => [['fee' => '-1'], 'fee'],
         'three decimals' => [['fee' => '10.123'], 'fee'],
         'too large' => [['fee' => '10000000000'], 'fee'],
-        'long remarks' => [['remarks' => str_repeat('a', 2001)], 'remarks'],
+        'long remark' => [['remark' => str_repeat('a', 2001)], 'remark'],
     ]);
 
     test('accepts a zero fee, empty dates and a complete status', function () {
         $this->actingAs($this->admin)
             ->post(route('admin.clients.services.store', $this->client), clientServiceInput($this->workPermit, [
-                'fee' => '0', 'start_date' => null, 'status' => 'complete', 'remarks' => 'Done early',
+                'fee' => '0', 'start_date' => null, 'status' => 'complete', 'remark' => 'Done early',
             ]))
             ->assertSessionHasNoErrors();
 
@@ -258,14 +258,14 @@ describe('editing a service', function () {
         expect($this->record->refresh()->sub_service_id)->toBe($this->bath->id);
     });
 
-    test('changes the sub-service, status, dates, fee and remarks', function () {
+    test('changes the sub-service, status, dates and fee, and adds the remark', function () {
         $this->actingAs($this->admin)
             ->put(route('admin.clients.services.update', [$this->client, $this->record]), clientServiceInput($this->passport, [
                 'sub_service_id' => $this->mou->id,
                 'status' => 'complete',
                 'end_date' => '2026-10-28',
                 'fee' => '3500.00',
-                'remarks' => 'Collected',
+                'remark' => 'Collected',
             ]))
             ->assertRedirect(route('admin.clients.show', $this->client));
 
@@ -275,7 +275,7 @@ describe('editing a service', function () {
             ->and($this->record->status)->toBe(ClientServiceStatus::Complete)
             ->and($this->record->end_date->toDateString())->toBe('2026-10-28')
             ->and($this->record->fee)->toBe('3500.00')
-            ->and($this->record->remarks)->toBe('Collected');
+            ->and($this->record->remarks()->sole()->body)->toBe('Collected');
     });
 
     test('can go back to the main service only', function () {

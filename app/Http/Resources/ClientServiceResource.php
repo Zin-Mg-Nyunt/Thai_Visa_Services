@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\ClientService;
+use App\Models\ClientServiceRemark;
 use App\Models\Payment;
 use App\Models\Service;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ class ClientServiceResource extends JsonResource
 {
     /**
      * Money goes to the page as decimal strings. Received, remaining and payment status are worked out from the payments, which
-     * are loaded for the list on the client page.
+     * are loaded for the list on the client page. Remarks are sent newest first, with who wrote them.
      *
      * @return array<int|string, mixed>
      */
@@ -33,10 +34,20 @@ class ClientServiceResource extends JsonResource
             'end_date' => $this->end_date?->toDateString(),
             'fee' => $this->fee,
             'refund_amount' => $this->refund_amount,
-            'remarks' => $this->remarks,
+            'cancel_refund_amount' => $this->cancel_refund_amount,
+            'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'remarks' => $this->whenLoaded('remarks', fn () => $this->remarks->map(fn (ClientServiceRemark $remark) => [
+                'id' => $remark->id,
+                'kind' => $remark->kind->value,
+                'body' => $remark->body,
+                'details' => $remark->details,
+                'author' => $remark->creator?->name,
+                'created_at' => $remark->created_at?->toIso8601String(),
+            ])->values()->all()),
             $this->mergeWhen($this->relationLoaded('payments'), fn () => [
                 'received' => $this->received(),
                 'remaining' => $this->remaining(),
+                'kept' => $this->kept(),
                 'payment_status' => $this->paymentStatus()->value,
                 'payments' => $this->payments->map(fn (Payment $payment) => [
                     'id' => $payment->id,

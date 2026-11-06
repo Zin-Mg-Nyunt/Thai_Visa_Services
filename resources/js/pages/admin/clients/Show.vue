@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowLeft,
+    Ban,
     Cake,
     NotebookText,
     Pencil,
@@ -17,8 +18,10 @@ import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
 import ClientAvatar from '@/components/ClientAvatar.vue';
 import ClientPhotoActions from '@/components/ClientPhotoActions.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import CancelServiceDialog from '@/components/CancelServiceDialog.vue';
 import PaymentDialog from '@/components/PaymentDialog.vue';
 import PinAttemptLog from '@/components/PinAttemptLog.vue';
+import RemarkList from '@/components/RemarkList.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import TrackingAccess from '@/components/TrackingAccess.vue';
 import { Button } from '@/components/ui/button';
@@ -58,16 +61,79 @@ const dateRange = (service: ClientService) =>
 const money = (value: string | undefined) =>
     value === undefined ? t('clientServices.notAvailable') : formatMoney(value);
 
-const serviceRows = (service: ClientService) => [
-    { label: t('clientServices.fee'), value: formatMoney(service.fee) },
-    { label: t('clientServices.received'), value: money(service.received) },
-    { label: t('clientServices.remaining'), value: money(service.remaining) },
-];
+const serviceRows = (service: ClientService) =>
+    service.status === 'cancel'
+        ? [
+              {
+                  label: t('clientServices.fee'),
+                  value: formatMoney(service.fee),
+              },
+              {
+                  label: t('clientServices.received'),
+                  value: money(service.received),
+              },
+              // Each refund shows only when there is one; kept is received minus both.
+              ...(service.refund_amount !== '0.00'
+                  ? [
+                        {
+                            label: t('clientServices.refund'),
+                            value: formatMoney(service.refund_amount),
+                        },
+                    ]
+                  : []),
+              ...(service.cancel_refund_amount !== '0.00'
+                  ? [
+                        {
+                            label: t('clientServices.cancelRefund'),
+                            value: formatMoney(service.cancel_refund_amount),
+                        },
+                    ]
+                  : []),
+              { label: t('clientServices.kept'), value: money(service.kept) },
+          ]
+        : [
+              {
+                  label: t('clientServices.fee'),
+                  value: formatMoney(service.fee),
+              },
+              {
+                  label: t('clientServices.received'),
+                  value: money(service.received),
+              },
+              // A fee lowered below the money received leaves the extra as a refund; Received stays
+              // the sum of the payments, and Kept is what the agency keeps after the refund.
+              ...(service.refund_amount !== '0.00'
+                  ? [
+                        {
+                            label: t('clientServices.refund'),
+                            value: formatMoney(service.refund_amount),
+                        },
+                        {
+                            label: t('clientServices.kept'),
+                            value: money(service.kept),
+                        },
+                    ]
+                  : []),
+              {
+                  label: t('clientServices.remaining'),
+                  value: money(service.remaining),
+              },
+          ];
+
+const canCancel = (service: ClientService) => service.status === 'in_progress';
+
+const cancelTarget = ref<ClientService | null>(null);
+const isCancelOpen = ref(false);
+
+const openCancel = (service: ClientService) => {
+    cancelTarget.value = service;
+    isCancelOpen.value = true;
+};
 
 const canRecordPayment = (service: ClientService) =>
     service.payment_status !== undefined &&
     service.payment_status !== 'fully_paid' &&
-    service.status !== 'cancel';
+    service.status === 'in_progress';
 
 const paymentTarget = ref<ClientService | null>(null);
 const isPaymentOpen = ref(false);
@@ -279,7 +345,10 @@ const details = computed(() => [
                 </div>
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                     <StatusBadge
-                        v-if="service.payment_status"
+                        v-if="
+                            service.payment_status &&
+                            service.status !== 'cancel'
+                        "
                         kind="paymentStatus"
                         :status="paymentStatusKey(service.payment_status)"
                     />
@@ -339,6 +408,22 @@ const details = computed(() => [
                         </li>
                     </ul>
                 </details>
+                <details
+                    v-if="service.remarks?.length"
+                    class="mt-3 text-sm"
+                    data-test="remark-history"
+                >
+                    <summary
+                        class="cursor-pointer text-muted-foreground hover:text-brand-dark"
+                    >
+                        {{
+                            t('clientServices.remarks.history', {
+                                count: service.remarks.length,
+                            })
+                        }}
+                    </summary>
+                    <RemarkList class="mt-2" :remarks="service.remarks" />
+                </details>
                 <Button
                     v-if="canRecordPayment(service)"
                     variant="pill"
@@ -369,6 +454,17 @@ const details = computed(() => [
                         {{ t('common.edit') }}
                     </Link>
                 </Button>
+                <Button
+                    v-if="canCancel(service)"
+                    variant="pillOutline"
+                    size="sm"
+                    class="mt-2 w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    data-test="cancel-client-service-button"
+                    @click="openCancel(service)"
+                >
+                    <Ban class="size-4" />
+                    {{ t('clientServices.cancel.button') }}
+                </Button>
             </li>
         </ul>
         <p
@@ -378,6 +474,17 @@ const details = computed(() => [
             {{ t('clientServices.empty') }}
         </p>
     </section>
+
+    <CancelServiceDialog
+        v-if="cancelTarget"
+        v-model:open="isCancelOpen"
+        :client-id="person.id"
+        :client-service-id="cancelTarget.id"
+        :service-name="
+            cancelTarget.service ? titleOf(cancelTarget.service) : ''
+        "
+        :kept="cancelTarget.kept ?? '0.00'"
+    />
 
     <PaymentDialog
         v-if="paymentTarget"

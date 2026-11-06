@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * @property int $id
@@ -65,6 +67,28 @@ class Client extends Model
         }
 
         return URL::temporarySignedRoute('client-photos.show', now()->addHour(), ['client' => $this->id]);
+    }
+
+    /**
+     * Save a new profile photo on the private disk and remove the one it replaces. If the record cannot be
+     * saved, the new file is removed again, so no stray photo is left on the disk.
+     */
+    public function replacePhoto(UploadedFile $photo): void
+    {
+        $oldPath = $this->photo_path;
+        $newPath = $photo->storeAs(self::PHOTO_DIRECTORY, Str::uuid().'.jpg', self::PHOTO_DISK);
+
+        try {
+            $this->forceFill(['photo_path' => $newPath])->save();
+        } catch (Throwable $exception) {
+            Storage::disk(self::PHOTO_DISK)->delete($newPath);
+
+            throw $exception;
+        }
+
+        if ($oldPath !== null) {
+            Storage::disk(self::PHOTO_DISK)->delete($oldPath);
+        }
     }
 
     /**

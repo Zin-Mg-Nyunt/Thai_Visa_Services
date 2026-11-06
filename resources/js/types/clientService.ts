@@ -17,6 +17,38 @@ export type Payment = {
     note: string | null;
 };
 
+type RemarkBase = {
+    id: number;
+    body: string | null;
+    author: string | null;
+    created_at: string | null;
+};
+
+/**
+ * A remark on a client's service. A note has the admin's text. The app's refund and cancel notes have their
+ * numbers (decimal strings), so the page writes them in the selected language.
+ */
+export type ClientServiceRemark =
+    | (RemarkBase & { kind: 'note'; details: null })
+    | (RemarkBase & {
+          kind: 'refund';
+          details: {
+              from_fee: string;
+              to_fee: string;
+              received: string;
+              refund: string;
+          };
+      })
+    | (RemarkBase & {
+          kind: 'cancel';
+          details: {
+              received: string;
+              refund: string;
+              cancel_refund: string;
+              kept: string;
+          };
+      });
+
 export type ClientService = {
     id: number;
     client_id: number;
@@ -29,11 +61,18 @@ export type ClientService = {
     end_date: string | null;
     /** Decimal strings such as "8000.00"; money is never a float. */
     fee: string;
+    /** Set from fee changes. */
     refund_amount: string;
-    remarks: string | null;
+    /** Entered when the service is cancelled; never more than kept. */
+    cancel_refund_amount: string;
+    cancelled_at: string | null;
+    /** Newest first; sent on the client page and the edit page. */
+    remarks?: ClientServiceRemark[];
     /** Worked out on the server from the payments; only sent on the client page. */
     received?: string;
     remaining?: string;
+    /** Received minus the refund and the cancel refund: what the agency keeps. */
+    kept?: string;
     payment_status?: PaymentStatusValue;
     payments?: Payment[];
 };

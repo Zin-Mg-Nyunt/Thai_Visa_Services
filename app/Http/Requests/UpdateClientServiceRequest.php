@@ -29,6 +29,11 @@ class UpdateClientServiceRequest extends FormRequest
         /** @var ClientService $clientService */
         $clientService = $this->route('clientService');
 
+        // A cancelled service is history: only a new remark can still be added.
+        if ($clientService->isCancelled()) {
+            return ['remark' => $this->clientServiceRules($clientService, $clientService->service_id)['remark']];
+        }
+
         return $this->clientServiceRules($clientService, $clientService->service_id);
     }
 

@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * One service taken by one client: its status, fee and refund. service_id is always the main service;
+ * One service taken by one client: its status, fee, refund and remarks. service_id is always the main service;
  * sub_service_id is the optional sub-service of that main service (empty means "main service only").
  * Payments, profit and reports belong to this record and roll up to the main service.
  *
@@ -27,8 +27,8 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $end_date
  * @property numeric-string $fee
  * @property numeric-string $refund_amount
+ * @property numeric-string $cancel_refund_amount
  * @property Carbon|null $cancelled_at
- * @property string|null $remarks
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -41,8 +41,8 @@ use Illuminate\Support\Collection;
     'end_date',
     'fee',
     'refund_amount',
+    'cancel_refund_amount',
     'cancelled_at',
-    'remarks',
 ])]
 class ClientService extends Model
 {
@@ -94,6 +94,16 @@ class ClientService extends Model
     }
 
     /**
+     * The remarks on this service, add-only: admins' notes and the refund notes the app writes.
+     *
+     * @return HasMany<ClientServiceRemark, $this>
+     */
+    public function remarks(): HasMany
+    {
+        return $this->hasMany(ClientServiceRemark::class);
+    }
+
+    /**
      * Money received so far, a decimal string. Exact: amounts are added as decimal strings, never floats.
      * Uses the loaded payments when there are any, so a list of services does not query once per row, and adds
      * them up only once: remaining(), paymentStatus() and the page totals all reuse the sum.
@@ -123,13 +133,47 @@ class ClientService extends Model
         return $payments->reduce(fn (string $total, Payment $payment) => bcadd($total, $payment->amount, 2), '0.00');
     }
 
+    public function isCancelled(): bool
+    {
+        return $this->status === ClientServiceStatus::Cancel;
+    }
+
     /**
-     * The balance still to pay, a decimal string. It never goes below zero.
+     * The money the agency keeps: received minus the refund (from fee changes) and the cancel refund.
+     * Reports and profit count this amount. It never goes below zero: the cancel refund is limited to it.
+     *
+     * @return numeric-string
+     */
+    public function kept(): string
+    {
+        return bcsub(bcsub($this->received(), $this->refund_amount, 2), $this->cancel_refund_amount, 2);
+    }
+
+    /**
+     * The refund due when the fee is the given amount: what was received above the fee, or nothing.
+     * For example, a fee lowered to 4,000 after 5,000 was received leaves 1,000 to refund.
+     *
+     * @param  numeric-string  $fee
+     * @return numeric-string
+     */
+    public function refundForFee(string $fee): string
+    {
+        $extra = bcsub($this->received(), $fee, 2);
+
+        return bccomp($extra, '0', 2) === 1 ? $extra : '0.00';
+    }
+
+    /**
+     * The balance still to pay, a decimal string. It never goes below zero, and a cancelled service owes nothing.
      *
      * @return numeric-string
      */
     public function remaining(): string
     {
+        if ($this->isCancelled()) {
+            return '0.00';
+        }
+
         $remaining = bcsub($this->fee, $this->received(), 2);
 
         return bccomp($remaining, '0', 2) === 1 ? $remaining : '0.00';
@@ -162,6 +206,7 @@ class ClientService extends Model
             'end_date' => 'date',
             'fee' => 'decimal:2',
             'refund_amount' => 'decimal:2',
+            'cancel_refund_amount' => 'decimal:2',
             'cancelled_at' => 'datetime',
         ];
     }

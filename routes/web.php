@@ -54,6 +54,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->only(['create', 'store', 'edit', 'update'])
             ->parameters(['services' => 'clientService'])
             ->scoped();
+        Route::post('clients/{client}/services/{clientService:id}/cancel', [ClientServiceController::class, 'cancel'])
+            ->scopeBindings()
+            ->name('clients.services.cancel');
         Route::post('clients/{client}/services/{clientService:id}/payments', [PaymentController::class, 'store'])
             ->scopeBindings()
             ->name('clients.services.payments.store');

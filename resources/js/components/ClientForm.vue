@@ -7,6 +7,7 @@ import {
     update,
 } from '@/actions/App/Http/Controllers/Admin/ClientController';
 import InputError from '@/components/InputError.vue';
+import PhotoPicker from '@/components/PhotoPicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +35,8 @@ const form = useForm({
     birthday: props.client?.birthday ?? '',
     gender: props.client?.gender ?? '',
     remarks: props.client?.remarks ?? '',
+    // Only when adding a client; an existing client's photo is changed on its page.
+    photo: null as File | null,
 });
 
 const cancelHref = () => (props.client ? show(props.client.id) : index());
@@ -41,7 +44,10 @@ const cancelHref = () => (props.client ? show(props.client.id) : index());
 const submit = () => {
     const target = props.client ? update(props.client.id) : store();
 
-    form.submit(target.method, target.url);
+    // A chosen photo makes Inertia send the form as multipart data; editing never sends a photo.
+    form.transform((data) =>
+        props.client ? { ...data, photo: undefined } : data,
+    ).submit(target.method, target.url);
 };
 </script>
 
@@ -50,6 +56,13 @@ const submit = () => {
         class="max-w-3xl space-y-6 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
         @submit.prevent="submit"
     >
+        <PhotoPicker
+            v-if="!client"
+            v-model="form.photo"
+            :name="form.name"
+            :error="form.errors.photo"
+        />
+
         <div class="grid gap-6 md:grid-cols-2">
             <div class="grid gap-2">
                 <Label for="name">{{ t('clients.form.name') }} *</Label>

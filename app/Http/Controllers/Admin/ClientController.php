@@ -77,7 +77,11 @@ class ClientController extends Controller
      */
     public function store(StoreClientRequest $request): RedirectResponse
     {
-        $client = Client::create($request->validated());
+        $client = Client::create($request->safe()->except('photo'));
+
+        if ($request->hasFile('photo')) {
+            $client->replacePhoto($request->file('photo'));
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Client created.')]);
 
@@ -92,7 +96,12 @@ class ClientController extends Controller
         Gate::authorize('view', $client);
 
         $clientServices = $client->clientServices()
-            ->with(['service', 'subService', 'payments' => fn ($query) => $query->latest('paid_at')->latest('id')])
+            ->with([
+                'service',
+                'subService',
+                'payments' => fn ($query) => $query->latest('paid_at')->latest('id'),
+                'remarks' => fn ($query) => $query->latest('id')->with('creator:id,name'),
+            ])
             ->latest()
             ->latest('id')
             ->get();
@@ -104,7 +113,8 @@ class ClientController extends Controller
             'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
             'clientServices' => ClientServiceResource::collection($clientServices),
             'totals' => [
-                'received' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->received(), 2), '0.00'),
+                // Net of refunds: what the agency keeps from this client.
+                'received' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->kept(), 2), '0.00'),
                 'remaining' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->remaining(), 2), '0.00'),
             ],
             'pinAttempts' => ClientPinAttemptResource::collection($client->pinAttempts()->limit(self::PIN_ATTEMPTS_SHOWN)->get()),

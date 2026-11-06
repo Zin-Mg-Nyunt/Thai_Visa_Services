@@ -116,6 +116,45 @@ describe('upload', function () {
     });
 });
 
+describe('adding a client with a photo', function () {
+    beforeEach(function () {
+        $this->input = fn (array $overrides = []) => [
+            'name' => 'Aung Min', 'phone' => '081 234 5678', 'birthday' => '1995-03-12', 'gender' => 'male', ...$overrides,
+        ];
+    });
+
+    test('saves the photo on the private disk with the new client', function () {
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.clients.store'), ($this->input)(['photo' => jpegUpload()]))
+            ->assertSessionHasNoErrors();
+
+        $client = Client::query()->sole();
+
+        expect($client->photo_path)->toStartWith(Client::PHOTO_DIRECTORY.'/')->toEndWith('.jpg');
+        Storage::disk(Client::PHOTO_DISK)->assertExists($client->photo_path);
+    });
+
+    test('the photo is optional', function () {
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.clients.store'), ($this->input)())
+            ->assertSessionHasNoErrors();
+
+        expect(Client::query()->sole()->photo_path)->toBeNull();
+    });
+
+    test('a photo that is not a JPG or too large adds no client and no file', function (Closure $photo) {
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.clients.store'), ($this->input)(['photo' => $photo()]))
+            ->assertSessionHasErrors('photo');
+
+        expect(Client::count())->toBe(0);
+        Storage::disk(Client::PHOTO_DISK)->assertDirectoryEmpty(Client::PHOTO_DIRECTORY);
+    })->with([
+        'a PNG renamed to .jpg' => [fn () => uploadWithContent(base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHjwV7gAAAABJRU5ErkJggg=='))],
+        'over 2 MB' => [fn () => jpegUpload(extraKilobytes: Client::PHOTO_MAX_KILOBYTES + 1)],
+    ]);
+});
+
 describe('remove and delete', function () {
     test('a superadmin can remove the photo', function () {
         $client = clientWithPhoto();
