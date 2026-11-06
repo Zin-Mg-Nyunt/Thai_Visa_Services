@@ -40,3 +40,10 @@ export const toneClasses: Record<StatusTone, string> = {
     danger: 'border-transparent bg-destructive/10 text-destructive',
     neutral: 'border-transparent bg-muted text-muted-foreground',
 };
+
+/** The server stores client-service statuses as snake_case; the badge and translations use camelCase. */
+export function serviceStatusKey(
+    value: 'in_progress' | 'complete' | 'cancel',
+): ServiceStatus {
+    return value === 'in_progress' ? 'inProgress' : value;
+}

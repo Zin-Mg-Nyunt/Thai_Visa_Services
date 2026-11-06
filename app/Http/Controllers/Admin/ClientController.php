@@ -9,6 +9,7 @@ use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientPinAttemptResource;
 use App\Http\Resources\ClientResource;
+use App\Http\Resources\ClientServiceResource;
 use App\Models\Client;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,6 +89,9 @@ class ClientController extends Controller
             'trackingUrl' => $client->trackingUrl(),
             'photoUrl' => $client->photoUrl(),
             'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
+            'clientServices' => ClientServiceResource::collection(
+                $client->clientServices()->with(['service', 'subService'])->latest()->latest('id')->get(),
+            ),
             'pinAttempts' => ClientPinAttemptResource::collection($client->pinAttempts()->limit(self::PIN_ATTEMPTS_SHOWN)->get()),
         ]);
     }

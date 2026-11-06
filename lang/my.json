@@ -14,6 +14,9 @@
     "The Job Search service cannot be a sub-service.": "အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုကို ဝန်ဆောင်မှုခွဲအဖြစ် မထားနိုင်ပါ။",
     "A service that has sub-services cannot become a sub-service.": "ဝန်ဆောင်မှုခွဲများ ပါဝင်သော ဝန်ဆောင်မှုကို ဝန်ဆောင်မှုခွဲအဖြစ် မပြောင်းနိုင်ပါ။",
     "Enter a title in English or Burmese.": "ခေါင်းစဉ်ကို အင်္ဂလိပ်ဘာသာ သို့မဟုတ် မြန်မာဘာသာဖြင့် ထည့်ပါ။",
-    "Enter a public description in English or Burmese.": "အများပြည်သူ ဖော်ပြချက်ကို အင်္ဂလိပ်ဘာသာ သို့မဟုတ် မြန်မာဘာသာဖြင့် ထည့်ပါ။",
-    "Choose a main service as the parent.": "မိဘဝန်ဆောင်မှုအဖြစ် ပင်မဝန်ဆောင်မှုတစ်ခုကို ရွေးပါ။"
+    "Choose a main service as the parent.": "မိဘဝန်ဆောင်မှုအဖြစ် ပင်မဝန်ဆောင်မှုတစ်ခုကို ရွေးပါ။",
+    "Service added.": "ဝန်ဆောင်မှု ထည့်ပြီးပါပြီ။",
+    "Choose an available service.": "ရရှိနိုင်သော ဝန်ဆောင်မှုတစ်ခု ရွေးပါ။",
+    "Choose a sub-service of the selected service.": "ရွေးထားသော ဝန်ဆောင်မှု၏ ဝန်ဆောင်မှုခွဲတစ်ခု ရွေးပါ။",
+    "The end date cannot be before the start date.": "ပြီးဆုံးသည့်ရက်သည် စတင်သည့်ရက်ထက် မစောရပါ။"
 }

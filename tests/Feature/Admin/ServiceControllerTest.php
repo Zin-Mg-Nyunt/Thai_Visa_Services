@@ -190,26 +190,27 @@ describe('create', function () {
         expect($passport->children()->count())->toBe(6);
     });
 
-    test('a title and a description in one language are enough', function () {
+    test('a title in one language is enough and the description is optional', function () {
         $this->actingAs($this->admin)
             ->post(route('admin.services.store'), newServiceInput([
                 'title' => null,
                 'public_description' => null,
+                'public_description_my' => null,
             ]))
             ->assertSessionHasNoErrors();
 
-        expect(Service::count())->toBe(1);
+        expect(Service::count())->toBe(1)
+            ->and(Service::first()->public_description)->toBeNull();
     });
 
-    test('a service needs a title and a description in at least one language', function () {
+    test('a service needs a title in at least one language', function () {
         $this->actingAs($this->admin)
             ->post(route('admin.services.store'), newServiceInput([
                 'title' => null,
                 'title_my' => null,
-                'public_description' => '',
-                'public_description_my' => null,
             ]))
-            ->assertSessionHasErrors(['title', 'title_my', 'public_description', 'public_description_my']);
+            ->assertSessionHasErrors(['title', 'title_my'])
+            ->assertSessionDoesntHaveErrors(['public_description', 'public_description_my']);
 
         expect(Service::count())->toBe(0);
     });

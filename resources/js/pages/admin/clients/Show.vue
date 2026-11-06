@@ -6,6 +6,7 @@ import {
     NotebookText,
     Pencil,
     Phone,
+    Plus,
     Trash,
     UserRound,
 } from '@lucide/vue';
@@ -16,16 +17,24 @@ import ClientAvatar from '@/components/ClientAvatar.vue';
 import ClientPhotoActions from '@/components/ClientPhotoActions.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PinAttemptLog from '@/components/PinAttemptLog.vue';
+import StatusBadge from '@/components/StatusBadge.vue';
 import TrackingAccess from '@/components/TrackingAccess.vue';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
+import { localised } from '@/lib/service';
+import { serviceStatusKey } from '@/lib/status';
 import { edit, index } from '@/routes/admin/clients';
-import type { Client, PinAttempt } from '@/types';
+import {
+    create as addService,
+    edit as editService,
+} from '@/routes/admin/clients/services';
+import type { Client, ClientService, PinAttempt } from '@/types';
 
 const props = defineProps<{
     client: { data: Client };
     trackingUrl: string;
     photoUrl: string | null;
+    clientServices: { data: ClientService[] };
     lockedMinutes: number;
     pinAttempts: { data: PinAttempt[] };
 }>();
@@ -33,6 +42,28 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const person = computed(() => props.client.data);
+
+const titleOf = (service: { title: string | null; title_my: string | null }) =>
+    localised(service.title, service.title_my) || t('services.untitled');
+
+const dateRange = (service: ClientService) =>
+    `${service.start_date ? formatDate(service.start_date) : '—'} → ${service.end_date ? formatDate(service.end_date) : '—'}`;
+
+const serviceRows = (service: ClientService) => [
+    { label: t('clientServices.fee'), value: formatMoney(service.fee) },
+    {
+        label: t('clientServices.received'),
+        value: t('clientServices.notAvailable'),
+    },
+    {
+        label: t('clientServices.remaining'),
+        value: t('clientServices.notAvailable'),
+    },
+    {
+        label: t('clientServices.payment'),
+        value: t('clientServices.notAvailable'),
+    },
+];
 
 const isDeleteOpen = ref(false);
 const isDeleting = ref(false);
@@ -165,6 +196,100 @@ const details = computed(() => [
                 </dd>
             </div>
         </dl>
+    </section>
+
+    <section class="mt-6">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-brand-dark">
+                {{ t('clientServices.title') }}
+            </h2>
+            <Button as-child variant="pill" size="sm">
+                <Link
+                    :href="addService(person.id)"
+                    data-test="add-client-service-link"
+                >
+                    <Plus class="size-4" />
+                    {{ t('clientServices.add') }}
+                </Link>
+            </Button>
+        </div>
+
+        <ul
+            v-if="clientServices.data.length"
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
+            <li
+                v-for="service in clientServices.data"
+                :key="service.id"
+                class="rounded-2xl border bg-card p-5 shadow-xs"
+                data-test="client-service-card"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h3
+                            class="text-lg leading-relaxed font-semibold wrap-break-word text-brand-dark"
+                        >
+                            {{
+                                service.service ? titleOf(service.service) : ''
+                            }}
+                        </h3>
+                        <p
+                            class="text-sm leading-relaxed wrap-break-word text-muted-foreground"
+                        >
+                            {{
+                                service.sub_service
+                                    ? titleOf(service.sub_service)
+                                    : t('clientServices.mainOnly')
+                            }}
+                        </p>
+                    </div>
+                    <StatusBadge
+                        kind="serviceStatus"
+                        :status="serviceStatusKey(service.status)"
+                    />
+                </div>
+                <p class="mt-2 text-xs text-muted-foreground">
+                    {{ dateRange(service) }}
+                </p>
+                <dl class="mt-3 divide-y border-t text-sm">
+                    <div
+                        v-for="row in serviceRows(service)"
+                        :key="row.label"
+                        class="flex items-center justify-between gap-3 py-2"
+                    >
+                        <dt class="text-muted-foreground">{{ row.label }}</dt>
+                        <dd class="font-semibold text-brand-dark">
+                            {{ row.value }}
+                        </dd>
+                    </div>
+                </dl>
+                <Button
+                    as-child
+                    variant="pillOutline"
+                    size="sm"
+                    class="mt-3 w-full"
+                >
+                    <Link
+                        :href="
+                            editService({
+                                client: person.id,
+                                clientService: service.id,
+                            })
+                        "
+                        data-test="edit-client-service-link"
+                    >
+                        <Pencil class="size-4" />
+                        {{ t('common.edit') }}
+                    </Link>
+                </Button>
+            </li>
+        </ul>
+        <p
+            v-else
+            class="rounded-2xl border bg-card py-8 text-center text-muted-foreground"
+        >
+            {{ t('clientServices.empty') }}
+        </p>
     </section>
 
     <PinAttemptLog

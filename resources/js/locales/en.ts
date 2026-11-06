@@ -182,6 +182,39 @@ const en = {
             downloadCard: 'Download card',
         },
     },
+    clientServices: {
+        title: 'Subscribed services',
+        add: 'Add service',
+        empty: 'No services added yet.',
+        mainOnly: 'Main service only',
+        fee: 'Fee',
+        received: 'Received',
+        remaining: 'Remaining',
+        payment: 'Payment',
+        notAvailable: '–',
+        form: {
+            service: 'Service',
+            servicePlaceholder: 'Select a service',
+            serviceLocked:
+                'The service cannot be changed. To use another service, add a new one.',
+            subService: 'Sub-service',
+            status: 'Status',
+            fee: 'Service fee (฿)',
+            feeHint:
+                "Filled from the sub-service fee, or the service's default fee. You can change it.",
+            startDate: 'Start date',
+            endDate: 'End date',
+            remarks: 'Remarks',
+        },
+        create: {
+            head: 'Add service',
+            title: 'Add service',
+        },
+        edit: {
+            head: 'Edit service',
+            title: 'Edit service',
+        },
+    },
     services: {
         title: 'Services',
         new: 'New service',
@@ -241,7 +274,7 @@ const en = {
             descriptionEn: 'English',
             descriptionMy: 'Burmese',
             languageHint:
-                'Enter a title and a description in at least one language.',
+                'Enter a title in at least one language. The description is optional.',
         },
         create: {
             head: 'New service',
