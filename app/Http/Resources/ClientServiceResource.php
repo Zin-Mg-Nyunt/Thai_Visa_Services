@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\ClientService;
+use App\Models\Payment;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,9 +14,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ClientServiceResource extends JsonResource
 {
     /**
-     * Money goes to the page as decimal strings. Received, remaining and payment status come with the payment ledger.
+     * Money goes to the page as decimal strings. Received, remaining and payment status are worked out from the payments, which
+     * are loaded for the list on the client page.
      *
-     * @return array<string, mixed>
+     * @return array<int|string, mixed>
      */
     public function toArray(Request $request): array
     {
@@ -32,6 +34,18 @@ class ClientServiceResource extends JsonResource
             'fee' => $this->fee,
             'refund_amount' => $this->refund_amount,
             'remarks' => $this->remarks,
+            $this->mergeWhen($this->relationLoaded('payments'), fn () => [
+                'received' => $this->received(),
+                'remaining' => $this->remaining(),
+                'payment_status' => $this->paymentStatus()->value,
+                'payments' => $this->payments->map(fn (Payment $payment) => [
+                    'id' => $payment->id,
+                    'amount' => $payment->amount,
+                    'paid_at' => $payment->paid_at->toDateString(),
+                    'method' => $payment->method->value,
+                    'note' => $payment->note,
+                ])->values()->all(),
+            ]),
         ];
     }
 

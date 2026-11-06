@@ -7,6 +7,7 @@ import {
     Pencil,
     Phone,
     Plus,
+    ReceiptText,
     Trash,
     UserRound,
 } from '@lucide/vue';
@@ -16,13 +17,14 @@ import { destroy } from '@/actions/App/Http/Controllers/Admin/ClientController';
 import ClientAvatar from '@/components/ClientAvatar.vue';
 import ClientPhotoActions from '@/components/ClientPhotoActions.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import PaymentDialog from '@/components/PaymentDialog.vue';
 import PinAttemptLog from '@/components/PinAttemptLog.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import TrackingAccess from '@/components/TrackingAccess.vue';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatMoney } from '@/lib/format';
 import { localised } from '@/lib/service';
-import { serviceStatusKey } from '@/lib/status';
+import { paymentStatusKey, serviceStatusKey } from '@/lib/status';
 import { edit, index } from '@/routes/admin/clients';
 import {
     create as addService,
@@ -35,6 +37,7 @@ const props = defineProps<{
     trackingUrl: string;
     photoUrl: string | null;
     clientServices: { data: ClientService[] };
+    totals: { received: string; remaining: string };
     lockedMinutes: number;
     pinAttempts: { data: PinAttempt[] };
 }>();
@@ -52,21 +55,27 @@ const dateOrDash = (value: string | null) =>
 const dateRange = (service: ClientService) =>
     `${dateOrDash(service.start_date)} → ${dateOrDash(service.end_date)}`;
 
+const money = (value: string | undefined) =>
+    value === undefined ? t('clientServices.notAvailable') : formatMoney(value);
+
 const serviceRows = (service: ClientService) => [
     { label: t('clientServices.fee'), value: formatMoney(service.fee) },
-    {
-        label: t('clientServices.received'),
-        value: t('clientServices.notAvailable'),
-    },
-    {
-        label: t('clientServices.remaining'),
-        value: t('clientServices.notAvailable'),
-    },
-    {
-        label: t('clientServices.payment'),
-        value: t('clientServices.notAvailable'),
-    },
+    { label: t('clientServices.received'), value: money(service.received) },
+    { label: t('clientServices.remaining'), value: money(service.remaining) },
 ];
+
+const canRecordPayment = (service: ClientService) =>
+    service.payment_status !== undefined &&
+    service.payment_status !== 'fully_paid' &&
+    service.status !== 'cancel';
+
+const paymentTarget = ref<ClientService | null>(null);
+const isPaymentOpen = ref(false);
+
+const openPayment = (service: ClientService) => {
+    paymentTarget.value = service;
+    isPaymentOpen.value = true;
+};
 
 const isDeleteOpen = ref(false);
 const isDeleting = ref(false);
@@ -104,6 +113,21 @@ const details = computed(() => [
         label: t('clients.form.remarks'),
         value: person.value.remarks || t('clients.show.noRemarks'),
         icon: NotebookText,
+    },
+    {
+        label: t('clientServices.summary.services'),
+        value: props.clientServices.data.length,
+        icon: ReceiptText,
+    },
+    {
+        label: t('clientServices.summary.received'),
+        value: formatMoney(props.totals.received),
+        icon: ReceiptText,
+    },
+    {
+        label: t('clientServices.summary.remaining'),
+        value: formatMoney(props.totals.remaining),
+        icon: ReceiptText,
     },
 ]);
 </script>
@@ -186,14 +210,16 @@ const details = computed(() => [
             <div
                 v-for="item in details"
                 :key="item.label"
-                class="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                class="flex items-start justify-between gap-4 py-3 text-sm"
             >
-                <dt class="flex items-center gap-2 text-muted-foreground">
+                <dt
+                    class="flex shrink-0 items-center gap-2 text-muted-foreground"
+                >
                     <component :is="item.icon" class="size-4 shrink-0" />
                     {{ item.label }}
                 </dt>
                 <dd
-                    class="font-medium wrap-break-word text-brand-dark sm:text-right"
+                    class="min-w-0 text-right font-medium wrap-break-word text-brand-dark"
                 >
                     {{ item.value }}
                 </dd>
@@ -251,9 +277,16 @@ const details = computed(() => [
                         :status="serviceStatusKey(service.status)"
                     />
                 </div>
-                <p class="mt-2 text-xs text-muted-foreground">
-                    {{ dateRange(service) }}
-                </p>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <StatusBadge
+                        v-if="service.payment_status"
+                        kind="paymentStatus"
+                        :status="paymentStatusKey(service.payment_status)"
+                    />
+                    <span class="text-xs text-muted-foreground">
+                        {{ dateRange(service) }}
+                    </span>
+                </div>
                 <dl class="mt-3 divide-y border-t text-sm">
                     <div
                         v-for="row in serviceRows(service)"
@@ -266,11 +299,62 @@ const details = computed(() => [
                         </dd>
                     </div>
                 </dl>
+                <details
+                    v-if="service.payments?.length"
+                    class="mt-3 text-sm"
+                    data-test="payment-history"
+                >
+                    <summary
+                        class="cursor-pointer text-muted-foreground hover:text-brand-dark"
+                    >
+                        {{
+                            t('payments.history', {
+                                count: service.payments.length,
+                            })
+                        }}
+                    </summary>
+                    <ul class="mt-2 divide-y">
+                        <li
+                            v-for="payment in service.payments"
+                            :key="payment.id"
+                            class="flex items-start justify-between gap-3 py-2"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-brand-dark">
+                                    {{ formatDate(payment.paid_at) }} ·
+                                    {{
+                                        t(`payments.methods.${payment.method}`)
+                                    }}
+                                </p>
+                                <p
+                                    v-if="payment.note"
+                                    class="text-xs wrap-break-word text-muted-foreground"
+                                >
+                                    {{ payment.note }}
+                                </p>
+                            </div>
+                            <span class="font-semibold text-brand-dark">
+                                {{ formatMoney(payment.amount) }}
+                            </span>
+                        </li>
+                    </ul>
+                </details>
+                <Button
+                    v-if="canRecordPayment(service)"
+                    variant="pill"
+                    size="sm"
+                    class="mt-3 w-full"
+                    data-test="record-payment-button"
+                    @click="openPayment(service)"
+                >
+                    <Plus class="size-4" />
+                    {{ t('payments.record') }}
+                </Button>
                 <Button
                     as-child
                     variant="pillOutline"
                     size="sm"
-                    class="mt-3 w-full"
+                    class="mt-2 w-full"
                 >
                     <Link
                         :href="
@@ -294,6 +378,17 @@ const details = computed(() => [
             {{ t('clientServices.empty') }}
         </p>
     </section>
+
+    <PaymentDialog
+        v-if="paymentTarget"
+        v-model:open="isPaymentOpen"
+        :client-id="person.id"
+        :client-service-id="paymentTarget.id"
+        :service-name="
+            paymentTarget.service ? titleOf(paymentTarget.service) : ''
+        "
+        :remaining="paymentTarget.remaining ?? '0.00'"
+    />
 
     <PinAttemptLog
         :client-id="person.id"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PaymentMethod;
 use App\Enums\ServiceAvailability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClientServiceRequest;
@@ -12,6 +13,7 @@ use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,11 +34,24 @@ class ClientServiceController extends Controller
     }
 
     /**
-     * Add a service to a client.
+     * Add a service to a client. If the client already paid something, it is recorded as the first payment (cash, today).
      */
     public function store(StoreClientServiceRequest $request, Client $client): RedirectResponse
     {
-        $client->clientServices()->create($request->validated());
+        $received = number_format((float) ($request->validated('received_now') ?? 0), 2, '.', '');
+
+        DB::transaction(function () use ($request, $client, $received): void {
+            $clientService = $client->clientServices()->create($request->safe()->except('received_now'));
+
+            if (bccomp($received, '0', 2) === 1) {
+                $clientService->payments()->create([
+                    'amount' => $received,
+                    'paid_at' => today(),
+                    'method' => PaymentMethod::Cash,
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Service added.')]);
 

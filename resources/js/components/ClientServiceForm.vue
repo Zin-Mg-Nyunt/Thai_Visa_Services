@@ -56,6 +56,7 @@ const form = useForm({
     start_date: props.clientService?.start_date ?? '',
     end_date: props.clientService?.end_date ?? '',
     fee: props.clientService?.fee ?? '',
+    received_now: '',
     remarks: props.clientService?.remarks ?? '',
 });
 
@@ -111,9 +112,7 @@ watch([selectedService, selectedSub], () => {
 // under the fee says what changed. Going back to the saved sub-service restores the saved fee.
 const savedSubServiceId = props.clientService?.sub_service_id ?? null;
 const savedFee = props.clientService?.fee ?? '';
-const feeNotice = ref<{ from: string; to: string; name: string } | null>(
-    null,
-);
+const feeNotice = ref<{ from: string; to: string; name: string } | null>(null);
 
 watch(
     () => form.sub_service_id,
@@ -267,7 +266,11 @@ const submit = () => {
                                 :key="status"
                                 :value="status"
                             >
-                                {{ t(`serviceStatus.${serviceStatusKey(status)}`) }}
+                                {{
+                                    t(
+                                        `serviceStatus.${serviceStatusKey(status)}`,
+                                    )
+                                }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -307,6 +310,26 @@ const submit = () => {
                         {{ t('clientServices.form.feeHint') }}
                     </p>
                     <InputError :message="form.errors.fee" />
+                </div>
+
+                <div v-if="!isEditing" class="grid gap-2">
+                    <Label for="received_now">{{
+                        t('clientServices.form.receivedNow')
+                    }}</Label>
+                    <Input
+                        id="received_now"
+                        v-model="form.received_now"
+                        name="received_now"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal"
+                        :aria-invalid="!!form.errors.received_now"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('clientServices.form.receivedNowHint') }}
+                    </p>
+                    <InputError :message="form.errors.received_now" />
                 </div>
 
                 <div class="grid gap-2">

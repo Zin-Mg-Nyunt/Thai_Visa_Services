@@ -47,3 +47,9 @@ export function serviceStatusKey(
 ): ServiceStatus {
     return value === 'in_progress' ? 'inProgress' : value;
 }
+
+export function paymentStatusKey(
+    value: 'unpaid' | 'deposit' | 'fully_paid',
+): PaymentStatus {
+    return value === 'fully_paid' ? 'fullyPaid' : value;
+}

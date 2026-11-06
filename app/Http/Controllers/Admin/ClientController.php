@@ -11,6 +11,7 @@ use App\Http\Resources\ClientPinAttemptResource;
 use App\Http\Resources\ClientResource;
 use App\Http\Resources\ClientServiceResource;
 use App\Models\Client;
+use App\Models\ClientService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -84,14 +85,22 @@ class ClientController extends Controller
     {
         Gate::authorize('view', $client);
 
+        $clientServices = $client->clientServices()
+            ->with(['service', 'subService', 'payments' => fn ($query) => $query->latest('paid_at')->latest('id')])
+            ->latest()
+            ->latest('id')
+            ->get();
+
         return Inertia::render('admin/clients/Show', [
             'client' => ClientResource::make($client),
             'trackingUrl' => $client->trackingUrl(),
             'photoUrl' => $client->photoUrl(),
             'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
-            'clientServices' => ClientServiceResource::collection(
-                $client->clientServices()->with(['service', 'subService'])->latest()->latest('id')->get(),
-            ),
+            'clientServices' => ClientServiceResource::collection($clientServices),
+            'totals' => [
+                'received' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->received(), 2), '0.00'),
+                'remaining' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->remaining(), 2), '0.00'),
+            ],
             'pinAttempts' => ClientPinAttemptResource::collection($client->pinAttempts()->limit(self::PIN_ATTEMPTS_SHOWN)->get()),
         ]);
     }

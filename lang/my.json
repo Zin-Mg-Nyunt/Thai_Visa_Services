@@ -19,5 +19,9 @@
     "Service added.": "ဝန်ဆောင်မှု ထည့်ပြီးပါပြီ။",
     "Choose an available service.": "ရရှိနိုင်သော ဝန်ဆောင်မှုတစ်ခု ရွေးပါ။",
     "Choose a sub-service of the selected service.": "ရွေးထားသော ဝန်ဆောင်မှု၏ ဝန်ဆောင်မှုခွဲတစ်ခု ရွေးပါ။",
-    "The end date cannot be before the start date.": "ပြီးဆုံးသည့်ရက်သည် စတင်သည့်ရက်ထက် မစောရပါ။"
+    "The end date cannot be before the start date.": "ပြီးဆုံးသည့်ရက်သည် စတင်သည့်ရက်ထက် မစောရပါ။",
+    "Payment recorded.": "ငွေပေးချေမှုကို မှတ်တမ်းတင်ပြီးပါပြီ။",
+    "The payment cannot be more than the remaining balance.": "ပေးချေငွေသည် ကျန်ငွေထက် မများရပါ။",
+    "The payment date cannot be in the future.": "ပေးချေသည့်ရက်သည် အနာဂတ်ရက် မဖြစ်ရပါ။",
+    "The amount received now cannot be more than the fee.": "ယခု ရရှိငွေသည် ဝန်ဆောင်ခထက် မများရပါ။"
 }

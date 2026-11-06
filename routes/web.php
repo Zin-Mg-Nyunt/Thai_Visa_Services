@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Admin\ClientServiceController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Client\PhotoController;
@@ -53,6 +54,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->only(['create', 'store', 'edit', 'update'])
             ->parameters(['services' => 'clientService'])
             ->scoped();
+        Route::post('clients/{client}/services/{clientService:id}/payments', [PaymentController::class, 'store'])
+            ->scopeBindings()
+            ->name('clients.services.payments.store');
         Route::resource('services', ServiceController::class);
         Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');
         Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');

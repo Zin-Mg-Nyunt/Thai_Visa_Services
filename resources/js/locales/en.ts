@@ -146,6 +146,8 @@ const en = {
             noRemarks: 'No remarks',
         },
         pinLog: {
+            show: 'Show log',
+            hide: 'Hide log',
             title: 'Wrong PIN log',
             description:
                 "Wrong PINs typed on this client's link, newest first. The PIN itself is never saved. Five wrong tries lock the link for 15 minutes.",
@@ -192,6 +194,11 @@ const en = {
         remaining: 'Remaining',
         payment: 'Payment',
         notAvailable: '–',
+        summary: {
+            services: 'Services',
+            received: 'Total received',
+            remaining: 'Remaining',
+        },
         form: {
             service: 'Service',
             servicePlaceholder: 'Select a service',
@@ -206,6 +213,9 @@ const en = {
                 'The fee changed from {from} to {to}, the default fee of {name}. Change it if you agreed a different price with the client.',
             startDate: 'Start date',
             endDate: 'End date',
+            receivedNow: 'Received now (฿)',
+            receivedNowHint:
+                'Optional. If the client paid something today, it is saved as the first cash payment.',
             remarks: 'Remarks',
         },
         create: {
@@ -215,6 +225,22 @@ const en = {
         edit: {
             head: 'Edit service',
             title: 'Edit service',
+        },
+    },
+    payments: {
+        record: 'Record payment',
+        history: 'Payments ({count})',
+        amount: 'Amount (฿)',
+        date: 'Date',
+        method: 'Method',
+        note: 'Note',
+        notePlaceholder: 'Optional note',
+        methods: {
+            cash: 'Cash',
+        },
+        dialog: {
+            title: 'Record payment',
+            remaining: 'Remaining {amount}',
         },
     },
     services: {

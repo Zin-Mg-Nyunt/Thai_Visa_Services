@@ -26,7 +26,9 @@ class StoreClientServiceRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->serviceChoiceRules() + $this->clientServiceRules(null, $this->integer('service_id'));
+        return $this->serviceChoiceRules()
+            + $this->clientServiceRules(null, $this->integer('service_id'))
+            + ['received_now' => ['nullable', 'numeric', 'min:0', 'decimal:0,2', 'lte:fee']];
     }
 
     /**
@@ -34,6 +36,8 @@ class StoreClientServiceRequest extends FormRequest
      */
     public function messages(): array
     {
-        return $this->clientServiceMessages();
+        return $this->clientServiceMessages() + [
+            'received_now.lte' => __('The amount received now cannot be more than the fee.'),
+        ];
     }
 }
