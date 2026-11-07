@@ -2,36 +2,100 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Cake, Phone, Plus, Search, UserRound } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
-import { ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Pagination from '@/components/Pagination.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { formatDate } from '@/lib/format';
 import { create, index, show } from '@/routes/admin/clients';
-import type { PaginatedClients } from '@/types';
+import { localised } from '@/lib/service';
+import type { PaginatedClients, ServiceFilterOption } from '@/types';
 import { pageTitle } from '@/lib/pageTitle';
 
 const props = defineProps<{
     clients: PaginatedClients;
     search: string;
+    filters: {
+        service?: number;
+        sub_service?: number | 'none';
+        status?: string;
+    };
+    serviceOptions: ServiceFilterOption[];
 }>();
 
 const { t } = useI18n();
 
 const query = ref(props.search);
 
-watchDebounced(
-    query,
-    (value) => {
-        router.get(
-            index.url(),
-            { q: value || undefined },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    },
-    { debounce: 300 },
+// 'all' stands for "no filter": the select cannot hold an empty value.
+const chosen = reactive({
+    service: props.filters.service ? String(props.filters.service) : 'all',
+    subService: props.filters.sub_service
+        ? String(props.filters.sub_service)
+        : 'all',
+    status: props.filters.status ?? 'all',
+});
+
+const statuses = ['in_progress', 'complete', 'cancel'] as const;
+const statusKey = {
+    in_progress: 'inProgress',
+    complete: 'complete',
+    cancel: 'cancel',
+} as const;
+
+const titleOf = (service: { title: string | null; title_my: string | null }) =>
+    localised(service.title, service.title_my) || t('services.untitled');
+
+const subServiceOptions = computed(
+    () =>
+        props.serviceOptions.find(
+            (service) => String(service.id) === chosen.service,
+        )?.sub_services ?? [],
 );
+
+const hasFilters = computed(
+    () =>
+        chosen.service !== 'all' ||
+        chosen.subService !== 'all' ||
+        chosen.status !== 'all',
+);
+
+const pick = (value: string) => (value === 'all' ? undefined : value);
+
+const visit = () => {
+    router.get(
+        index.url(),
+        {
+            q: query.value || undefined,
+            service: pick(chosen.service),
+            sub_service: pick(chosen.subService),
+            status: pick(chosen.status),
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
+    );
+};
+
+const chooseService = (value: unknown) => {
+    chosen.service = String(value);
+    chosen.subService = 'all';
+};
+
+const clearFilters = () => {
+    chosen.service = 'all';
+    chosen.subService = 'all';
+    chosen.status = 'all';
+};
+
+watchDebounced(query, visit, { debounce: 300 });
+watch(chosen, visit);
 </script>
 
 <template>
@@ -67,6 +131,94 @@ watchDebounced(
                 :aria-label="t('common.search')"
                 data-test="client-search"
             />
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-3" data-test="client-filters">
+            <Select
+                :model-value="chosen.service"
+                @update:model-value="chooseService"
+            >
+                <SelectTrigger
+                    class="w-full"
+                    :aria-label="t('clients.filters.service')"
+                    data-test="filter-service"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">
+                        {{ t('clients.filters.allServices') }}
+                    </SelectItem>
+                    <SelectItem
+                        v-for="service in serviceOptions"
+                        :key="service.id"
+                        :value="String(service.id)"
+                    >
+                        {{ titleOf(service) }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+
+            <Select
+                v-model="chosen.subService"
+                :disabled="chosen.service === 'all'"
+            >
+                <SelectTrigger
+                    class="w-full"
+                    :aria-label="t('clients.filters.subService')"
+                    data-test="filter-sub-service"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">
+                        {{ t('clients.filters.allSubServices') }}
+                    </SelectItem>
+                    <SelectItem value="none">
+                        {{ t('clientServices.mainOnly') }}
+                    </SelectItem>
+                    <SelectItem
+                        v-for="sub in subServiceOptions"
+                        :key="sub.id"
+                        :value="String(sub.id)"
+                    >
+                        {{ titleOf(sub) }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+
+            <Select v-model="chosen.status">
+                <SelectTrigger
+                    class="w-full"
+                    :aria-label="t('clients.filters.status')"
+                    data-test="filter-status"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">
+                        {{ t('clients.filters.anyStatus') }}
+                    </SelectItem>
+                    <SelectItem
+                        v-for="status in statuses"
+                        :key="status"
+                        :value="status"
+                    >
+                        {{ t(`serviceStatus.${statusKey[status]}`) }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+
+        <div v-if="hasFilters" class="flex justify-end">
+            <Button
+                variant="pillOutline"
+                size="sm"
+                data-test="clear-client-filters"
+                @click="clearFilters"
+            >
+                {{ t('clients.filters.clear') }}
+            </Button>
         </div>
 
         <ul v-if="clients.data.length" class="space-y-3 md:hidden">

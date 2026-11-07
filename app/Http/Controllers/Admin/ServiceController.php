@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Service\ServiceStatistics;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
@@ -18,7 +19,7 @@ class ServiceController extends Controller
     /**
      * List the main services; their sub-services are shown on each service's own page.
      */
-    public function index(): Response
+    public function index(ServiceStatistics $statistics): Response
     {
         Gate::authorize('viewAny', Service::class);
 
@@ -26,6 +27,7 @@ class ServiceController extends Controller
 
         return Inertia::render('admin/services/Index', [
             'services' => ServiceResource::collection($services),
+            'stats' => (object) $statistics->forMainServices(),
         ]);
     }
 
@@ -61,7 +63,7 @@ class ServiceController extends Controller
     /**
      * Show a service with its details and, for a main service, its sub-services.
      */
-    public function show(Service $service): Response
+    public function show(Service $service, ServiceStatistics $statistics): Response
     {
         Gate::authorize('view', $service);
 
@@ -71,6 +73,8 @@ class ServiceController extends Controller
             'service' => ServiceResource::make($service->load('parent')),
             'subServices' => ServiceResource::collection($subServices),
             'canHaveSubServices' => $this->canHaveSubServices($service),
+            'stats' => $statistics->forService($service),
+            'breakdown' => $this->canHaveSubServices($service) ? $statistics->breakdown($service) : [],
             'canDelete' => Gate::allows('delete', $service),
         ]);
     }

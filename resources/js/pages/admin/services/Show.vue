@@ -11,13 +11,16 @@ import { Button } from '@/components/ui/button';
 import { formatMoney } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
 import { localised } from '@/lib/service';
+import { index as clientsIndex } from '@/routes/admin/clients';
 import { create, edit, index, show } from '@/routes/admin/services';
-import type { Service } from '@/types';
+import type { Service, ServiceBreakdownRow, ServiceStats } from '@/types';
 
 const props = defineProps<{
     service: { data: Service };
     subServices: { data: Service[] };
     canHaveSubServices: boolean;
+    stats: ServiceStats;
+    breakdown: ServiceBreakdownRow[];
     canDelete: boolean;
 }>();
 
@@ -29,29 +32,24 @@ const titleOf = (service: { title: string | null; title_my: string | null }) =>
     localised(service.title, service.title_my) || t('services.untitled');
 
 const statCards = computed(() => {
-    const stats = item.value.stats;
-    const count = (value: number | undefined) =>
-        value === undefined ? t('services.stats.notAvailable') : value;
+    const stats = props.stats;
 
     return [
         {
             label: t('services.stats.totalClients'),
-            value: count(stats?.total_clients),
+            value: stats.total_clients,
         },
         {
             label: t('services.stats.inProgress'),
-            value: count(stats?.in_progress),
+            value: stats.in_progress,
         },
         {
             label: t('services.stats.complete'),
-            value: count(stats?.complete),
+            value: stats.complete,
         },
         {
             label: t('services.stats.totalReceived'),
-            value:
-                stats === undefined
-                    ? t('services.stats.notAvailable')
-                    : formatMoney(stats.total_received),
+            value: formatMoney(stats.total_received),
         },
     ];
 });
@@ -282,6 +280,94 @@ const details = computed(() => [
             <p v-else class="mt-4 text-sm text-muted-foreground">
                 {{ t('services.noSubServices') }}
             </p>
+        </section>
+
+        <section
+            v-if="canHaveSubServices && breakdown.length > 1"
+            class="rounded-2xl border bg-card p-4 shadow-xs sm:p-6 lg:col-span-2"
+            data-test="sub-service-breakdown"
+        >
+            <h2 class="text-lg font-semibold text-brand-dark">
+                {{ t('services.breakdown.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+                {{ t('services.breakdown.hint') }}
+            </p>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        <tr class="border-b">
+                            <th class="px-3 py-3">
+                                {{ t('services.breakdown.name') }}
+                            </th>
+                            <th class="px-3 py-3 text-right">
+                                {{ t('services.stats.totalClients') }}
+                            </th>
+                            <th class="px-3 py-3 text-right">
+                                {{ t('services.stats.inProgress') }}
+                            </th>
+                            <th class="px-3 py-3 text-right">
+                                {{ t('services.stats.complete') }}
+                            </th>
+                            <th class="px-3 py-3 text-right">
+                                {{ t('services.stats.totalReceived') }}
+                            </th>
+                            <th class="px-3 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="row in breakdown"
+                            :key="row.sub_service?.id ?? 'main-only'"
+                            class="border-b last:border-0"
+                            data-test="breakdown-row"
+                        >
+                            <td
+                                class="px-3 py-3 font-medium wrap-break-word text-brand-dark"
+                            >
+                                {{
+                                    row.sub_service
+                                        ? titleOf(row.sub_service)
+                                        : t('clientServices.mainOnly')
+                                }}
+                            </td>
+                            <td class="px-3 py-3 text-right">
+                                {{ row.stats.total_clients }}
+                            </td>
+                            <td class="px-3 py-3 text-right">
+                                {{ row.stats.in_progress }}
+                            </td>
+                            <td class="px-3 py-3 text-right">
+                                {{ row.stats.complete }}
+                            </td>
+                            <td class="px-3 py-3 text-right whitespace-nowrap">
+                                {{ formatMoney(row.stats.total_received) }}
+                            </td>
+                            <td class="px-3 py-3 text-right">
+                                <Link
+                                    :href="
+                                        clientsIndex({
+                                            query: {
+                                                service: item.id,
+                                                sub_service:
+                                                    row.sub_service?.id ??
+                                                    'none',
+                                            },
+                                        })
+                                    "
+                                    class="text-sm whitespace-nowrap text-brand-dark underline-offset-2 hover:underline"
+                                    data-test="breakdown-clients-link"
+                                >
+                                    {{ t('services.breakdown.viewClients') }}
+                                </Link>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
     </div>
 

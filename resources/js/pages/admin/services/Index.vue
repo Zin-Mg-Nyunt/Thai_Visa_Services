@@ -8,38 +8,40 @@ import { formatMoney } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
 import { localised } from '@/lib/service';
 import { create, show } from '@/routes/admin/services';
-import type { Service } from '@/types';
+import type { Service, ServiceStats } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     services: { data: Service[] };
+    stats: Record<number, ServiceStats>;
 }>();
 
 const { t } = useI18n();
 
 const statRows = (service: Service) => {
-    const stats = service.stats;
-    const count = (value: number | undefined) =>
-        value === undefined ? t('services.stats.notAvailable') : value;
+    // A service nobody has taken has no entry yet, which means zero.
+    const stats: ServiceStats = props.stats[service.id] ?? {
+        total_clients: 0,
+        in_progress: 0,
+        complete: 0,
+        total_received: '0.00',
+    };
 
     return [
         {
             label: t('services.stats.totalClients'),
-            value: count(stats?.total_clients),
+            value: stats.total_clients,
         },
         {
             label: t('services.stats.inProgress'),
-            value: count(stats?.in_progress),
+            value: stats.in_progress,
         },
         {
             label: t('services.stats.complete'),
-            value: count(stats?.complete),
+            value: stats.complete,
         },
         {
             label: t('services.stats.totalReceived'),
-            value:
-                stats === undefined
-                    ? t('services.stats.notAvailable')
-                    : formatMoney(stats.total_received),
+            value: formatMoney(stats.total_received),
         },
     ];
 };

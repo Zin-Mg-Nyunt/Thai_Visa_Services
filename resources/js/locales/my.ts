@@ -112,6 +112,15 @@ const my: MessageSchema = {
             male: 'ကျား',
             female: 'မ',
         },
+        filters: {
+            service: 'ဝန်ဆောင်မှု',
+            allServices: 'ဝန်ဆောင်မှု အားလုံး',
+            subService: 'ဝန်ဆောင်မှုအခွဲ',
+            allSubServices: 'ဝန်ဆောင်မှုအခွဲ အားလုံး',
+            status: 'အခြေအနေ',
+            anyStatus: 'အခြေအနေ အားလုံး',
+            clear: 'စစ်ထုတ်မှု ရှင်းရန်',
+        },
         pagination: {
             showing: 'စုစုပေါင်း {total} ခုအနက် {from}–{to} ကို ပြထားသည်',
             page: 'စာမျက်နှာ {current} / {last}',
@@ -295,8 +304,14 @@ const my: MessageSchema = {
             totalClients: 'ဖောက်သည် စုစုပေါင်း',
             inProgress: 'လုပ်ဆောင်နေဆဲ',
             complete: 'ပြီးစီး',
-            totalReceived: 'လက်ခံရရှိငွေ စုစုပေါင်း',
+            totalReceived: 'လက်ခံရရှိငွေ စုစုပေါင်း (ငွေပြန်အမ်းပြီး)',
             notAvailable: '–',
+        },
+        breakdown: {
+            title: 'ဝန်ဆောင်မှုအခွဲအလိုက် အသေးစိတ်',
+            hint: 'အတန်းတစ်ခုချင်းစီသည် ဤဝန်ဆောင်မှု၏ ဖောက်သည်ဝန်ဆောင်မှုများကို ရေတွက်ထားသည်။ အတန်းအားလုံးပေါင်းလျှင် အထက်ပါ စုစုပေါင်းနှင့် ကိုက်ညီသည်။',
+            name: 'ဝန်ဆောင်မှုအခွဲ',
+            viewClients: 'ဖောက်သည်များ ကြည့်ရန်',
         },
         details: {
             title: 'ဝန်ဆောင်မှု အချက်အလက်',

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -32,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Outside production, reading a column the query did not select throws instead of quietly giving null
+        // (a missing money column once turned into 0 in the service totals).
+        Model::preventAccessingMissingAttributes(! app()->isProduction());
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

@@ -110,6 +110,15 @@ const en = {
             male: 'Male',
             female: 'Female',
         },
+        filters: {
+            service: 'Service',
+            allServices: 'All services',
+            subService: 'Sub-service',
+            allSubServices: 'All sub-services',
+            status: 'Status',
+            anyStatus: 'Any status',
+            clear: 'Clear filters',
+        },
         pagination: {
             showing: 'Showing {from}–{to} of {total}',
             page: 'Page {current} of {last}',
@@ -296,8 +305,14 @@ const en = {
             totalClients: 'Total clients',
             inProgress: 'In progress',
             complete: 'Complete',
-            totalReceived: 'Total received',
+            totalReceived: 'Total received (after refunds)',
             notAvailable: '–',
+        },
+        breakdown: {
+            title: 'Sub-service breakdown',
+            hint: 'Each row counts the client services of this service. Together the rows add up to the totals above.',
+            name: 'Sub-service',
+            viewClients: 'View clients',
         },
         details: {
             title: 'Service details',

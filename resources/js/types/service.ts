@@ -19,13 +19,25 @@ export type Service = {
     has_documents: boolean;
     is_job_search: boolean;
     sub_services_count?: number;
-    /** Filled in once client services and payments exist (Phase 2 step 6). */
-    stats?: {
-        total_clients: number;
-        in_progress: number;
-        complete: number;
-        total_received: string;
-    };
+};
+
+/** Worked out from client services and payments. total_received is what the agency kept (received minus refunds). */
+export type ServiceStats = {
+    total_clients: number;
+    in_progress: number;
+    complete: number;
+    /** A decimal string such as "3000.00"; money is never a float. */
+    total_received: string;
+};
+
+export type ServiceBreakdownRow = {
+    /** Null is the "main service only" row. */
+    sub_service: Pick<Service, 'id' | 'title' | 'title_my'> | null;
+    stats: ServiceStats;
+};
+
+export type ServiceFilterOption = Pick<Service, 'id' | 'title' | 'title_my'> & {
+    sub_services: Pick<Service, 'id' | 'title' | 'title_my'>[];
 };
 
 export type ParentOption = Pick<Service, 'id' | 'title' | 'title_my'>;
