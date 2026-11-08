@@ -131,10 +131,9 @@ const openCancel = (service: ClientService) => {
     isCancelOpen.value = true;
 };
 
+// The server decides: any service that is not cancelled and still has a balance, also a complete one.
 const canRecordPayment = (service: ClientService) =>
-    service.payment_status !== undefined &&
-    service.payment_status !== 'fully_paid' &&
-    service.status === 'in_progress';
+    service.can_record_payment === true;
 
 const paymentTarget = ref<ClientService | null>(null);
 const isPaymentOpen = ref(false);

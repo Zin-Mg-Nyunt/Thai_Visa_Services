@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Cake, FileText, LogOut, Phone, UserRound } from '@lucide/vue';
+import {
+    Cake,
+    Download,
+    FileText,
+    Lock,
+    LogOut,
+    Phone,
+    UserRound,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { download } from '@/actions/App/Http/Controllers/Client/DocumentController';
 import { destroy } from '@/actions/App/Http/Controllers/Client/SessionController';
 import ClientAvatar from '@/components/ClientAvatar.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -67,6 +76,10 @@ const moneyRows = (item: ClientPortalService) =>
                   value: formatMoney(item.remaining ?? '0.00'),
               },
           ];
+
+// A plain link, not an Inertia visit: the answer is a file. The server checks the owner and the lock again on every request.
+const downloadUrl = (documentId: number) =>
+    download.url({ client: props.token, document: documentId });
 
 const isSigningOut = ref(false);
 
@@ -205,22 +218,39 @@ const signOut = () => {
                                     />
                                     {{ document.title }}
                                 </p>
-                                <span
-                                    class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="
-                                        document.unlocked
-                                            ? 'bg-emerald-100 text-emerald-900'
-                                            : 'bg-amber-100 text-amber-900'
-                                    "
-                                    data-test="document-state"
+                                <!-- Downloadable: the download icon is the link. Locked: a lock icon, no link. -->
+                                <Button
+                                    v-if="document.unlocked"
+                                    as-child
+                                    variant="outline"
+                                    size="icon-sm"
+                                    class="shrink-0 border-transparent bg-emerald-100 text-emerald-900 hover:bg-emerald-200"
                                 >
-                                    {{
-                                        document.unlocked
-                                            ? t(
-                                                  'clientArea.documents.downloadable',
-                                              )
-                                            : t('clientArea.documents.locked')
-                                    }}
+                                    <a
+                                        :href="downloadUrl(document.id)"
+                                        :aria-label="
+                                            t('clientArea.documents.download')
+                                        "
+                                        :title="
+                                            t('clientArea.documents.download')
+                                        "
+                                        data-test="download-document-link"
+                                    >
+                                        <Download class="size-4" />
+                                    </a>
+                                </Button>
+                                <span
+                                    v-else
+                                    class="flex size-8 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-900"
+                                    role="img"
+                                    :aria-label="
+                                        t('clientArea.documents.locked')
+                                    "
+                                    :title="t('clientArea.documents.locked')"
+                                    data-test="document-state"
+                                    data-state="locked"
+                                >
+                                    <Lock class="size-4" />
                                 </span>
                             </div>
                             <p

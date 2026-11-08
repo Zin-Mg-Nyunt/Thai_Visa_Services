@@ -394,6 +394,77 @@ describe('replace file', function () {
     });
 });
 
+describe('admin download', function () {
+    function adminDownloadUrl(mixed $test, Document $document): string
+    {
+        return route('admin.clients.services.documents.download', [$test->client, $test->record, $document]);
+    }
+
+    test('the superadmin downloads the real file even when it is locked, and the access is logged as admin', function () {
+        uploadTo($this, $this->record, ['title' => 'Work permit card']);
+        $document = Document::sole();
+
+        $response = $this->actingAs($this->admin)->get(adminDownloadUrl($this, $document))->assertOk();
+
+        expect($response->streamedContent())->toBe(PDF_BYTES)
+            ->and($response->headers->get('Content-Disposition'))->toContain('Work permit card.pdf')
+            ->and($response->headers->get('Cache-Control'))->toContain('no-store')
+            ->and($document->isUnlocked())->toBeFalse();
+
+        $log = DocumentAccessLog::sole();
+
+        expect($log->actor_type)->toBe(DocumentActor::Admin)
+            ->and($log->actor_id)->toBe($this->admin->id)
+            ->and($log->client_id)->toBe($this->client->id)
+            ->and($log->document_title)->toBe('Work permit card')
+            ->and($log->outcome->value)->toBe('allowed');
+    });
+
+    test('a guest cannot download and nothing is logged', function () {
+        uploadTo($this, $this->record);
+        $document = Document::sole();
+        auth()->logout();
+        $this->flushSession();
+
+        $this->get(adminDownloadUrl($this, $document))->assertRedirect(route('login'));
+
+        expect(DocumentAccessLog::count())->toBe(0);
+    });
+
+    test('a client session cannot use the admin download', function () {
+        uploadTo($this, $this->record);
+        $document = Document::sole();
+        auth()->logout();
+        $this->flushSession();
+        $this->client->update(['phone' => '+66812345678']);
+        $this->post(route('track.verify', $this->client->unique_token), ['pin' => '5678']);
+
+        $this->get(adminDownloadUrl($this, $document))->assertRedirect(route('login'));
+
+        expect(DocumentAccessLog::count())->toBe(0);
+    });
+
+    test('a document is only reachable through its own service', function () {
+        uploadTo($this, $this->record);
+        $document = Document::sole();
+        $other = ClientService::factory()->forService($this->workPermit)->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.clients.services.documents.download', [$other->client_id, $other, $document]))
+            ->assertNotFound();
+
+        expect(DocumentAccessLog::count())->toBe(0);
+    });
+
+    test('a record whose file is gone is a 404 logged as not_available', function () {
+        $document = Document::factory()->create(['client_service_id' => $this->record->id, 'storage_key' => 'documents/gone.pdf']);
+
+        $this->actingAs($this->admin)->get(adminDownloadUrl($this, $document))->assertNotFound();
+
+        expect(DocumentAccessLog::sole()->reason->value)->toBe('not_available');
+    });
+});
+
 describe('delete', function () {
     test('deleting a document removes the record and the file but keeps the access history', function () {
         uploadTo($this, $this->record);

@@ -47,6 +47,11 @@ class Document extends Model
     public const DIRECTORY = 'documents';
 
     /**
+     * How long a signed Spaces link lasts. It is short on purpose: the link works for anyone who holds it until it expires.
+     */
+    public const SIGNED_URL_MINUTES = 2;
+
+    /**
      * @return BelongsTo<ClientService, $this>
      */
     public function clientService(): BelongsTo

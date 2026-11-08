@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
 import {
+    Download,
     FileText,
+    Lock,
+    LockOpen,
     Pencil,
     Plus,
     RefreshCw,
@@ -13,6 +16,7 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     destroy,
+    download,
     replace,
     store,
     update,
@@ -275,6 +279,18 @@ const stateKey = (document: ClientDocument) =>
                             <Pencil class="size-4" />
                         </Button>
                         <Button
+                            as-child
+                            variant="ghost"
+                            size="icon-sm"
+                            :aria-label="t('documents.download')"
+                            :title="t('documents.download')"
+                            data-test="download-document-link"
+                        >
+                            <a :href="download.url(target(document))">
+                                <Download class="size-4" />
+                            </a>
+                        </Button>
+                        <Button
                             variant="ghost"
                             size="icon-sm"
                             :aria-label="t('documents.replace.button')"
@@ -313,16 +329,24 @@ const stateKey = (document: ClientDocument) =>
                         />
                         {{ t('documents.release') }}
                     </Label>
+                    <!-- Unlocked for the client (released or fully paid): open lock icon. Locked: lock icon. -->
                     <span
-                        class="rounded-full px-2 py-0.5 text-xs font-medium"
+                        class="flex size-7 items-center justify-center rounded-md"
                         :class="
                             document.unlocked
                                 ? 'bg-emerald-100 text-emerald-900'
                                 : 'bg-amber-100 text-amber-900'
                         "
+                        role="img"
+                        :aria-label="t(`documents.state.${stateKey(document)}`)"
+                        :title="t(`documents.state.${stateKey(document)}`)"
+                        :data-state="
+                            document.unlocked ? 'downloadable' : 'locked'
+                        "
                         data-test="document-state"
                     >
-                        {{ t(`documents.state.${stateKey(document)}`) }}
+                        <LockOpen v-if="document.unlocked" class="size-4" />
+                        <Lock v-else class="size-4" />
                     </span>
                 </div>
             </li>

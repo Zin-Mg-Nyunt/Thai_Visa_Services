@@ -152,6 +152,9 @@ const my: MessageSchema = {
             allSubServices: 'ဝန်ဆောင်မှုအခွဲ အားလုံး',
             status: 'အခြေအနေ',
             anyStatus: 'အခြေအနေ အားလုံး',
+            payment: 'ငွေပေးချေမှု',
+            anyPayment: 'ငွေပေးချေမှု အားလုံး',
+            remaining: 'ကျန်ငွေ ရှိသည်',
             clear: 'စစ်ထုတ်မှု ရှင်းရန်',
         },
         pagination: {
@@ -307,6 +310,7 @@ const my: MessageSchema = {
         title: 'စာရွက်စာတမ်းများ',
         upload: 'တင်ရန်',
         empty: 'စာရွက်စာတမ်း မရှိသေးပါ။',
+        download: 'ဒေါင်းလုဒ်လုပ်ရန်',
         release: 'ဖောက်သည်ထံ ထုတ်ပေးရန်',
         limits: 'PDF ၅ MB အထိ၊ JPG သို့မဟုတ် PNG ၂ MB အထိ။',
         replace: {
@@ -535,10 +539,10 @@ const my: MessageSchema = {
         },
         documents: {
             title: 'စာရွက်စာတမ်းများ',
-            downloadable: 'ဒေါင်းလုဒ်လုပ်နိုင်သည်',
+            download: 'ဒေါင်းလုဒ်လုပ်ရန်',
             locked: 'ပိတ်ထားသည်',
             lockedMessage:
-                'ဝန်ဆောင်မှုကို အပြည့်အဝ မပေးချေမချင်း ပိတ်ထားမည်။ ပေးချေပြီး {paid} · ပေးရန်ကျန်ငွေ {due}',
+                'စာရွက်စာတမ်းကိုရယူရန် ဝန်ဆောင်ခကို အပြည့်ပေးချေပါ။ ပေးချေပြီး {paid} · ပေးရန်ကျန်ငွေ {due}',
             empty: 'စာရွက်စာတမ်း မရှိသေးပါ။',
         },
         signOut: 'ထွက်ရန်',

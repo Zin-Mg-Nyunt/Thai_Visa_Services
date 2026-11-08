@@ -77,6 +77,8 @@ export type ClientService = {
     /** Worked out on the server from the payments; only sent on the client page. */
     received?: string;
     remaining?: string;
+    /** True while the service is not cancelled and still has a balance, in progress or complete. */
+    can_record_payment?: boolean;
     /** Received minus the refund and the cancel refund: what the agency keeps. */
     kept?: string;
     payment_status?: PaymentStatusValue;

@@ -63,6 +63,7 @@ class ClientServiceResource extends JsonResource
                 'remaining' => $this->remaining(),
                 'kept' => $this->kept(),
                 'payment_status' => $this->paymentStatus()->value,
+                'can_record_payment' => $this->canTakePayment(),
                 'payments' => $this->payments->map(fn (Payment $payment) => [
                     'id' => $payment->id,
                     'amount' => $payment->amount,

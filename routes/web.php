@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\PhotoController;
 use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\SessionController;
@@ -33,6 +34,9 @@ Route::middleware('client.session')
     ->name('client.')
     ->group(function () {
         Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+        Route::get('documents/{document}/download', [ClientDocumentController::class, 'download'])
+            ->middleware('throttle:document-downloads')
+            ->name('documents.download');
         Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
     });
 
@@ -68,6 +72,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::patch('clients/{client}/services/{clientService:id}/documents/{document:id}', [DocumentController::class, 'update'])
             ->scopeBindings()
             ->name('clients.services.documents.update');
+        Route::get('clients/{client}/services/{clientService:id}/documents/{document:id}/download', [DocumentController::class, 'download'])
+            ->scopeBindings()
+            ->name('clients.services.documents.download');
         Route::post('clients/{client}/services/{clientService:id}/documents/{document:id}/file', [DocumentController::class, 'replace'])
             ->scopeBindings()
             ->name('clients.services.documents.replace');

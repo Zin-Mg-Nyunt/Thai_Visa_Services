@@ -188,6 +188,16 @@ class ClientService extends Model
     }
 
     /**
+     * Whether a payment can still be recorded: any service that is not cancelled and still has a balance, whether it is in
+     * progress or complete. A finished service can still be paid later. A cancelled service takes none, and a fully paid
+     * one has nothing left to pay. The client page shows its Record payment button by this, and the server enforces it.
+     */
+    public function canTakePayment(): bool
+    {
+        return ! $this->isCancelled() && bccomp($this->remaining(), '0', 2) === 1;
+    }
+
+    /**
      * Whether the documents of this service unlock by payment: only once it is Fully Paid, and never on a cancelled service
      * (its money is settled by the refund). The admin's per-document release is separate.
      */

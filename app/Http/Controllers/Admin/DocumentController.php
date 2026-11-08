@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Document\DeliverDocument;
+use App\Actions\Document\LogDocumentAccess;
+use App\Enums\DocumentAccessOutcome;
+use App\Enums\DocumentActor;
+use App\Enums\DocumentDenyReason;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReplaceDocumentRequest;
 use App\Http\Requests\StoreDocumentRequest;
@@ -10,11 +15,13 @@ use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Document;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class DocumentController extends Controller
@@ -55,6 +62,34 @@ class DocumentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document uploaded.')]);
 
         return to_route('admin.clients.show', $client);
+    }
+
+    /**
+     * Let the superadmin open a document file. The admin is not held back by a lock, but the attempt is logged like every
+     * other one, so the history shows who opened what.
+     */
+    public function download(
+        Request $request,
+        Client $client,
+        ClientService $clientService,
+        Document $document,
+        LogDocumentAccess $log,
+        DeliverDocument $deliver,
+    ): Response {
+        Gate::authorize('view', $document);
+
+        $document->setRelation('clientService', $clientService);
+
+        if (! $deliver->hasFile($document)) {
+            report(new \RuntimeException("The file of document [{$document->id}] is missing from the disk."));
+            $log($document, DocumentActor::Admin, $request->user()->id, DocumentAccessOutcome::Denied, DocumentDenyReason::NotAvailable, $request->ip());
+
+            abort(404);
+        }
+
+        $log($document, DocumentActor::Admin, $request->user()->id, DocumentAccessOutcome::Allowed, null, $request->ip());
+
+        return $deliver->response($document);
     }
 
     /**

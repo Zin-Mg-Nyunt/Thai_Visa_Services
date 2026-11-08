@@ -14,6 +14,7 @@ use App\Http\Resources\ClientServiceResource;
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Service;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,13 @@ class ClientController extends Controller
     private const SEARCH_MAX_LENGTH = 100;
 
     /**
+     * The payment filters of the clients list: fully paid, or a balance still remaining.
+     *
+     * @var array<int, string>
+     */
+    private const PAYMENT_FILTERS = ['fully_paid', 'remaining'];
+
+    /**
      * List clients, newest first, optionally filtered by name or phone number. The search text is cut to
      * 100 characters, and % and _ in it are searched for as themselves, not as wildcards.
      */
@@ -50,13 +58,15 @@ class ClientController extends Controller
                 $service = $filters['service'] ?? null;
                 $subService = $filters['sub_service'] ?? null;
                 $status = $filters['status'] ?? null;
+                $payment = $filters['payment'] ?? null;
 
-                $query->whereHas('clientServices', function ($query) use ($service, $subService, $status) {
+                $query->whereHas('clientServices', function ($query) use ($service, $subService, $status, $payment) {
                     $query
                         ->when($service !== null, fn ($query) => $query->where('service_id', $service))
                         ->when($subService === 'none', fn ($query) => $query->whereNull('sub_service_id'))
                         ->when(is_int($subService), fn ($query) => $query->where('sub_service_id', $subService))
-                        ->when($status !== null, fn ($query) => $query->where('status', $status));
+                        ->when($status !== null, fn ($query) => $query->where('status', $status))
+                        ->when($payment !== null, fn ($query) => $this->wherePayment($query, $payment));
                 });
             })
             ->when($search !== '', function ($query) use ($search, $phoneSearch) {
@@ -87,7 +97,7 @@ class ClientController extends Controller
      * service, so the page's drop-downs always show the filter that is applied. A client matches when ONE of their
      * services fits every chosen filter.
      *
-     * @return array{service?: int, sub_service?: int|string, status?: string}
+     * @return array{service?: int, sub_service?: int|string, status?: string, payment?: string}
      */
     private function serviceFilters(Request $request): array
     {
@@ -112,7 +122,31 @@ class ClientController extends Controller
             $filters['status'] = $status->value;
         }
 
+        if (in_array($request->string('payment')->toString(), self::PAYMENT_FILTERS, true)) {
+            $filters['payment'] = $request->string('payment')->toString();
+        }
+
         return $filters;
+    }
+
+    /**
+     * Keep the client services by what has been paid, worked out in the database in whole satang (exact, never a float).
+     * Fully paid: something is paid and all of the fee is. Remaining: a balance is left. A cancelled service owes nothing
+     * and its payment status is not shown, so it is in neither. This is the same rule as ClientService::paymentStatus() and
+     * ClientService::remaining().
+     *
+     * @param  Builder<ClientService>  $query
+     * @return Builder<ClientService>
+     */
+    private function wherePayment($query, string $payment)
+    {
+        $paid = '(select coalesce(sum(round(payments.amount * 100)), 0) from payments where payments.client_service_id = client_services.id)';
+
+        return $query
+            ->where('client_services.status', '!=', ClientServiceStatus::Cancel->value)
+            ->whereRaw($payment === 'fully_paid'
+                ? "{$paid} > 0 and {$paid} >= round(client_services.fee * 100)"
+                : "{$paid} < round(client_services.fee * 100)");
     }
 
     /**

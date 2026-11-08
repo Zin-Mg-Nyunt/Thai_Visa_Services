@@ -150,6 +150,9 @@ const en = {
             allSubServices: 'All sub-services',
             status: 'Status',
             anyStatus: 'Any status',
+            payment: 'Payment',
+            anyPayment: 'Any payment',
+            remaining: 'Remaining',
             clear: 'Clear filters',
         },
         pagination: {
@@ -308,6 +311,7 @@ const en = {
         title: 'Documents',
         upload: 'Upload',
         empty: 'No documents yet.',
+        download: 'Download',
         release: 'Release to client',
         limits: 'PDF up to 5 MB, JPG or PNG up to 2 MB.',
         replace: {
@@ -540,10 +544,10 @@ const en = {
         },
         documents: {
             title: 'Documents',
-            downloadable: 'Downloadable',
+            download: 'Download',
             locked: 'Locked',
             lockedMessage:
-                'Locked until the service is fully paid. Paid {paid} · Balance due {due}',
+                'To get the document, please full pay for the service. Paid {paid} · Balance due {due}',
             empty: 'No documents yet.',
         },
         signOut: 'Sign out',

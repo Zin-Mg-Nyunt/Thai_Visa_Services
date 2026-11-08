@@ -27,6 +27,7 @@ const props = defineProps<{
         service?: number;
         sub_service?: number | 'none';
         status?: string;
+        payment?: 'fully_paid' | 'remaining';
     };
     serviceOptions: ServiceFilterOption[];
 }>();
@@ -42,6 +43,7 @@ const chosen = reactive({
         ? String(props.filters.sub_service)
         : 'all',
     status: props.filters.status ?? 'all',
+    payment: props.filters.payment ?? 'all',
 });
 
 const statuses = ['in_progress', 'complete', 'cancel'] as const;
@@ -65,7 +67,8 @@ const hasFilters = computed(
     () =>
         chosen.service !== 'all' ||
         chosen.subService !== 'all' ||
-        chosen.status !== 'all',
+        chosen.status !== 'all' ||
+        chosen.payment !== 'all',
 );
 
 const pick = (value: string) => (value === 'all' ? undefined : value);
@@ -78,6 +81,7 @@ const visit = () => {
             service: pick(chosen.service),
             sub_service: pick(chosen.subService),
             status: pick(chosen.status),
+            payment: pick(chosen.payment),
         },
         { preserveState: true, preserveScroll: true, replace: true },
     );
@@ -92,6 +96,7 @@ const clearFilters = () => {
     chosen.service = 'all';
     chosen.subService = 'all';
     chosen.status = 'all';
+    chosen.payment = 'all';
 };
 
 watchDebounced(query, visit, { debounce: 300 });
@@ -133,7 +138,10 @@ watch(chosen, visit);
             />
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-3" data-test="client-filters">
+        <div
+            class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            data-test="client-filters"
+        >
             <Select
                 :model-value="chosen.service"
                 @update:model-value="chooseService"
@@ -205,6 +213,27 @@ watch(chosen, visit);
                         :value="status"
                     >
                         {{ t(`serviceStatus.${statusKey[status]}`) }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+
+            <Select v-model="chosen.payment">
+                <SelectTrigger
+                    class="w-full"
+                    :aria-label="t('clients.filters.payment')"
+                    data-test="filter-payment"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">
+                        {{ t('clients.filters.anyPayment') }}
+                    </SelectItem>
+                    <SelectItem value="fully_paid">
+                        {{ t('paymentStatus.fullyPaid') }}
+                    </SelectItem>
+                    <SelectItem value="remaining">
+                        {{ t('clients.filters.remaining') }}
                     </SelectItem>
                 </SelectContent>
             </Select>

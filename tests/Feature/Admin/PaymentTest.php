@@ -4,6 +4,7 @@ use App\Enums\ClientServiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Client;
 use App\Models\ClientService;
+use App\Models\Document;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
@@ -123,6 +124,79 @@ describe('recording a payment', function () {
         $this->actingAs($this->admin)->post($this->url, paymentInput())->assertForbidden();
 
         expect(Payment::count())->toBe(0);
+    });
+
+    test('a complete service still takes a payment while a balance is left, and stays complete', function (array $paid) {
+        $this->record->update(['status' => ClientServiceStatus::Complete]);
+        foreach ($paid as $amount) {
+            Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => $amount]);
+        }
+
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '1000']))->assertSessionHasNoErrors();
+
+        $this->record->refresh();
+
+        expect($this->record->status)->toBe(ClientServiceStatus::Complete)
+            ->and($this->record->received())->toBe(bcadd(array_sum($paid).'.00', '1000', 2))
+            ->and(Payment::count())->toBe(count($paid) + 1);
+    })->with([
+        'unpaid' => [[]],
+        'a deposit' => [['2000.00']],
+    ]);
+
+    test('a complete service that is paid in full takes no more, and never over the balance', function () {
+        $this->record->update(['status' => ClientServiceStatus::Complete]);
+        Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => '4500.00']);
+
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '500.01']))->assertSessionHasErrors('amount');
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '500']))->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post($this->url, paymentInput(['amount' => '1']))->assertSessionHasErrors('amount');
+
+        expect($this->record->refresh()->paymentStatus())->toBe(PaymentStatus::FullyPaid)
+            ->and($this->record->received())->toBe('5000.00');
+    });
+
+    test('a late payment that completes the fee unlocks the documents', function () {
+        $service = Service::factory()->create(['has_documents' => true]);
+        $record = ClientService::factory()->forService($service)->create(['client_id' => $this->client->id, 'fee' => '5000.00', 'status' => ClientServiceStatus::Complete]);
+        Payment::factory()->create(['client_service_id' => $record->id, 'amount' => '3000.00']);
+        $document = Document::factory()->create(['client_service_id' => $record->id]);
+
+        expect($document->fresh()->isUnlocked())->toBeFalse();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.clients.services.payments.store', [$this->client, $record]), paymentInput(['amount' => '2000']))
+            ->assertSessionHasNoErrors();
+
+        expect($document->fresh()->isUnlocked())->toBeTrue();
+    });
+
+    test('the page offers Record payment for in progress and complete services with a balance only', function () {
+        $service = Service::factory()->create();
+        $make = fn (array $state, ?string $paid = null) => tap(
+            ClientService::factory()->forService($service)->create(['client_id' => $this->client->id, 'fee' => '5000.00', ...$state]),
+            fn ($record) => $paid === null ? null : Payment::factory()->create(['client_service_id' => $record->id, 'amount' => $paid]),
+        );
+        $this->record->delete();
+
+        $inProgress = $make(['status' => 'in_progress']);
+        $completeUnpaid = $make(['status' => 'complete']);
+        $completeDeposit = $make(['status' => 'complete'], '2000.00');
+        $completePaid = $make(['status' => 'complete'], '5000.00');
+        $inProgressPaid = $make(['status' => 'in_progress'], '5000.00');
+        $cancelled = $make(['status' => 'cancel', 'cancelled_at' => now()], '2000.00');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.clients.show', $this->client))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('clientServices.data', fn ($services) => collect($services)->pluck('can_record_payment', 'id')->all() == [
+                    $inProgress->id => true,
+                    $completeUnpaid->id => true,
+                    $completeDeposit->id => true,
+                    $completePaid->id => false,
+                    $inProgressPaid->id => false,
+                    $cancelled->id => false,
+                ]));
     });
 
     test('a payment fills the balance left after earlier payments, never more', function () {
