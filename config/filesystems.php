@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Not served: no route may hand out these files. The app reads them itself.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -57,7 +58,8 @@ return [
         'private' => [
             'driver' => env('STORAGE_DRIVER', 'local'),
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Not served: documents are streamed by DeliverDocument after its checks, photos by their own signed route.
+            'serve' => false,
             'url' => rtrim((string) env('APP_URL', 'http://localhost'), '/').'/private-files',
             'visibility' => 'private',
             'key' => env('DO_SPACES_KEY'),

@@ -17,6 +17,7 @@ use App\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -276,7 +277,9 @@ class ClientController extends Controller
      */
     public function destroy(DeleteClientRequest $request, Client $client): RedirectResponse
     {
-        $client->delete();
+        // One transaction: the client and their documents go together or not at all. The files are removed only after
+        // it commits, so a delete that fails part-way leaves every record and file in place.
+        DB::transaction(fn () => $client->delete());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Client deleted.')]);
 

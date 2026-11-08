@@ -15,18 +15,16 @@ test('private files are not stored inside the web-served public folder', functio
         ->not->toStartWith(storage_path('app/public'));
 });
 
-test('a private file is only reachable through a temporary signed url', function () {
+test('a private file has no url of its own: only the app hands it out, after its checks', function () {
     $disk = Storage::disk('private');
     $path = 'testing/passport-'.str()->random(8).'.pdf';
     $disk->put($path, 'pdf');
 
     try {
-        $url = $disk->temporaryUrl($path, now()->addMinutes(5));
+        expect(fn () => $disk->temporaryUrl($path, now()->addMinutes(5)))->toThrow(RuntimeException::class);
 
-        expect($url)->toContain('signature=')->toContain('expires=');
-        $this->get($url)->assertOk();
-        $this->get(preg_replace('/signature=[^&]+/', 'signature=bad', $url))->assertForbidden();
-        $this->get(rtrim(config('filesystems.disks.private.url'), '/').'/'.$path)->assertForbidden();
+        $this->get(rtrim(config('filesystems.disks.private.url'), '/').'/'.$path)->assertNotFound();
+        $this->get('/storage/'.$path)->assertNotFound();
     } finally {
         $disk->delete($path);
     }

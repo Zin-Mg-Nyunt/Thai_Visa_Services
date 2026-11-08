@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DocumentActor;
+use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Document;
 use App\Models\DocumentAccessLog;
@@ -517,6 +518,27 @@ describe('delete', function () {
         expect(Document::count())->toBe(1)
             ->and(Document::sole()->title)->toBe('Someone else')
             ->and($log->fresh())->not->toBeNull();
+    });
+
+    test('a client delete that fails part-way keeps the client, their documents, files and photo', function () {
+        uploadTo($this, $this->record, ['title' => 'First']);
+        $key = Document::sole()->storage_key;
+        $photo = Client::PHOTO_DIRECTORY.'/existing.jpg';
+        Storage::disk(Client::PHOTO_DISK)->put($photo, 'jpeg-bytes');
+        $this->client->forceFill(['photo_path' => $photo])->save();
+
+        // Fails after the documents and the photo have been erased, before the client row is deleted.
+        Client::deleting(fn () => throw new RuntimeException('The delete failed.'));
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.clients.destroy', $this->client), ['confirmation' => $this->client->phone])
+            ->assertServerError();
+
+        expect($this->client->fresh()->trashed())->toBeFalse()
+            ->and($this->client->fresh()->photo_path)->toBe($photo)
+            ->and(Document::sole()->storage_key)->toBe($key);
+        Storage::disk(Document::DISK)->assertExists($key);
+        Storage::disk(Client::PHOTO_DISK)->assertExists($photo);
     });
 });
 

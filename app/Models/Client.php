@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -105,17 +106,20 @@ class Client extends Model
     }
 
     /**
-     * Delete the photo file and forget its path.
+     * Forget the photo's path and delete its file. Inside a transaction (deleting a client) the file is removed only once
+     * it commits, so a rolled-back delete keeps the photo; outside one it is removed at once.
      */
     public function erasePhoto(): void
     {
-        if ($this->photo_path === null) {
+        $path = $this->photo_path;
+
+        if ($path === null) {
             return;
         }
 
-        Storage::disk(self::PHOTO_DISK)->delete($this->photo_path);
-
         $this->forceFill(['photo_path' => null])->saveQuietly();
+
+        DB::afterCommit(fn () => Storage::disk(self::PHOTO_DISK)->delete($path));
     }
 
     /**

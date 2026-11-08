@@ -10,6 +10,7 @@ use App\Models\DocumentAccessLog;
 use App\Models\Payment;
 use App\Models\Service;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 
@@ -191,11 +192,16 @@ test('a record whose file is gone from the disk is a 404 logged as not_available
     expect(DocumentAccessLog::sole()->reason)->toBe(DocumentDenyReason::NotAvailable);
 });
 
-test('knowing the file location is not enough: the private disk URL is refused', function () {
+test('knowing the file location is not enough: the private disk has no URL at all', function () {
     $document = documentWithFile($this->record, ['client_can_download' => true]);
 
-    $this->get('/private-files/'.$document->storage_key)->assertForbidden();
-    $this->get('/private-files/'.$document->storage_key.'?signature=abc&expires=1')->assertForbidden();
+    expect(Route::has('storage.private'))->toBeFalse()
+        ->and(Route::has('storage.private.upload'))->toBeFalse()
+        ->and(Route::has('storage.local'))->toBeFalse();
+
+    $this->get('/private-files/'.$document->storage_key)->assertNotFound();
+    $this->get('/private-files/'.$document->storage_key.'?signature=abc&expires=1')->assertNotFound();
+    $this->put('/private-files/documents/planted.pdf', ['file' => 'x'])->assertNotFound();
 });
 
 test('a file name that is unsafe in a header is cleaned and a Burmese title survives', function (string $title, string $expected) {
