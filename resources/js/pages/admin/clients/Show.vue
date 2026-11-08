@@ -19,6 +19,7 @@ import ClientAvatar from '@/components/ClientAvatar.vue';
 import ClientPhotoActions from '@/components/ClientPhotoActions.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import CancelServiceDialog from '@/components/CancelServiceDialog.vue';
+import DocumentList from '@/components/DocumentList.vue';
 import PaymentDialog from '@/components/PaymentDialog.vue';
 import PinAttemptLog from '@/components/PinAttemptLog.vue';
 import RemarkList from '@/components/RemarkList.vue';
@@ -424,6 +425,15 @@ const details = computed(() => [
                     </summary>
                     <RemarkList class="mt-2" :remarks="service.remarks" />
                 </details>
+                <DocumentList
+                    v-if="service.accepts_documents"
+                    :client-id="person.id"
+                    :client-service-id="service.id"
+                    :service-name="
+                        service.service ? titleOf(service.service) : ''
+                    "
+                    :documents="service.documents ?? []"
+                />
                 <Button
                     v-if="canRecordPayment(service)"
                     variant="pill"

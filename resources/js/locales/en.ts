@@ -304,6 +304,31 @@ const en = {
             title: 'Edit service',
         },
     },
+    documents: {
+        title: 'Documents',
+        upload: 'Upload',
+        empty: 'No documents yet.',
+        release: 'Release to client',
+        limits: 'PDF up to 5 MB, JPG or PNG up to 2 MB.',
+        fields: {
+            title: 'Title',
+            file: 'File',
+        },
+        state: {
+            released: 'Released',
+            unlockedByPayment: 'Unlocked (fully paid)',
+            locked: 'Locked',
+        },
+        dialog: {
+            upload: 'Upload a document',
+            rename: 'Edit document',
+        },
+        delete: {
+            title: 'Delete this document?',
+            description:
+                '“{title}” and its file will be deleted for good. The access history is kept.',
+        },
+    },
     payments: {
         record: 'Record payment',
         history: 'Payments ({count})',

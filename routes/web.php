@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Admin\ClientServiceController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -61,6 +62,15 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::post('clients/{client}/services/{clientService:id}/payments', [PaymentController::class, 'store'])
             ->scopeBindings()
             ->name('clients.services.payments.store');
+        Route::post('clients/{client}/services/{clientService:id}/documents', [DocumentController::class, 'store'])
+            ->scopeBindings()
+            ->name('clients.services.documents.store');
+        Route::patch('clients/{client}/services/{clientService:id}/documents/{document:id}', [DocumentController::class, 'update'])
+            ->scopeBindings()
+            ->name('clients.services.documents.update');
+        Route::delete('clients/{client}/services/{clientService:id}/documents/{document:id}', [DocumentController::class, 'destroy'])
+            ->scopeBindings()
+            ->name('clients.services.documents.destroy');
         Route::resource('services', ServiceController::class);
         Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');
         Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');

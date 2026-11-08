@@ -188,6 +188,15 @@ class ClientService extends Model
     }
 
     /**
+     * Whether the documents of this service unlock by payment: only once it is Fully Paid, and never on a cancelled service
+     * (its money is settled by the refund). The admin's per-document release is separate.
+     */
+    public function unlocksDocuments(): bool
+    {
+        return ! $this->isCancelled() && $this->paymentStatus() === PaymentStatus::FullyPaid;
+    }
+
+    /**
      * Unpaid when nothing is received, Deposit while part of the fee is received, Fully Paid once all of it is.
      */
     public function paymentStatus(): PaymentStatus

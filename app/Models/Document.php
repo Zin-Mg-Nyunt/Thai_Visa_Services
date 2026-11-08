@@ -2,9 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ClientServiceStatus;
-use App\Enums\DocumentType;
-use App\Enums\PaymentStatus;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * A file the admin uploaded for one of a client's services, kept on the private disk. A client sees it as
@@ -20,7 +20,6 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $client_service_id
  * @property string $title
- * @property DocumentType $type
  * @property string $storage_key
  * @property string $mime
  * @property int $size
@@ -32,7 +31,6 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'client_service_id',
     'title',
-    'type',
     'storage_key',
     'mime',
     'size',
@@ -43,6 +41,10 @@ class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
     use HasFactory;
+
+    public const DISK = 'private';
+
+    public const DIRECTORY = 'documents';
 
     /**
      * @return BelongsTo<ClientService, $this>
@@ -79,10 +81,27 @@ class Document extends Model
             return true;
         }
 
-        $clientService = $this->clientService;
+        return $this->clientService->unlocksDocuments();
+    }
 
-        return $clientService->status !== ClientServiceStatus::Cancel
-            && $clientService->paymentStatus() === PaymentStatus::FullyPaid;
+    /**
+     * Delete the record and then its file. The record goes first, in a transaction, and the file only after the commit, so a
+     * failed delete never leaves a record that points at a missing file. A file that cannot be removed is reported (the disk
+     * does not throw) and never blocks the delete. The access history stays: it keeps its own copies.
+     */
+    public function erase(): void
+    {
+        $key = $this->storage_key;
+
+        DB::transaction(fn () => $this->delete());
+
+        DB::afterCommit(function () use ($key): void {
+            $disk = Storage::disk(self::DISK);
+
+            if ($disk->delete($key) === false || $disk->exists($key)) {
+                report(new RuntimeException("The file of a deleted document could not be removed: [{$key}]."));
+            }
+        });
     }
 
     /**
@@ -93,7 +112,6 @@ class Document extends Model
     protected function casts(): array
     {
         return [
-            'type' => DocumentType::class,
             'size' => 'integer',
             'client_can_download' => 'boolean',
         ];

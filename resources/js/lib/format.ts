@@ -47,3 +47,19 @@ export function formatMoney(value: string): string {
 
     return `฿ ${formatter.format(value as Intl.StringNumericLiteral)}`;
 }
+
+/**
+ * A file size in the selected language, for example 1.5 MB. Bytes are whole numbers from the server.
+ */
+export function formatFileSize(bytes: number): string {
+    const locale = i18n.global.locale.value === 'my' ? 'my-MM' : 'en-GB';
+    const formatter = new Intl.NumberFormat(locale, {
+        maximumFractionDigits: 1,
+    });
+
+    if (bytes >= 1024 * 1024) {
+        return `${formatter.format(bytes / (1024 * 1024))} MB`;
+    }
+
+    return `${formatter.format(Math.max(1, Math.round(bytes / 1024)))} KB`;
+}

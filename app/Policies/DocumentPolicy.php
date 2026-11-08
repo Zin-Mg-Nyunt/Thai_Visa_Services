@@ -13,11 +13,14 @@ use App\Models\User;
 class DocumentPolicy
 {
     /**
-     * Only a service that has documents (for example Work Permit) can take files.
+     * Only a service that has documents (for example Work Permit) can take files. Job Search records do not take them
+     * from the client page: their documents belong to the job order work of a later phase and are never shown to clients.
      */
     public function create(User $user, ClientService $clientService): bool
     {
-        return $user->isSuperadmin() && $clientService->service->has_documents;
+        $service = $clientService->service;
+
+        return $user->isSuperadmin() && $service->has_documents && ! $service->isJobSearch();
     }
 
     public function view(User $user, Document $document): bool

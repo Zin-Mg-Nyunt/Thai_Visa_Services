@@ -1,3 +1,5 @@
+import type { ClientDocument } from './document';
+
 export type ClientServiceStatusValue = 'in_progress' | 'complete' | 'cancel';
 
 type ServiceTitles = {
@@ -66,6 +68,10 @@ export type ClientService = {
     /** Entered when the service is cancelled; never more than kept. */
     cancel_refund_amount: string;
     cancelled_at: string | null;
+    /** True for a service that takes documents, such as Work Permit; sent on the client page. */
+    accepts_documents?: boolean;
+    /** Newest first; sent on the client page. */
+    documents?: ClientDocument[];
     /** Newest first; sent on the client page and the edit page. */
     remarks?: ClientServiceRemark[];
     /** Worked out on the server from the payments; only sent on the client page. */

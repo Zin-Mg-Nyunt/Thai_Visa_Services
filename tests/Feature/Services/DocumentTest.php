@@ -3,7 +3,6 @@
 use App\Enums\DocumentAccessOutcome;
 use App\Enums\DocumentActor;
 use App\Enums\DocumentDenyReason;
-use App\Enums\DocumentType;
 use App\Models\ClientService;
 use App\Models\Document;
 use App\Models\DocumentAccessLog;
@@ -31,13 +30,12 @@ function workPermitRecord(array $payments = [], array $state = []): ClientServic
     return $record;
 }
 
-test('a document belongs to a client service and has a type', function () {
+test('a document belongs to a client service', function () {
     $record = workPermitRecord();
-    $document = Document::factory()->create(['client_service_id' => $record->id, 'type' => DocumentType::Receipt]);
+    $document = Document::factory()->create(['client_service_id' => $record->id]);
 
     expect($document->clientService->is($record))->toBeTrue()
         ->and($record->documents)->toHaveCount(1)
-        ->and($document->type)->toBe(DocumentType::Receipt)
         ->and($document->client_can_download)->toBeFalse()
         ->and($document->size)->toBeInt();
 });
@@ -115,13 +113,18 @@ test('an access log row keeps the client id after the client is deleted', functi
     expect($log->fresh()->client_id)->toBe($record->client_id);
 });
 
-test('only the signed-in superadmin manages documents, and only on a service that has documents', function () {
+test('only the signed-in superadmin manages documents, and only on a service that has documents (not Job Search)', function () {
     $admin = User::factory()->create();
     $withDocuments = workPermitRecord();
     $without = ClientService::factory()->create();
     $document = Document::factory()->create(['client_service_id' => $withDocuments->id]);
 
-    expect(Gate::forUser($admin)->allows('create', [Document::class, $withDocuments]))->toBeTrue()
+    $jobSearch = ClientService::factory()->forService(
+        Service::factory()->create(['key' => Service::JOB_SEARCH_KEY, 'has_documents' => true]),
+    )->create();
+
+    expect(Gate::forUser($admin)->allows('create', [Document::class, $jobSearch]))->toBeFalse()
+        ->and(Gate::forUser($admin)->allows('create', [Document::class, $withDocuments]))->toBeTrue()
         ->and(Gate::forUser($admin)->allows('create', [Document::class, $without]))->toBeFalse()
         ->and(Gate::allows('create', [Document::class, $withDocuments]))->toBeFalse();
 

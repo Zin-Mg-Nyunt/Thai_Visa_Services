@@ -175,6 +175,7 @@ class ClientController extends Controller
                 'service',
                 'subService',
                 'payments' => fn ($query) => $query->latest('paid_at')->latest('id'),
+                'documents' => fn ($query) => $query->latest('id'),
                 'remarks' => fn ($query) => $query->latest('id')->with('creator:id,name'),
             ])
             ->latest()

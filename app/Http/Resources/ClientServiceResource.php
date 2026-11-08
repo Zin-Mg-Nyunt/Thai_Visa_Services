@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\ClientService;
 use App\Models\ClientServiceRemark;
+use App\Models\Document;
 use App\Models\Payment;
 use App\Models\Service;
 use Illuminate\Http\Request;
@@ -36,6 +37,19 @@ class ClientServiceResource extends JsonResource
             'refund_amount' => $this->refund_amount,
             'cancel_refund_amount' => $this->cancel_refund_amount,
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'accepts_documents' => $this->whenLoaded('service', fn () => $this->service->has_documents && ! $this->service->isJobSearch()),
+            $this->mergeWhen($this->relationLoaded('documents'), fn () => [
+                'documents' => $this->documents->map(fn (Document $document) => [
+                    'id' => $document->id,
+                    'title' => $document->title,
+                    'mime' => $document->mime,
+                    'size' => $document->size,
+                    'client_can_download' => $document->client_can_download,
+                    // Unlocked for the client: released by the admin, or unlocked by payment. The service is not asked again per file.
+                    'unlocked' => $document->client_can_download || $this->unlocksDocuments(),
+                    'created_at' => $document->created_at?->toIso8601String(),
+                ])->values()->all(),
+            ]),
             'remarks' => $this->whenLoaded('remarks', fn () => $this->remarks->map(fn (ClientServiceRemark $remark) => [
                 'id' => $remark->id,
                 'kind' => $remark->kind->value,

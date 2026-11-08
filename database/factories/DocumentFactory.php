@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\DocumentType;
 use App\Models\ClientService;
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,7 +22,6 @@ class DocumentFactory extends Factory
         return [
             'client_service_id' => ClientService::factory(),
             'title' => fake()->words(3, true),
-            'type' => DocumentType::WorkPermit,
             'storage_key' => 'documents/'.Str::uuid().'.pdf',
             'mime' => 'application/pdf',
             'size' => fake()->numberBetween(10_000, 500_000),

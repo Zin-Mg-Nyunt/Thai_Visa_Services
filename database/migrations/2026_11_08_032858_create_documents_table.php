@@ -16,7 +16,6 @@ return new class extends Migration
             // A document belongs to one client service (for example a Work Permit record), never to the client.
             $table->foreignId('client_service_id')->constrained()->restrictOnDelete();
             $table->string('title');
-            $table->string('type');
             $table->string('storage_key');
             $table->string('mime');
             $table->unsignedInteger('size');

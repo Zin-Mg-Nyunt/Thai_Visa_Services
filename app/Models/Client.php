@@ -53,6 +53,7 @@ class Client extends Model
 
         static::deleting(function (Client $client): void {
             $client->erasePhoto();
+            $client->eraseDocuments();
         });
     }
 
@@ -89,6 +90,18 @@ class Client extends Model
         if ($oldPath !== null) {
             Storage::disk(self::PHOTO_DISK)->delete($oldPath);
         }
+    }
+
+    /**
+     * Erase every document of this client, records and files, across all their services. Deleting a client removes their
+     * documents for good; the access history stays.
+     */
+    public function eraseDocuments(): void
+    {
+        Document::query()
+            ->whereIn('client_service_id', $this->clientServices()->select('id'))
+            ->get()
+            ->each->erase();
     }
 
     /**

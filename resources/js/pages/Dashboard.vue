@@ -155,7 +155,10 @@ const toggle = (id: number) => {
                 type="date"
                 :aria-invalid="!!rangeErrors.from"
             />
-            <InputError :message="rangeErrors.from" data-test="range-error-from" />
+            <InputError
+                :message="rangeErrors.from"
+                data-test="range-error-from"
+            />
         </div>
         <div class="grid gap-1">
             <label class="text-xs text-muted-foreground" for="range-to">{{
