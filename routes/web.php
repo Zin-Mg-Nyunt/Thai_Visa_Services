@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Admin\ClientServiceController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -43,7 +44,7 @@ Route::middleware(['guest', 'throttle:10,1'])
     });
 
 Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
-    Route::inertia('admin/dashboard', 'Dashboard')->name('dashboard');
+    Route::get('admin/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('clients/{client}/unlock', [ClientController::class, 'unlock'])->name('clients.unlock');

@@ -97,6 +97,39 @@ const my: MessageSchema = {
     admin: {
         comingSoon: 'ဤအပိုင်းကို မကြာမီ ထည့်သွင်းပါမည်။',
     },
+    dashboard: {
+        title: 'လုပ်ငန်း ဒက်ရှ်ဘုတ်',
+        showing: '{from} မှ {to} အထိ ပြထားသည်',
+        range: {
+            label: 'ရက်အပိုင်းအခြား',
+            thisMonth: 'ဤလ',
+            lastMonth: 'ပြီးခဲ့သောလ',
+            thisYear: 'ဤနှစ်',
+            custom: 'ရက်ရွေးချယ်ရန်',
+            from: 'မှ',
+            to: 'အထိ',
+            apply: 'သုံးမည်',
+        },
+        cards: {
+            received: 'လက်ခံရရှိငွေ စုစုပေါင်း',
+            refunded: 'ပြန်အမ်းငွေ: {amount}',
+            outstanding: 'ကျန်ငွေ',
+            outstandingHint: 'ယနေ့ထိ ပေးရန်ကျန်သည့် လက်ကျန်',
+            profit: 'အမြတ်',
+            profitSoon: 'မရရှိသေးပါ',
+            comingSoon: 'မကြာမီ ထည့်သွင်းမည်',
+            activeClients: 'လက်ရှိ ဖောက်သည်များ',
+            activeClientsHint: 'ယနေ့ လုပ်ဆောင်နေဆဲ ဝန်ဆောင်မှုရှိသော ဖောက်သည်များ',
+        },
+        byMonth: {
+            title: 'လအလိုက် လက်ခံရရှိငွေ',
+            hint: 'ရွေးထားသော အပိုင်းအခြား၏ အဆုံးအထိ နောက်ဆုံး ၁၂ လ။',
+        },
+        byService: {
+            title: 'ဝန်ဆောင်မှုအလိုက်',
+            empty: 'ဤအပိုင်းအခြားတွင် လက်ခံရရှိငွေ မရှိပါ။',
+        },
+    },
     clients: {
         title: 'ဖောက်သည်များ',
         new: 'ဖောက်သည်အသစ်',

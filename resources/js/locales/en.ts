@@ -95,6 +95,39 @@ const en = {
     admin: {
         comingSoon: 'This section is coming soon.',
     },
+    dashboard: {
+        title: 'Business dashboard',
+        showing: 'Showing {from} to {to}',
+        range: {
+            label: 'Date range',
+            thisMonth: 'This month',
+            lastMonth: 'Last month',
+            thisYear: 'This year',
+            custom: 'Custom range',
+            from: 'From',
+            to: 'To',
+            apply: 'Apply',
+        },
+        cards: {
+            received: 'Total received',
+            refunded: 'Refunded: {amount}',
+            outstanding: 'Outstanding',
+            outstandingHint: 'Balance still owed today',
+            profit: 'Profit',
+            profitSoon: 'Not available yet',
+            comingSoon: 'Coming soon',
+            activeClients: 'Active clients',
+            activeClientsHint: 'Clients with a service in progress today',
+        },
+        byMonth: {
+            title: 'Received by month',
+            hint: 'The last 12 months up to the end of the chosen range.',
+        },
+        byService: {
+            title: 'By service',
+            empty: 'No money received in this range.',
+        },
+    },
     clients: {
         title: 'Clients',
         new: 'New client',
