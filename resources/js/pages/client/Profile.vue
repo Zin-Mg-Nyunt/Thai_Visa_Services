@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Cake, LogOut, Phone, UserRound } from '@lucide/vue';
+import { Cake, FileText, LogOut, Phone, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Client/SessionController';
@@ -180,6 +180,71 @@ const signOut = () => {
                         </dd>
                     </div>
                 </dl>
+
+                <div
+                    v-if="item.documents"
+                    class="mt-3 border-t pt-3"
+                    data-test="client-documents"
+                >
+                    <h3 class="text-xs font-semibold text-brand-dark">
+                        {{ t('clientArea.documents.title') }}
+                    </h3>
+                    <ul v-if="item.documents.length" class="mt-2 space-y-2">
+                        <li
+                            v-for="document in item.documents"
+                            :key="document.id"
+                            class="rounded-lg bg-muted/40 p-3"
+                            data-test="client-document"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <p
+                                    class="flex min-w-0 items-start gap-2 font-medium wrap-break-word text-brand-dark"
+                                >
+                                    <FileText
+                                        class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                    />
+                                    {{ document.title }}
+                                </p>
+                                <span
+                                    class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="
+                                        document.unlocked
+                                            ? 'bg-emerald-100 text-emerald-900'
+                                            : 'bg-amber-100 text-amber-900'
+                                    "
+                                    data-test="document-state"
+                                >
+                                    {{
+                                        document.unlocked
+                                            ? t(
+                                                  'clientArea.documents.downloadable',
+                                              )
+                                            : t('clientArea.documents.locked')
+                                    }}
+                                </span>
+                            </div>
+                            <p
+                                v-if="!document.unlocked"
+                                class="mt-2 text-xs text-muted-foreground"
+                                data-test="document-locked-message"
+                            >
+                                {{
+                                    t('clientArea.documents.lockedMessage', {
+                                        paid: formatMoney(
+                                            item.received ?? '0.00',
+                                        ),
+                                        due: formatMoney(
+                                            item.remaining ?? '0.00',
+                                        ),
+                                    })
+                                }}
+                            </p>
+                        </li>
+                    </ul>
+                    <p v-else class="mt-2 text-xs text-muted-foreground">
+                        {{ t('clientArea.documents.empty') }}
+                    </p>
+                </div>
             </li>
         </ul>
         <p v-else class="mt-2 text-sm text-muted-foreground">

@@ -14,15 +14,16 @@ class ProfileController extends Controller
     /**
      * Show the signed-in client their own details and their own services only: the services are read through this
      * client, so another client's rows can never be listed. The payments are loaded with them, so the money is
-     * worked out without a query per service.
+     * worked out without a query per service, and so are the documents.
      */
     public function show(Client $client): Response
     {
         $clientServices = $client->clientServices()
             ->with([
-                'service:id,title,title_my',
+                'service:id,title,title_my,key,has_documents',
                 'subService:id,title,title_my',
                 'payments:id,client_service_id,amount',
+                'documents' => fn ($query) => $query->select(['id', 'client_service_id', 'title', 'client_can_download'])->oldest('id'),
             ])
             ->latest()
             ->latest('id')

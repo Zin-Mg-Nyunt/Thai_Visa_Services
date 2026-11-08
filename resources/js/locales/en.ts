@@ -535,8 +535,16 @@ const en = {
             title: 'Your services',
             empty: 'You have no services yet.',
             fee: 'Fee',
-            received: 'Received',
-            remaining: 'Remaining',
+            received: 'Paid',
+            remaining: 'Balance due',
+        },
+        documents: {
+            title: 'Documents',
+            downloadable: 'Downloadable',
+            locked: 'Locked',
+            lockedMessage:
+                'Locked until the service is fully paid. Paid {paid} · Balance due {due}',
+            empty: 'No documents yet.',
         },
         signOut: 'Sign out',
     },

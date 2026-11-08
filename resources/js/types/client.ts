@@ -48,4 +48,13 @@ export type ClientPortalService = {
     received?: string;
     remaining?: string;
     payment_status?: 'unpaid' | 'deposit' | 'fully_paid';
+    /** Only for a service that takes documents (not Job Search, not cancelled). */
+    documents?: ClientPortalDocument[];
+};
+
+/** A document as the client sees it: a title and whether it can be downloaded. Nothing else is sent. */
+export type ClientPortalDocument = {
+    id: number;
+    title: string;
+    unlocked: boolean;
 };
