@@ -104,6 +104,14 @@ class ClientService extends Model
     }
 
     /**
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
      * Money received so far, a decimal string. Exact: amounts are added as decimal strings, never floats.
      * Uses the loaded payments when there are any, so a list of services does not query once per row, and adds
      * them up only once: remaining(), paymentStatus() and the page totals all reuse the sum.
