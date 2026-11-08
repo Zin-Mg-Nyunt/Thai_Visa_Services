@@ -310,6 +310,16 @@ const en = {
         empty: 'No documents yet.',
         release: 'Release to client',
         limits: 'PDF up to 5 MB, JPG or PNG up to 2 MB.',
+        replace: {
+            button: 'Replace file',
+            title: 'Replace the file',
+            hint: 'The title and the release setting stay. The old file is deleted once the new one is saved.',
+            confirm: 'Replace',
+        },
+        errors: {
+            tooLarge:
+                'The file is too large. A PDF can be at most 5 MB and a JPG or PNG at most 2 MB.',
+        },
         fields: {
             title: 'Title',
             file: 'File',
@@ -521,6 +531,13 @@ const en = {
         intro: 'Your case progress will appear here.',
         detailsTitle: 'Your details',
         contactAgency: 'If any detail is wrong, please contact the agency.',
+        services: {
+            title: 'Your services',
+            empty: 'You have no services yet.',
+            fee: 'Fee',
+            received: 'Received',
+            remaining: 'Remaining',
+        },
         signOut: 'Sign out',
     },
     language: {

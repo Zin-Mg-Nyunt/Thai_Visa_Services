@@ -34,3 +34,18 @@ export type PaginatedClients = {
         total: number;
     };
 };
+
+/**
+ * One of the client's own services in the portal. A cancelled service has its status only: the money fields are
+ * missing. Money is a decimal string such as "8000.00"; money is never a float.
+ */
+export type ClientPortalService = {
+    id: number;
+    service: { title: string | null; title_my: string | null };
+    sub_service: { title: string | null; title_my: string | null } | null;
+    status: 'in_progress' | 'complete' | 'cancel';
+    fee?: string;
+    received?: string;
+    remaining?: string;
+    payment_status?: 'unpaid' | 'deposit' | 'fully_paid';
+};

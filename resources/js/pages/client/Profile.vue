@@ -5,14 +5,18 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { destroy } from '@/actions/App/Http/Controllers/Client/SessionController';
 import ClientAvatar from '@/components/ClientAvatar.vue';
+import StatusBadge from '@/components/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
-import type { ClientProfile } from '@/types';
+import { localised } from '@/lib/service';
+import { paymentStatusKey, serviceStatusKey } from '@/lib/status';
+import type { ClientPortalService, ClientProfile } from '@/types';
 
 const props = defineProps<{
     token: string;
     profile: { data: ClientProfile };
+    services: { data: ClientPortalService[] };
 }>();
 
 const { t } = useI18n();
@@ -36,6 +40,33 @@ const details = computed(() => [
         icon: UserRound,
     },
 ]);
+
+const titleOf = (service: { title: string | null; title_my: string | null }) =>
+    localised(service.title, service.title_my) || t('services.untitled');
+
+// "Passport – Bath", or only "Passport" when there is no sub-service.
+const nameOf = (item: ClientPortalService) =>
+    item.sub_service
+        ? `${titleOf(item.service)} – ${titleOf(item.sub_service)}`
+        : titleOf(item.service);
+
+const moneyRows = (item: ClientPortalService) =>
+    item.fee === undefined
+        ? []
+        : [
+              {
+                  label: t('clientArea.services.fee'),
+                  value: formatMoney(item.fee),
+              },
+              {
+                  label: t('clientArea.services.received'),
+                  value: formatMoney(item.received ?? '0.00'),
+              },
+              {
+                  label: t('clientArea.services.remaining'),
+                  value: formatMoney(item.remaining ?? '0.00'),
+              },
+          ];
 
 const isSigningOut = ref(false);
 
@@ -101,6 +132,58 @@ const signOut = () => {
 
         <p class="mt-2 text-xs text-muted-foreground">
             {{ t('clientArea.contactAgency') }}
+        </p>
+
+        <h2 class="mt-6 text-sm font-semibold text-brand-dark">
+            {{ t('clientArea.services.title') }}
+        </h2>
+        <ul
+            v-if="services.data.length"
+            class="mt-2 space-y-3"
+            data-test="client-services"
+        >
+            <li
+                v-for="item in services.data"
+                :key="item.id"
+                class="rounded-xl border p-4 text-sm"
+                data-test="client-service"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <p
+                        class="min-w-0 font-semibold wrap-break-word text-brand-dark"
+                    >
+                        {{ nameOf(item) }}
+                    </p>
+                    <StatusBadge
+                        kind="serviceStatus"
+                        :status="serviceStatusKey(item.status)"
+                    />
+                </div>
+                <div v-if="item.payment_status" class="mt-2">
+                    <StatusBadge
+                        kind="paymentStatus"
+                        :status="paymentStatusKey(item.payment_status)"
+                    />
+                </div>
+                <dl
+                    v-if="moneyRows(item).length"
+                    class="mt-3 divide-y border-t"
+                >
+                    <div
+                        v-for="row in moneyRows(item)"
+                        :key="row.label"
+                        class="flex items-center justify-between gap-3 py-2"
+                    >
+                        <dt class="text-muted-foreground">{{ row.label }}</dt>
+                        <dd class="font-semibold text-brand-dark">
+                            {{ row.value }}
+                        </dd>
+                    </div>
+                </dl>
+            </li>
+        </ul>
+        <p v-else class="mt-2 text-sm text-muted-foreground">
+            {{ t('clientArea.services.empty') }}
         </p>
 
         <Button

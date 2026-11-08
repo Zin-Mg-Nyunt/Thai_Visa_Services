@@ -95,11 +95,51 @@ class Document extends Model
 
         DB::transaction(fn () => $this->delete());
 
+        self::removeFileAfterCommit($key);
+    }
+
+    /**
+     * Put a new file in place of the document's file: the record takes the new key, type and size, and keeps its id, title
+     * and release setting, so the access history still points at it. The record is locked while it changes, so two
+     * replacements sent together each remove the file they replaced. The old file is removed only after the commit, and a
+     * file that cannot be removed is reported, never blocking.
+     *
+     * @param  array{mime: string, size: int}  $file
+     */
+    public function replaceFile(string $newKey, array $file, int $uploadedBy): void
+    {
+        $oldKey = null;
+
+        DB::transaction(function () use ($newKey, $file, $uploadedBy, &$oldKey): void {
+            $locked = self::query()->lockForUpdate()->findOrFail($this->id);
+            $oldKey = $locked->storage_key;
+
+            $locked->update([
+                'storage_key' => $newKey,
+                'mime' => $file['mime'],
+                'size' => $file['size'],
+                'uploaded_by' => $uploadedBy,
+            ]);
+
+            $this->setRawAttributes($locked->getAttributes(), true);
+        });
+
+        if ($oldKey !== null && $oldKey !== $newKey) {
+            self::removeFileAfterCommit($oldKey);
+        }
+    }
+
+    /**
+     * Remove a file from the disk once the current transaction has committed. The disk does not throw, so the result is
+     * checked and a failure is reported.
+     */
+    private static function removeFileAfterCommit(string $key): void
+    {
         DB::afterCommit(function () use ($key): void {
             $disk = Storage::disk(self::DISK);
 
             if ($disk->delete($key) === false || $disk->exists($key)) {
-                report(new RuntimeException("The file of a deleted document could not be removed: [{$key}]."));
+                report(new RuntimeException("A document file could not be removed: [{$key}]."));
             }
         });
     }

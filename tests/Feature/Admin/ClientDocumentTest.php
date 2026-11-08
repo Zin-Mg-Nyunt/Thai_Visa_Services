@@ -166,6 +166,46 @@ describe('upload', function () {
         'a picture over 2 MB' => [fn () => pngFile(extraKilobytes: 2 * 1024 + 1), false],
     ]);
 
+    test('a file over the limit says so in a clear message, in both languages', function (string $locale, string $pdfMessage, string $imageMessage) {
+        app()->setLocale($locale);
+
+        uploadTo($this, $this->record, ['file' => pdfFile(extraKilobytes: 5 * 1024 + 1)])
+            ->assertSessionHasErrors(['file' => $pdfMessage]);
+        uploadTo($this, $this->record, ['file' => pngFile(extraKilobytes: 2 * 1024 + 1)])
+            ->assertSessionHasErrors(['file' => $imageMessage]);
+    })->with([
+        'English' => [
+            'en',
+            'The file is too large. A PDF can be at most 5 MB and a JPG or PNG at most 2 MB.',
+            'A JPG or PNG can be at most 2 MB.',
+        ],
+        'Burmese' => [
+            'my',
+            'ဖိုင်ကြီးလွန်းသည်။ PDF သည် ၅ MB အထိ၊ JPG သို့မဟုတ် PNG သည် ၂ MB အထိ ဖြစ်နိုင်သည်။',
+            'JPG သို့မဟုတ် PNG သည် ၂ MB ထက် မကြီးရပါ။',
+        ],
+    ]);
+
+    test('a file the server itself refused (its own upload limit) gets a clear message', function () {
+        app()->setLocale('en');
+        $tooBigForServer = new UploadedFile(pdfFile()->getRealPath(), 'big.pdf', null, UPLOAD_ERR_INI_SIZE, true);
+
+        uploadTo($this, $this->record, ['file' => $tooBigForServer])
+            ->assertSessionHasErrors(['file' => 'The server did not accept this file. It may be larger than the upload limit of the server (a PDF can be at most 5 MB, a JPG or PNG at most 2 MB).']);
+
+        expect(Document::count())->toBe(0);
+    });
+
+    test('a missing title or file gets a clear message', function () {
+        app()->setLocale('en');
+
+        uploadTo($this, $this->record, ['title' => '', 'file' => null])
+            ->assertSessionHasErrors([
+                'title' => 'Enter a title for the document.',
+                'file' => 'Choose a PDF, JPG or PNG file.',
+            ]);
+    });
+
     test('the title and the file are required and checked', function (array $input, string $field) {
         uploadTo($this, $this->record, $input)->assertSessionHasErrors($field);
 
@@ -230,6 +270,128 @@ describe('rename and release', function () {
         'an empty title' => [['title' => ''], 'title'],
         'a release that is not a boolean' => [['client_can_download' => 'maybe'], 'client_can_download'],
     ]);
+});
+
+describe('replace file', function () {
+    /**
+     * A saved document with a real file on the private disk, as an upload would leave it.
+     */
+    function savedDocument(mixed $test, array $state = []): Document
+    {
+        uploadTo($test, $test->record, ['title' => 'Work permit card']);
+        $document = Document::sole();
+
+        if ($state !== []) {
+            $document->update($state);
+        }
+
+        return $document->fresh();
+    }
+
+    function replaceUrl(mixed $test, Document $document): string
+    {
+        return route('admin.clients.services.documents.replace', [$test->client, $test->record, $document]);
+    }
+
+    test('the new file takes the place of the old one and the title, release and history stay', function () {
+        $document = savedDocument($this, ['client_can_download' => true]);
+        $oldKey = $document->storage_key;
+        $log = DocumentAccessLog::factory()->create(['document_id' => $document->id, 'client_id' => $this->client->id]);
+        $other = User::factory()->create();
+
+        $this->actingAs($other)
+            ->post(replaceUrl($this, $document), ['file' => pngFile('new.png')])
+            ->assertRedirect(route('admin.clients.show', $this->client))
+            ->assertSessionHasNoErrors();
+
+        $fresh = $document->fresh();
+
+        expect($fresh->id)->toBe($document->id)
+            ->and($fresh->title)->toBe('Work permit card')
+            ->and($fresh->client_can_download)->toBeTrue()
+            ->and($fresh->mime)->toBe('image/png')
+            ->and($fresh->size)->toBe(strlen(base64_decode(PNG_BASE64)))
+            ->and($fresh->uploaded_by)->toBe($other->id)
+            ->and($fresh->storage_key)->not->toBe($oldKey)
+            ->and($fresh->storage_key)->toMatch('#^documents/[0-9a-f-]{36}\.png$#')
+            ->and($log->fresh()->document_id)->toBe($document->id)
+            ->and(Document::count())->toBe(1);
+
+        Storage::disk(Document::DISK)->assertMissing($oldKey);
+        Storage::disk(Document::DISK)->assertExists($fresh->storage_key);
+        expect(Storage::disk(Document::DISK)->allFiles())->toHaveCount(1);
+    });
+
+    test('the file is judged by its content, with the same size limits as an upload', function (Closure $file) {
+        $document = savedDocument($this);
+        $oldKey = $document->storage_key;
+
+        $this->actingAs($this->admin)->post(replaceUrl($this, $document), ['file' => $file()])->assertSessionHasErrors('file');
+
+        expect($document->fresh()->storage_key)->toBe($oldKey);
+        Storage::disk(Document::DISK)->assertExists($oldKey);
+        expect(Storage::disk(Document::DISK)->allFiles())->toHaveCount(1);
+    })->with([
+        'text named .pdf' => [fn () => realFile('just some text', 'permit.pdf')],
+        'a PDF over 5 MB' => [fn () => pdfFile(extraKilobytes: 5 * 1024 + 1)],
+        'a picture over 2 MB' => [fn () => pngFile(extraKilobytes: 2 * 1024 + 1)],
+        'an empty file' => [fn () => realFile('', 'permit.pdf')],
+    ]);
+
+    test('a missing file gets a clear message', function () {
+        app()->setLocale('en');
+        $document = savedDocument($this);
+
+        $this->actingAs($this->admin)->post(replaceUrl($this, $document), [])
+            ->assertSessionHasErrors(['file' => 'Choose a PDF, JPG or PNG file.']);
+    });
+
+    test('replacing never changes the title or the release even if they are sent', function () {
+        $document = savedDocument($this);
+
+        $this->actingAs($this->admin)->post(replaceUrl($this, $document), [
+            'file' => pdfFile('again.pdf'), 'title' => 'Hacked', 'client_can_download' => true, 'client_service_id' => 999,
+        ]);
+
+        expect($document->fresh()->title)->toBe('Work permit card')
+            ->and($document->fresh()->client_can_download)->toBeFalse()
+            ->and($document->fresh()->client_service_id)->toBe($this->record->id);
+    });
+
+    test('an old file that is already gone does not stop the replacement', function () {
+        $document = savedDocument($this);
+        Storage::disk(Document::DISK)->delete($document->storage_key);
+
+        $this->actingAs($this->admin)->post(replaceUrl($this, $document), ['file' => pdfFile()])->assertSessionHasNoErrors();
+
+        Storage::disk(Document::DISK)->assertExists($document->fresh()->storage_key);
+    });
+
+    test('only a signed-in superadmin may replace, and only through the document\'s own service', function () {
+        $document = savedDocument($this);
+        $oldKey = $document->storage_key;
+        $other = ClientService::factory()->forService($this->workPermit)->create();
+
+        // Saving the document signed the admin in; a guest is a visitor with no session.
+        auth()->logout();
+        $this->flushSession();
+
+        $this->post(replaceUrl($this, $document), ['file' => pdfFile()])->assertRedirect(route('login'));
+        $this->actingAs($this->admin)
+            ->post(route('admin.clients.services.documents.replace', [$other->client_id, $other, $document]), ['file' => pdfFile()])
+            ->assertNotFound();
+
+        expect($document->fresh()->storage_key)->toBe($oldKey);
+    });
+
+    test('a replaced document keeps unlocking by payment like before', function () {
+        $document = savedDocument($this);
+        Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => '8000.00']);
+
+        $this->actingAs($this->admin)->post(replaceUrl($this, $document), ['file' => pdfFile()]);
+
+        expect($document->fresh()->isUnlocked())->toBeTrue();
+    });
 });
 
 describe('delete', function () {

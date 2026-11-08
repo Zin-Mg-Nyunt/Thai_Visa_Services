@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReplaceDocumentRequest;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Requests\UpdateDocumentRequest;
 use App\Models\Client;
@@ -70,6 +71,35 @@ class DocumentController extends Controller
         $document->update($data);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document updated.')]);
+
+        return to_route('admin.clients.show', $client);
+    }
+
+    /**
+     * Replace the file of a document. The new file goes through the same checks as an upload and gets a new random name.
+     * The title, the release setting and the access history stay; the old file is removed once the new one is saved.
+     */
+    public function replace(ReplaceDocumentRequest $request, Client $client, ClientService $clientService, Document $document): RedirectResponse
+    {
+        $detected = $request->detected();
+        abort_if($detected === null, 422);
+
+        $disk = Storage::disk(Document::DISK);
+        $key = Document::DIRECTORY.'/'.Str::uuid().'.'.$detected['extension'];
+
+        if ($disk->putFileAs(Document::DIRECTORY, $request->file('file'), basename($key)) === false) {
+            throw ValidationException::withMessages(['file' => __('The file could not be saved.')]);
+        }
+
+        try {
+            $document->replaceFile($key, ['mime' => $detected['mime'], 'size' => $request->file('file')->getSize()], $request->user()->id);
+        } catch (Throwable $exception) {
+            $disk->delete($key);
+
+            throw $exception;
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('File replaced.')]);
 
         return to_route('admin.clients.show', $client);
     }

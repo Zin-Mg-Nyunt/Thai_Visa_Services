@@ -34,5 +34,11 @@
     "The file could not be saved.": "ဖိုင်ကို သိမ်းမရပါ။",
     "Document uploaded.": "စာရွက်စာတမ်း တင်ပြီးပါပြီ။",
     "Document updated.": "စာရွက်စာတမ်း ပြင်ပြီးပါပြီ။",
-    "Document deleted.": "စာရွက်စာတမ်း ဖျက်ပြီးပါပြီ။"
+    "Document deleted.": "စာရွက်စာတမ်း ဖျက်ပြီးပါပြီ။",
+    "Enter a title for the document.": "စာရွက်စာတမ်း၏ ခေါင်းစဉ်ကို ရိုက်ထည့်ပါ။",
+    "The title can have at most 150 characters.": "ခေါင်းစဉ်သည် စာလုံး ၁၅၀ ထက် မပိုရပါ။",
+    "Choose a PDF, JPG or PNG file.": "PDF၊ JPG သို့မဟုတ် PNG ဖိုင်တစ်ခု ရွေးပါ။",
+    "The file is too large. A PDF can be at most 5 MB and a JPG or PNG at most 2 MB.": "ဖိုင်ကြီးလွန်းသည်။ PDF သည် ၅ MB အထိ၊ JPG သို့မဟုတ် PNG သည် ၂ MB အထိ ဖြစ်နိုင်သည်။",
+    "The server did not accept this file. It may be larger than the upload limit of the server (a PDF can be at most 5 MB, a JPG or PNG at most 2 MB).": "ဆာဗာက ဤဖိုင်ကို လက်မခံပါ။ ဆာဗာ၏ ဖိုင်တင်ကန့်သတ်ချက်ထက် ကြီးနေနိုင်သည် (PDF ၅ MB အထိ၊ JPG သို့မဟုတ် PNG ၂ MB အထိ)။",
+    "File replaced.": "ဖိုင် အစားထိုးပြီးပါပြီ။"
 }

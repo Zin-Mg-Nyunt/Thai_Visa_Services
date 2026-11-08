@@ -68,6 +68,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::patch('clients/{client}/services/{clientService:id}/documents/{document:id}', [DocumentController::class, 'update'])
             ->scopeBindings()
             ->name('clients.services.documents.update');
+        Route::post('clients/{client}/services/{clientService:id}/documents/{document:id}/file', [DocumentController::class, 'replace'])
+            ->scopeBindings()
+            ->name('clients.services.documents.replace');
         Route::delete('clients/{client}/services/{clientService:id}/documents/{document:id}', [DocumentController::class, 'destroy'])
             ->scopeBindings()
             ->name('clients.services.documents.destroy');

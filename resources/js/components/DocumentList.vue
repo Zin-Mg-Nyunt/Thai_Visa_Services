@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { FileText, Pencil, Plus, Save, Trash, Upload } from '@lucide/vue';
+import {
+    FileText,
+    Pencil,
+    Plus,
+    RefreshCw,
+    Save,
+    Trash,
+    Upload,
+} from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     destroy,
+    replace,
     store,
     update,
 } from '@/actions/App/Http/Controllers/Admin/DocumentController';
@@ -59,12 +68,32 @@ watch(isUploadOpen, (isOpen) => {
     }
 });
 
+// The same limits as the server: a PDF up to 5 MB, a JPG or PNG up to 2 MB. This only saves a failed trip; the server
+// still judges the real file. A file over the limit is never sent, which also avoids the server's own size error.
+const PDF_LIMIT = 5 * 1024 * 1024;
+const IMAGE_LIMIT = 2 * 1024 * 1024;
+
+const tooLarge = (file: File) =>
+    file.size > (file.type.startsWith('image/') ? IMAGE_LIMIT : PDF_LIMIT);
+
 const pickFile = (event: Event) => {
-    uploadForm.file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+
+    uploadForm.file = file;
     uploadForm.clearErrors('file');
+
+    if (file && tooLarge(file)) {
+        uploadForm.setError('file', t('documents.errors.tooLarge'));
+    }
 };
 
 const upload = () => {
+    if (uploadForm.file && tooLarge(uploadForm.file)) {
+        uploadForm.setError('file', t('documents.errors.tooLarge'));
+
+        return;
+    }
+
     const route = store({
         client: props.clientId,
         clientService: props.clientServiceId,
@@ -74,6 +103,55 @@ const upload = () => {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => (isUploadOpen.value = false),
+    });
+};
+
+// Replace the file
+const replacing = ref<ClientDocument | null>(null);
+const isReplaceOpen = ref(false);
+const replaceForm = useForm<{ file: File | null }>({ file: null });
+const replaceInput = ref<HTMLInputElement | null>(null);
+
+const openReplace = (document: ClientDocument) => {
+    replacing.value = document;
+    replaceForm.reset();
+    replaceForm.clearErrors();
+
+    if (replaceInput.value) {
+        replaceInput.value.value = '';
+    }
+
+    isReplaceOpen.value = true;
+};
+
+const pickReplacement = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+
+    replaceForm.file = file;
+    replaceForm.clearErrors('file');
+
+    if (file && tooLarge(file)) {
+        replaceForm.setError('file', t('documents.errors.tooLarge'));
+    }
+};
+
+const submitReplacement = () => {
+    if (!replacing.value) {
+        return;
+    }
+
+    if (replaceForm.file && tooLarge(replaceForm.file)) {
+        replaceForm.setError('file', t('documents.errors.tooLarge'));
+
+        return;
+    }
+
+    const route = replace(target(replacing.value));
+
+    replaceForm.submit(route.method, route.url, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => (isReplaceOpen.value = false),
     });
 };
 
@@ -199,6 +277,16 @@ const stateKey = (document: ClientDocument) =>
                         <Button
                             variant="ghost"
                             size="icon-sm"
+                            :aria-label="t('documents.replace.button')"
+                            :title="t('documents.replace.button')"
+                            data-test="replace-document-button"
+                            @click="openReplace(document)"
+                        >
+                            <RefreshCw class="size-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
                             class="text-destructive"
                             :aria-label="t('common.delete')"
                             :title="t('common.delete')"
@@ -301,6 +389,60 @@ const stateKey = (document: ClientDocument) =>
                     >
                         <Upload class="size-4" />
                         {{ t('documents.upload') }}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="isReplaceOpen">
+        <DialogContent>
+            <form class="grid gap-4" @submit.prevent="submitReplacement">
+                <DialogHeader>
+                    <DialogTitle>{{
+                        t('documents.replace.title')
+                    }}</DialogTitle>
+                    <DialogDescription>
+                        {{ replacing?.title }} · {{ t('documents.limits') }}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <p class="text-sm text-muted-foreground">
+                    {{ t('documents.replace.hint') }}
+                </p>
+
+                <div class="grid gap-2">
+                    <Label for="replace-file">{{
+                        t('documents.fields.file')
+                    }}</Label>
+                    <Input
+                        id="replace-file"
+                        ref="replaceInput"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                        :aria-invalid="!!replaceForm.errors.file"
+                        data-test="replace-file-input"
+                        @change="pickReplacement"
+                    />
+                    <InputError :message="replaceForm.errors.file" />
+                </div>
+
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="pillOutline"
+                        @click="isReplaceOpen = false"
+                    >
+                        {{ t('common.cancel') }}
+                    </Button>
+                    <Button
+                        type="submit"
+                        variant="pill"
+                        :disabled="replaceForm.processing || !replaceForm.file"
+                        data-test="save-replace-button"
+                    >
+                        <Upload class="size-4" />
+                        {{ t('documents.replace.confirm') }}
                     </Button>
                 </DialogFooter>
             </form>
