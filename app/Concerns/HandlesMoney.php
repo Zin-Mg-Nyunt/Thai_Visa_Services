@@ -17,4 +17,22 @@ trait HandlesMoney
     {
         return bcadd((string) ($value ?? '0'), '0', 2);
     }
+
+    /**
+     * Whole satang from a database sum back to baht. Sums are worked out in satang (SUM(ROUND(amount * 100))), which is
+     * exact on MySQL and on SQLite. MySQL gives an exact decimal string; SQLite gives a float, but always a whole number
+     * of satang, which a float holds exactly far beyond any real total. No part of a baht is ever a float.
+     *
+     * @return numeric-string
+     */
+    protected function fromSatang(int|float|string|null $satang): string
+    {
+        $whole = match (true) {
+            $satang === null => '0',
+            is_float($satang) => sprintf('%.0f', $satang),
+            default => (string) $satang,
+        };
+
+        return bcdiv($whole, '100', 2);
+    }
 }

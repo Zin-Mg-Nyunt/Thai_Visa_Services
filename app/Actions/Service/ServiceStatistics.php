@@ -2,24 +2,34 @@
 
 namespace App\Actions\Service;
 
+use App\Concerns\HandlesMoney;
 use App\Enums\ClientServiceStatus;
 use App\Models\ClientService;
+use App\Models\Payment;
 use App\Models\Service;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Query\Builder;
 
 /**
  * The numbers shown on the service pages. They are worked out from the client services and their payments,
- * never stored. Money is the amount the agency kept (received minus refunds) and is added up as exact
- * decimal strings, so it can never drift the way a float can.
+ * never stored. Money is the amount the agency kept (received minus the refund and the cancel refund), the same
+ * as ClientService::kept() added up.
+ *
+ * Everything is added up in the database: payments are summed per client service first, so joining them never
+ * repeats a client service, and money is summed in whole satang (SUM(ROUND(amount * 100))), which is exact on
+ * MySQL and on SQLite. No payment row is loaded into PHP.
+ *
+ * Every client service counts, also those of deleted clients and of deleted sub-services; client services
+ * themselves are never deleted. A cancelled service counts in the clients and the money, not in the statuses.
  *
  * @phpstan-type Stats array{total_clients: int, in_progress: int, complete: int, total_received: numeric-string}
  */
 class ServiceStatistics
 {
+    use HandlesMoney;
+
     /**
      * The totals of every main service, keyed by service id. A main service counts all of its client services,
-     * with or without a sub-service. A service nobody has taken is missing; use summarise() on an empty list.
+     * with or without a sub-service. A service nobody has taken is missing; the page shows zeros for it.
      *
      * @return array<int, Stats>
      */
@@ -27,8 +37,8 @@ class ServiceStatistics
     {
         $stats = [];
 
-        foreach ($this->clientServices()->get()->groupBy('service_id') as $serviceId => $rows) {
-            $stats[(int) $serviceId] = $this->summarise($rows);
+        foreach ($this->totals()->addSelect('client_services.service_id as group_id')->groupBy('client_services.service_id')->get() as $row) {
+            $stats[(int) $row->group_id] = $this->stats($row);
         }
 
         return $stats;
@@ -39,11 +49,11 @@ class ServiceStatistics
      */
     public function forService(Service $service): array
     {
-        return $this->summarise(
-            $this->clientServices()
-                ->where($service->isSubService() ? 'sub_service_id' : 'service_id', $service->getKey())
-                ->get(),
-        );
+        $row = $this->totals()
+            ->where($service->isSubService() ? 'client_services.sub_service_id' : 'client_services.service_id', $service->getKey())
+            ->first();
+
+        return $this->stats($row);
     }
 
     /**
@@ -55,8 +65,12 @@ class ServiceStatistics
      */
     public function breakdown(Service $mainService): array
     {
-        $rows = $this->clientServices()->where('service_id', $mainService->getKey())->get();
-        $bySubService = $rows->groupBy(fn (ClientService $row) => $row->sub_service_id ?? 0);
+        $bySubService = $this->totals()
+            ->addSelect('client_services.sub_service_id as group_id')
+            ->where('client_services.service_id', $mainService->getKey())
+            ->groupBy('client_services.sub_service_id')
+            ->get()
+            ->keyBy(fn (object $row) => (int) ($row->group_id ?? 0));
 
         $breakdown = [];
 
@@ -69,44 +83,46 @@ class ServiceStatistics
 
             $breakdown[] = [
                 'sub_service' => ['id' => $sub->id, 'title' => $sub->title, 'title_my' => $sub->title_my],
-                'stats' => $this->summarise($bySubService->get($sub->id, collect())),
+                'stats' => $this->stats($bySubService->get($sub->id)),
             ];
         }
 
-        $breakdown[] = ['sub_service' => null, 'stats' => $this->summarise($bySubService->get(0, collect()))];
+        $breakdown[] = ['sub_service' => null, 'stats' => $this->stats($bySubService->get(0))];
 
         return $breakdown;
     }
 
     /**
-     * Client services with the payments they need to work out the money kept.
-     *
-     * @return Builder<ClientService>
+     * The totals of the client services the caller filters and groups: clients, statuses and the money kept, in satang.
      */
-    private function clientServices(): Builder
+    private function totals(): Builder
     {
+        $paid = Payment::query()
+            ->toBase()
+            ->groupBy('client_service_id')
+            ->selectRaw('client_service_id, SUM(ROUND(amount * 100)) as satang');
+
         return ClientService::query()
-            ->select(['id', 'client_id', 'service_id', 'sub_service_id', 'status', 'refund_amount', 'cancel_refund_amount'])
-            ->with('payments:id,client_service_id,amount');
+            ->toBase()
+            ->leftJoinSub($paid, 'paid', 'paid.client_service_id', '=', 'client_services.id')
+            ->selectRaw('COUNT(DISTINCT client_services.client_id) as total_clients')
+            ->selectRaw('SUM(CASE WHEN client_services.status = ? THEN 1 ELSE 0 END) as in_progress', [ClientServiceStatus::InProgress->value])
+            ->selectRaw('SUM(CASE WHEN client_services.status = ? THEN 1 ELSE 0 END) as complete', [ClientServiceStatus::Complete->value])
+            ->selectRaw('SUM(COALESCE(paid.satang, 0) - ROUND(client_services.refund_amount * 100) - ROUND(client_services.cancel_refund_amount * 100)) as kept_satang');
     }
 
     /**
-     * @param  Collection<int, ClientService>  $rows
+     * One result row as the page's numbers. No row (nothing taken yet) is all zeros.
+     *
      * @return Stats
      */
-    private function summarise(Collection $rows): array
+    private function stats(?object $row): array
     {
-        $kept = '0.00';
-
-        foreach ($rows as $row) {
-            $kept = bcadd($kept, $row->kept(), 2);
-        }
-
         return [
-            'total_clients' => $rows->pluck('client_id')->unique()->count(),
-            'in_progress' => $rows->where('status', ClientServiceStatus::InProgress)->count(),
-            'complete' => $rows->where('status', ClientServiceStatus::Complete)->count(),
-            'total_received' => $kept,
+            'total_clients' => (int) ($row->total_clients ?? 0),
+            'in_progress' => (int) ($row->in_progress ?? 0),
+            'complete' => (int) ($row->complete ?? 0),
+            'total_received' => $this->fromSatang($row->kept_satang ?? null),
         ];
     }
 }

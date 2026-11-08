@@ -5,6 +5,7 @@ use App\Models\ClientService;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -223,4 +224,82 @@ test('the clients list sends the filters and the service options to the page', f
             ->where('filters.status', 'complete')
             ->where('serviceOptions.0.id', $this->passport->id)
             ->has('serviceOptions.0.sub_services', 2));
+});
+
+test('a deleted client still counts in the clients, the statuses and the money', function () {
+    $gone = Client::factory()->create();
+    takeService($this->passport, $this->bath, '3000.00', client: $gone);
+    takeService($this->passport, null, '1000.00', state: ['status' => 'complete'], client: $gone);
+    takeService($this->passport, $this->mou, '500.00');
+    $gone->delete();
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->passport))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.total_clients', 2)
+            ->where('stats.in_progress', 2)
+            ->where('stats.complete', 1)
+            ->where('stats.total_received', '4500.00')
+            ->where('breakdown.0.stats.total_received', '3000.00')
+            ->where('breakdown.2.stats.total_received', '1000.00'));
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where("stats.{$this->passport->id}.total_clients", 2)
+            ->where("stats.{$this->passport->id}.total_received", '4500.00'));
+});
+
+test('the totals equal the money kept of every client service, with fee refunds and cancel refunds', function () {
+    $rows = [
+        takeService($this->passport, $this->bath, '5000.10', '1000.05'),
+        takeService($this->passport, $this->bath, '2500.00', state: ['status' => 'complete']),
+        takeService($this->passport, $this->mou, '3000.33', '500.11', ['status' => 'cancel', 'cancelled_at' => now(), 'cancel_refund_amount' => '1250.22']),
+        takeService($this->passport, null, '0.00'),
+        takeService($this->passport, null, '999.99', state: ['status' => 'cancel', 'cancelled_at' => now(), 'cancel_refund_amount' => '999.99']),
+    ];
+    Payment::factory()->create(['client_service_id' => $rows[0]->id, 'amount' => '0.01']);
+
+    $kept = fn (array $records) => collect($records)->reduce(fn ($sum, ClientService $row) => bcadd($sum, $row->fresh()->kept(), 2), '0.00');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->passport))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.total_received', $kept($rows))
+            ->where('stats.total_received', '7750.06')
+            ->where('breakdown.0.stats.total_received', $kept([$rows[0], $rows[1]]))
+            ->where('breakdown.1.stats.total_received', $kept([$rows[2]]))
+            ->where('breakdown.2.stats.total_received', $kept([$rows[3], $rows[4]])));
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->mou))
+        ->assertInertia(fn (Assert $page) => $page->where('stats.total_received', $kept([$rows[2]])));
+});
+
+test('the money is exact to the satang', function () {
+    $record = takeService($this->passport, $this->bath, '0.10');
+    Payment::factory()->create(['client_service_id' => $record->id, 'amount' => '0.20']);
+    takeService($this->passport, null, '9999999999.99');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->passport))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.total_received', '10000000000.29')
+            ->where('breakdown.0.stats.total_received', '0.30'));
+});
+
+test('the service pages add up in the database and never load payments into PHP', function () {
+    takeService($this->passport, $this->bath, '5000.00');
+    takeService($this->passport, null, '3000.00', '500.00');
+
+    $loaded = 0;
+    Event::listen('eloquent.retrieved: '.Payment::class, function () use (&$loaded) {
+        $loaded++;
+    });
+
+    $this->actingAs($this->admin)->get(route('admin.services.index'))->assertOk();
+    $this->actingAs($this->admin)->get(route('admin.services.show', $this->passport))->assertOk();
+    $this->actingAs($this->admin)->get(route('admin.services.show', $this->bath))->assertOk();
+
+    expect($loaded)->toBe(0);
 });

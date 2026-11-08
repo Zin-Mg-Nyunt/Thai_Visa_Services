@@ -2,6 +2,7 @@
 
 namespace App\Actions\Dashboard;
 
+use App\Concerns\HandlesMoney;
 use App\Enums\ClientServiceStatus;
 use App\Enums\RemarkKind;
 use App\Enums\ServiceAvailability;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\DB;
  */
 class BusinessReport
 {
+    use HandlesMoney;
+
     /**
      * How many months the "received by month" chart shows, ending with the month of the range end.
      */
@@ -257,23 +260,6 @@ class BusinessReport
             ->selectRaw('ROUND(client_services.fee * 100) - COALESCE(paid.satang, 0) as owed');
 
         return $this->fromSatang(DB::query()->fromSub($balances, 'balances')->where('owed', '>', 0)->sum('owed'));
-    }
-
-    /**
-     * Whole satang from the database back to baht. MySQL gives an exact decimal string; SQLite gives a float, but it is
-     * always a whole number of satang, which a float holds exactly far beyond any real total. No part of a baht is a float.
-     *
-     * @return numeric-string
-     */
-    private function fromSatang(int|float|string|null $satang): string
-    {
-        $whole = match (true) {
-            $satang === null => '0',
-            is_float($satang) => sprintf('%.0f', $satang),
-            default => (string) $satang,
-        };
-
-        return bcdiv($whole, '100', 2);
     }
 
     /**
