@@ -2,12 +2,12 @@
 import { router, useForm } from '@inertiajs/vue3';
 import {
     Download,
+    EllipsisVertical,
     FileText,
     Lock,
     LockOpen,
     Pencil,
     Plus,
-    RefreshCw,
     Save,
     Trash,
     Upload,
@@ -24,7 +24,6 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -33,6 +32,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDateTime, formatFileSize } from '@/lib/format';
@@ -110,14 +115,18 @@ const upload = () => {
     });
 };
 
-// Replace the file
-const replacing = ref<ClientDocument | null>(null);
-const isReplaceOpen = ref(false);
+// Edit: the title and, if wanted, a new file, in one dialog. The title is saved first, then the file; each keeps its own
+// checks on the server.
+const editing = ref<ClientDocument | null>(null);
+const isEditOpen = ref(false);
+const renameForm = useForm<{ title: string }>({ title: '' });
 const replaceForm = useForm<{ file: File | null }>({ file: null });
 const replaceInput = ref<HTMLInputElement | null>(null);
 
-const openReplace = (document: ClientDocument) => {
-    replacing.value = document;
+const openEdit = (document: ClientDocument) => {
+    editing.value = document;
+    renameForm.title = document.title;
+    renameForm.clearErrors();
     replaceForm.reset();
     replaceForm.clearErrors();
 
@@ -125,7 +134,7 @@ const openReplace = (document: ClientDocument) => {
         replaceInput.value.value = '';
     }
 
-    isReplaceOpen.value = true;
+    isEditOpen.value = true;
 };
 
 const pickReplacement = (event: Event) => {
@@ -139,8 +148,20 @@ const pickReplacement = (event: Event) => {
     }
 };
 
-const submitReplacement = () => {
-    if (!replacing.value) {
+const sendReplacement = (document: ClientDocument) => {
+    const route = replace(target(document));
+
+    replaceForm.submit(route.method, route.url, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => (isEditOpen.value = false),
+    });
+};
+
+const saveEdit = () => {
+    const document = editing.value;
+
+    if (!document) {
         return;
     }
 
@@ -150,37 +171,27 @@ const submitReplacement = () => {
         return;
     }
 
-    const route = replace(target(replacing.value));
+    if (renameForm.title === document.title) {
+        if (replaceForm.file) {
+            sendReplacement(document);
+        } else {
+            isEditOpen.value = false;
+        }
 
-    replaceForm.submit(route.method, route.url, {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => (isReplaceOpen.value = false),
-    });
-};
-
-// Rename
-const renaming = ref<ClientDocument | null>(null);
-const isRenameOpen = ref(false);
-const renameForm = useForm<{ title: string }>({ title: '' });
-
-const openRename = (document: ClientDocument) => {
-    renaming.value = document;
-    renameForm.title = document.title;
-    renameForm.clearErrors();
-    isRenameOpen.value = true;
-};
-
-const rename = () => {
-    if (!renaming.value) {
         return;
     }
 
-    const route = update(target(renaming.value));
+    const route = update(target(document));
 
     renameForm.submit(route.method, route.url, {
         preserveScroll: true,
-        onSuccess: () => (isRenameOpen.value = false),
+        onSuccess: () => {
+            if (replaceForm.file) {
+                sendReplacement(document);
+            } else {
+                isEditOpen.value = false;
+            }
+        },
     });
 };
 
@@ -222,6 +233,13 @@ const stateKey = (document: ClientDocument) =>
         : document.unlocked
           ? 'unlockedByPayment'
           : 'locked';
+
+const toggleLabel = (document: ClientDocument) =>
+    `${t(`documents.state.${stateKey(document)}`)}: ${
+        document.client_can_download
+            ? t('documents.withdraw')
+            : t('documents.release')
+    }`;
 </script>
 
 <template>
@@ -267,14 +285,15 @@ const stateKey = (document: ClientDocument) =>
                             </p>
                         </div>
                     </div>
-                    <div class="flex shrink-0 gap-1">
+                    <!-- From sm up: icon buttons. Below sm: one kebab menu with the same actions. -->
+                    <div class="hidden shrink-0 gap-1 sm:flex">
                         <Button
                             variant="ghost"
                             size="icon-sm"
                             :aria-label="t('common.edit')"
                             :title="t('common.edit')"
-                            data-test="rename-document-button"
-                            @click="openRename(document)"
+                            data-test="edit-document-button"
+                            @click="openEdit(document)"
                         >
                             <Pencil class="size-4" />
                         </Button>
@@ -293,16 +312,6 @@ const stateKey = (document: ClientDocument) =>
                         <Button
                             variant="ghost"
                             size="icon-sm"
-                            :aria-label="t('documents.replace.button')"
-                            :title="t('documents.replace.button')"
-                            data-test="replace-document-button"
-                            @click="openReplace(document)"
-                        >
-                            <RefreshCw class="size-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
                             class="text-destructive"
                             :aria-label="t('common.delete')"
                             :title="t('common.delete')"
@@ -311,43 +320,95 @@ const stateKey = (document: ClientDocument) =>
                         >
                             <Trash class="size-4" />
                         </Button>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <Label
-                        class="flex items-center gap-2 text-xs"
-                        :for="`release-${document.id}`"
-                    >
-                        <Checkbox
-                            :id="`release-${document.id}`"
-                            :model-value="document.client_can_download"
-                            data-test="release-document-checkbox"
-                            @update:model-value="
-                                (value) => release(document, value === true)
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            :class="
+                                document.unlocked
+                                    ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
+                                    : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
                             "
-                        />
-                        {{ t('documents.release') }}
-                    </Label>
-                    <!-- Unlocked for the client (released or fully paid): open lock icon. Locked: lock icon. -->
-                    <span
-                        class="flex size-7 items-center justify-center rounded-md"
-                        :class="
-                            document.unlocked
-                                ? 'bg-emerald-100 text-emerald-900'
-                                : 'bg-amber-100 text-amber-900'
-                        "
-                        role="img"
-                        :aria-label="t(`documents.state.${stateKey(document)}`)"
-                        :title="t(`documents.state.${stateKey(document)}`)"
-                        :data-state="
-                            document.unlocked ? 'downloadable' : 'locked'
-                        "
-                        data-test="document-state"
-                    >
-                        <LockOpen v-if="document.unlocked" class="size-4" />
-                        <Lock v-else class="size-4" />
-                    </span>
+                            :aria-label="toggleLabel(document)"
+                            :title="toggleLabel(document)"
+                            :data-state="
+                                document.unlocked ? 'downloadable' : 'locked'
+                            "
+                            data-test="document-state"
+                            @click="
+                                release(document, !document.client_can_download)
+                            "
+                        >
+                            <LockOpen v-if="document.unlocked" class="size-4" />
+                            <Lock v-else class="size-4" />
+                        </Button>
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                class="shrink-0 sm:hidden"
+                                :aria-label="t('common.actions')"
+                                :title="t('common.actions')"
+                                data-test="document-actions-menu"
+                            >
+                                <EllipsisVertical class="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="min-w-0">
+                            <DropdownMenuItem
+                                :aria-label="t('common.edit')"
+                                :title="t('common.edit')"
+                                class="justify-center"
+                                data-test="edit-document-button"
+                                @select="openEdit(document)"
+                            >
+                                <Pencil />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                :aria-label="toggleLabel(document)"
+                                :title="toggleLabel(document)"
+                                :data-state="
+                                    document.unlocked
+                                        ? 'downloadable'
+                                        : 'locked'
+                                "
+                                class="justify-center"
+                                data-test="document-state"
+                                @select="
+                                    release(
+                                        document,
+                                        !document.client_can_download,
+                                    )
+                                "
+                            >
+                                <LockOpen v-if="document.unlocked" />
+                                <Lock v-else />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem as-child class="justify-center">
+                                <a
+                                    :href="download.url(target(document))"
+                                    :aria-label="t('documents.download')"
+                                    :title="t('documents.download')"
+                                    data-test="download-document-link"
+                                >
+                                    <Download />
+                                </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                variant="destructive"
+                                :aria-label="t('common.delete')"
+                                :title="t('common.delete')"
+                                class="justify-center"
+                                data-test="delete-document-button"
+                                @select="askDelete(document)"
+                            >
+                                <Trash />
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </li>
         </ul>
@@ -419,25 +480,34 @@ const stateKey = (document: ClientDocument) =>
         </DialogContent>
     </Dialog>
 
-    <Dialog v-model:open="isReplaceOpen">
+    <Dialog v-model:open="isEditOpen">
         <DialogContent>
-            <form class="grid gap-4" @submit.prevent="submitReplacement">
+            <form class="grid gap-4" @submit.prevent="saveEdit">
                 <DialogHeader>
                     <DialogTitle>{{
-                        t('documents.replace.title')
+                        t('documents.dialog.rename')
                     }}</DialogTitle>
                     <DialogDescription>
-                        {{ replacing?.title }} · {{ t('documents.limits') }}
+                        {{ serviceName }} · {{ t('documents.limits') }}
                     </DialogDescription>
                 </DialogHeader>
 
-                <p class="text-sm text-muted-foreground">
-                    {{ t('documents.replace.hint') }}
-                </p>
+                <div class="grid gap-2">
+                    <Label for="edit-title">{{
+                        t('documents.fields.title')
+                    }}</Label>
+                    <Input
+                        id="edit-title"
+                        v-model="renameForm.title"
+                        maxlength="150"
+                        :aria-invalid="!!renameForm.errors.title"
+                    />
+                    <InputError :message="renameForm.errors.title" />
+                </div>
 
                 <div class="grid gap-2">
                     <Label for="replace-file">{{
-                        t('documents.fields.file')
+                        t('documents.replace.optional')
                     }}</Label>
                     <Input
                         id="replace-file"
@@ -448,6 +518,9 @@ const stateKey = (document: ClientDocument) =>
                         data-test="replace-file-input"
                         @change="pickReplacement"
                     />
+                    <p class="text-xs text-muted-foreground">
+                        {{ t('documents.replace.hint') }}
+                    </p>
                     <InputError :message="replaceForm.errors.file" />
                 </div>
 
@@ -455,59 +528,16 @@ const stateKey = (document: ClientDocument) =>
                     <Button
                         type="button"
                         variant="pillOutline"
-                        @click="isReplaceOpen = false"
+                        @click="isEditOpen = false"
                     >
                         {{ t('common.cancel') }}
                     </Button>
                     <Button
                         type="submit"
                         variant="pill"
-                        :disabled="replaceForm.processing || !replaceForm.file"
-                        data-test="save-replace-button"
-                    >
-                        <Upload class="size-4" />
-                        {{ t('documents.replace.confirm') }}
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-    </Dialog>
-
-    <Dialog v-model:open="isRenameOpen">
-        <DialogContent>
-            <form class="grid gap-4" @submit.prevent="rename">
-                <DialogHeader>
-                    <DialogTitle>{{
-                        t('documents.dialog.rename')
-                    }}</DialogTitle>
-                    <DialogDescription>{{ serviceName }}</DialogDescription>
-                </DialogHeader>
-
-                <div class="grid gap-2">
-                    <Label for="rename-title">{{
-                        t('documents.fields.title')
-                    }}</Label>
-                    <Input
-                        id="rename-title"
-                        v-model="renameForm.title"
-                        maxlength="150"
-                        :aria-invalid="!!renameForm.errors.title"
-                    />
-                    <InputError :message="renameForm.errors.title" />
-                </div>
-
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="pillOutline"
-                        @click="isRenameOpen = false"
-                    >
-                        {{ t('common.cancel') }}
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="pill"
-                        :disabled="renameForm.processing"
+                        :disabled="
+                            renameForm.processing || replaceForm.processing
+                        "
                         data-test="save-rename-button"
                     >
                         <Save class="size-4" />

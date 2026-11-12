@@ -12,6 +12,7 @@ const en = {
         cancel: 'Cancel',
         edit: 'Edit',
         delete: 'Delete',
+        actions: 'Actions',
         search: 'Search',
         confirm: 'Confirm',
         back: 'Back',
@@ -313,11 +314,13 @@ const en = {
         empty: 'No documents yet.',
         download: 'Download',
         release: 'Release to client',
+        withdraw: 'Take back the release',
         limits: 'PDF up to 5 MB, JPG or PNG up to 2 MB.',
         replace: {
             button: 'Replace file',
             title: 'Replace the file',
-            hint: 'The title and the release setting stay. The old file is deleted once the new one is saved.',
+            optional: 'New file (optional)',
+            hint: 'Leave empty to keep the current file. A new file replaces it; the release setting and access history stay, and the old file is deleted once the new one is saved.',
             confirm: 'Replace',
         },
         errors: {
