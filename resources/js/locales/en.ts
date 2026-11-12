@@ -129,6 +129,48 @@ const en = {
             empty: 'No money received in this range.',
         },
     },
+    jobOrders: {
+        title: 'Job orders',
+        new: 'New job order',
+        searchPlaceholder: 'Search by company',
+        empty: 'No job orders found.',
+        exceeds:
+            'This order has {count} workers, more than the {manpower} the company asked for. This is only a reminder; you can keep adding workers.',
+        columns: {
+            company: 'Company',
+            manpower: 'Manpower',
+            split: 'Male / Female',
+            interview: 'Interview',
+            start: 'Start working',
+            workers: 'Workers',
+            status: 'Status',
+        },
+        filters: {
+            status: 'Status',
+            anyStatus: 'Any status',
+            clear: 'Clear filters',
+        },
+        form: {
+            company: 'Company name',
+            manpower: 'Manpower needed',
+            manpowerHint:
+                'How many workers the company asked for. It is not a limit: you can add more workers.',
+            male: 'Male',
+            female: 'Female',
+            interviewDate: 'Interview date',
+            startDate: 'Start-working date',
+            notes: 'Notes',
+            notesPlaceholder: 'Optional note',
+        },
+        create: {
+            head: 'New job order',
+            title: 'New job order',
+        },
+        edit: {
+            head: 'Edit job order',
+            title: 'Edit job order',
+        },
+    },
     clients: {
         title: 'Clients',
         new: 'New client',

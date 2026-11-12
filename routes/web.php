@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Admin\ClientServiceController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\JobOrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -82,7 +83,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->scopeBindings()
             ->name('clients.services.documents.destroy');
         Route::resource('services', ServiceController::class);
-        Route::inertia('job-search', 'admin/ComingSoon', ['section' => 'jobSearch'])->name('job-search');
+        Route::resource('job-search', JobOrderController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update'])
+            ->parameters(['job-search' => 'jobOrder']);
         Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');
     });
 });

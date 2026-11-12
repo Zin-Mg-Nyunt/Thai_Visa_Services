@@ -78,6 +78,12 @@ return [
     'attributes' => [
         'amount' => 'ငွေပမာဏ',
         'birthday' => 'မွေးနေ့',
+        'female_count' => 'မ အရေအတွက်',
+        'interview_date' => 'အင်တာဗျူးရက်',
+        'male_count' => 'ကျား အရေအတွက်',
+        'manpower' => 'လိုအပ်သော လူအင်အား',
+        'notes' => 'မှတ်ချက်',
+        'start_date' => 'စတင်အလုပ်လုပ်ရက်',
         'company_name' => 'ကုမ္ပဏီအမည်',
         'email' => 'အီးမေးလ်',
         'fee' => 'ဝန်ဆောင်ခ',
