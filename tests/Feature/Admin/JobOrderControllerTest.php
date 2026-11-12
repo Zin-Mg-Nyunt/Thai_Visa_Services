@@ -302,3 +302,130 @@ describe('edit and update', function () {
         $this->actingAs(User::factory()->create())->get(route('admin.job-search.edit', 999))->assertNotFound();
     });
 });
+
+describe('closing', function () {
+    test('guests are redirected and non-superadmins are refused', function () {
+        $order = JobOrder::factory()->create();
+
+        $this->post(route('admin.job-search.close', $order), ['status' => 'done'])->assertRedirect(route('login'));
+
+        $user = User::factory()->create();
+        DB::table('users')->where('id', $user->id)->update(['role' => 'staff']);
+        $this->actingAs($user->fresh())->post(route('admin.job-search.close', $order), ['status' => 'done'])->assertForbidden();
+
+        expect($order->fresh()->status)->toBe(JobOrderStatus::Open);
+    });
+
+    test('done and cancelled both close the order with the closing time', function (string $status, JobOrderStatus $expected) {
+        $this->travelTo('2026-11-13 09:30:00');
+        $order = JobOrder::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->from(route('admin.job-search.index'))
+            ->post(route('admin.job-search.close', $order), ['status' => $status])
+            ->assertRedirect(route('admin.job-search.index'));
+
+        expect($order->fresh()->status)->toBe($expected)
+            ->and($order->fresh()->closed_at->toDateTimeString())->toBe('2026-11-13 09:30:00');
+    })->with([
+        'done' => ['done', JobOrderStatus::Done],
+        'cancelled' => ['cancelled', JobOrderStatus::Cancelled],
+    ]);
+
+    test('the status is required, and an order is never closed as open or as something else', function (mixed $status) {
+        $order = JobOrder::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.job-search.close', $order), ['status' => $status])
+            ->assertSessionHasErrors('status');
+
+        expect($order->fresh()->status)->toBe(JobOrderStatus::Open)
+            ->and($order->fresh()->closed_at)->toBeNull();
+    })->with([
+        'missing' => [null],
+        'open' => ['open'],
+        'nonsense' => ['finished'],
+    ]);
+
+    test('a closed order cannot be closed again or reopened, and nothing changes', function (string $state, string $again) {
+        $order = JobOrder::factory()->{$state}()->create();
+        $closedAt = $order->fresh()->closed_at->toDateTimeString();
+        $status = $order->fresh()->status;
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.job-search.close', $order), ['status' => $again])
+            ->assertForbidden();
+
+        expect($order->fresh()->status)->toBe($status)
+            ->and($order->fresh()->closed_at->toDateTimeString())->toBe($closedAt);
+    })->with([
+        'done then cancel' => ['done', 'cancelled'],
+        'cancelled then done' => ['cancelled', 'done'],
+        'done then done' => ['done', 'done'],
+    ]);
+
+    test('closing leaves the workers and their payments alone', function () {
+        $order = JobOrder::factory()->create();
+        $worker = JobOrderWorker::factory()->create(['job_order_id' => $order->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.job-search.close', $order), ['status' => 'cancelled'])
+            ->assertRedirect();
+
+        expect($worker->fresh()->job_order_id)->toBe($order->id)
+            ->and($worker->clientService->fresh()->status->value)->toBe('in_progress')
+            ->and($order->workers()->count())->toBe(1);
+    });
+
+    test('from the edit page the admin goes to the list, because a closed order has no edit page', function () {
+        $order = JobOrder::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->from(route('admin.job-search.edit', $order))
+            ->post(route('admin.job-search.close', $order), ['status' => 'done', 'from' => 'edit'])
+            ->assertRedirect(route('admin.job-search.index'));
+
+        expect($order->fresh()->status)->toBe(JobOrderStatus::Done);
+    });
+
+    test('an unknown "from" is refused', function () {
+        $order = JobOrder::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.job-search.close', $order), ['status' => 'done', 'from' => 'https://evil.example'])
+            ->assertSessionHasErrors('from');
+
+        expect($order->fresh()->status)->toBe(JobOrderStatus::Open);
+    });
+
+    test('an order closed by someone else a moment ago is not closed again and the first closing stays', function () {
+        $order = JobOrder::factory()->create();
+        $ran = false;
+
+        // The order is loaded as open for the policy check; another admin closes it just before close() locks the row.
+        JobOrder::retrieved(function (JobOrder $loaded) use (&$ran) {
+            if (! $ran) {
+                $ran = true;
+                DB::table('job_orders')->where('id', $loaded->id)->update(['status' => 'done', 'closed_at' => '2026-11-13 08:00:00']);
+            }
+        });
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.job-search.close', $order), ['status' => 'cancelled'])
+            ->assertRedirect();
+
+        expect(DB::table('job_orders')->where('id', $order->id)->value('status'))->toBe('done')
+            ->and(DB::table('job_orders')->where('id', $order->id)->value('closed_at'))->toBe('2026-11-13 08:00:00');
+    });
+
+    test('the list offers the buttons only on an open order', function () {
+        $open = JobOrder::factory()->create();
+        $closed = JobOrder::factory()->cancelled()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.job-search.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('jobOrders.data', fn ($orders) => collect($orders)->firstWhere('id', $open->id)['can_edit'] === true
+                    && collect($orders)->firstWhere('id', $closed->id)['can_edit'] === false));
+    });
+});

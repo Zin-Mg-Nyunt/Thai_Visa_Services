@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\JobOrderStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CloseJobOrderRequest;
 use App\Http\Requests\StoreJobOrderRequest;
 use App\Http\Requests\UpdateJobOrderRequest;
 use App\Http\Resources\JobOrderResource;
 use App\Models\JobOrder;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -86,6 +88,38 @@ class JobOrderController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Job order updated.')]);
 
         return to_route('admin.job-search.index');
+    }
+
+    /**
+     * Close the order as done or cancelled. Both close it for good: no new worker can be added, and it cannot be
+     * reopened or edited. The workers and their payments are not touched. If the order was closed by someone else a
+     * moment ago, nothing changes and the admin is told.
+     */
+    public function close(CloseJobOrderRequest $request, JobOrder $jobOrder): RedirectResponse
+    {
+        $status = JobOrderStatus::from($request->validated('status'));
+
+        try {
+            $jobOrder->close($status);
+        } catch (DomainException) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This job order is already closed.')]);
+
+            return $this->afterClose($request);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $status === JobOrderStatus::Done
+            ? __('Job order marked as done.')
+            : __('Job order cancelled.')]);
+
+        return $this->afterClose($request);
+    }
+
+    /**
+     * Back to the page the admin came from. From the edit page that is the list, because a closed order's edit page is refused.
+     */
+    private function afterClose(CloseJobOrderRequest $request): RedirectResponse
+    {
+        return $request->validated('from') === 'edit' ? to_route('admin.job-search.index') : back();
     }
 
     /**

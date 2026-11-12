@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->scopeBindings()
             ->name('clients.services.documents.destroy');
         Route::resource('services', ServiceController::class);
+        Route::post('job-search/{jobOrder}/close', [JobOrderController::class, 'close'])->name('job-search.close');
         Route::resource('job-search', JobOrderController::class)
             ->only(['index', 'create', 'store', 'edit', 'update'])
             ->parameters(['job-search' => 'jobOrder']);

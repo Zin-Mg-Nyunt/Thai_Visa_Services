@@ -162,6 +162,21 @@ const en = {
             notes: 'Notes',
             notesPlaceholder: 'Optional note',
         },
+        actions: {
+            done: 'Mark as done',
+            cancelled: 'Cancel order',
+        },
+        close: {
+            final: 'Closing is final: the order takes no more workers and cannot be edited or reopened. The workers already on it keep their records and can still pay their balance.',
+            done: {
+                title: 'Mark this job order as done?',
+                description: '“{company}” will be closed as done.',
+            },
+            cancelled: {
+                title: 'Cancel this job order?',
+                description: '“{company}” will be closed as cancelled.',
+            },
+        },
         create: {
             head: 'New job order',
             title: 'New job order',

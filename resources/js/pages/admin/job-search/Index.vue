@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Pencil, Plus, Search, TriangleAlert } from '@lucide/vue';
+import { Plus, Search, TriangleAlert } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import JobOrderActions from '@/components/JobOrderActions.vue';
 import Pagination from '@/components/Pagination.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { formatDate } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
-import { create, edit, index } from '@/routes/admin/job-search';
+import { create, index } from '@/routes/admin/job-search';
 import type {
     JobOrder,
     JobOrderStatusValue,
@@ -179,21 +180,8 @@ watch(chosen, visit);
                     <TriangleAlert class="mt-0.5 size-3.5 shrink-0" />
                     {{ exceedsText(order) }}
                 </p>
-                <div v-if="order.can_edit" class="mt-3 flex justify-end">
-                    <Button
-                        as-child
-                        variant="ghost"
-                        size="icon-sm"
-                        :aria-label="t('common.edit')"
-                        :title="t('common.edit')"
-                    >
-                        <Link
-                            :href="edit(order.id)"
-                            data-test="edit-job-order-link"
-                        >
-                            <Pencil class="size-4" />
-                        </Link>
-                    </Button>
+                <div class="mt-3 flex justify-end">
+                    <JobOrderActions :job-order="order" layout="menu" />
                 </div>
             </li>
         </ul>
@@ -270,22 +258,11 @@ watch(chosen, visit);
                                 :status="order.status"
                             />
                         </td>
-                        <td class="px-3 py-3 text-right">
-                            <Button
-                                v-if="order.can_edit"
-                                as-child
-                                variant="ghost"
-                                size="icon-sm"
-                                :aria-label="t('common.edit')"
-                                :title="t('common.edit')"
-                            >
-                                <Link
-                                    :href="edit(order.id)"
-                                    data-test="edit-job-order-link"
-                                >
-                                    <Pencil class="size-4" />
-                                </Link>
-                            </Button>
+                        <td class="px-3 py-3 text-right whitespace-nowrap">
+                            <JobOrderActions
+                                :job-order="order"
+                                layout="icons"
+                            />
                         </td>
                     </tr>
                 </tbody>

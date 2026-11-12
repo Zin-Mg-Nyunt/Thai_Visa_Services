@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Validation\ConditionalRules;
 use Illuminate\Validation\Rule;
 
 trait JobOrderValidationRules
@@ -17,7 +18,7 @@ trait JobOrderValidationRules
      * The rules for the fields an admin enters on a job order. The status and closing time are never entered: an order
      * is closed only by JobOrder::close().
      *
-     * @return array<string, array<int, ValidationRule|string>>
+     * @return array<string, array<int, ValidationRule|ConditionalRules|string>>
      */
     protected function jobOrderRules(): array
     {
