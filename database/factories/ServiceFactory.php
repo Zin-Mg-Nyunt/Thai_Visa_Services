@@ -41,4 +41,16 @@ class ServiceFactory extends Factory
             'show_on_website' => false,
         ]);
     }
+
+    /**
+     * The Job Search service: fixed system key, takes documents, never has sub-services.
+     */
+    public function jobSearch(): static
+    {
+        return $this->state(fn () => [
+            'key' => Service::JOB_SEARCH_KEY,
+            'title' => 'Job Search',
+            'has_documents' => true,
+        ]);
+    }
 }
