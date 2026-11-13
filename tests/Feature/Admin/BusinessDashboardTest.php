@@ -165,6 +165,42 @@ test('outstanding is the balance owed today whatever the range, and a cancelled 
     }
 });
 
+test('outstanding leaves out a deleted client\'s unpaid balance, but their received money stays in the total received', function () {
+    takenService($this->passport, null, [['2026-11-02', '3000.00']], ['fee' => '8000.00']);
+    $gone = Client::factory()->create();
+    takenService($this->passport, null, [], ['fee' => '5000.00'], client: $gone);
+    $paidGone = Client::factory()->create();
+    takenService($this->passport, null, [['2026-11-03', '2000.00']], ['fee' => '9000.00'], client: $paidGone);
+
+    visitDashboard($this)->assertInertia(fn (Assert $page) => $page
+        ->where('report.outstanding', '17000.00')
+        ->where('report.received', '5000.00'));
+
+    $gone->delete();
+    $paidGone->delete();
+
+    visitDashboard($this)->assertInertia(fn (Assert $page) => $page
+        ->where('report.outstanding', '5000.00')
+        ->where('report.received', '5000.00'));
+});
+
+test('outstanding matches the Clients list filter: only active clients\' balances', function () {
+    $active = Client::factory()->create();
+    takenService($this->passport, null, [['2026-11-02', '5000.00']], ['fee' => '8000.00'], client: $active);
+    $gone = Client::factory()->create();
+    takenService($this->passport, null, [], ['fee' => '5000.00'], client: $gone);
+    $gone->delete();
+    takenService($this->pinkCard, null, [], ['fee' => '5000.00', 'status' => 'cancel', 'cancelled_at' => now()]);
+
+    visitDashboard($this)->assertInertia(fn (Assert $page) => $page->where('report.outstanding', '3000.00'));
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.clients.index', ['payment' => 'remaining']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('clients.data', 1)
+            ->where('clients.data.0.id', $active->id));
+});
+
 test('active clients are those with a service in progress, and a deleted client is not active', function () {
     $busy = Client::factory()->create();
     takenService($this->passport, null, [], client: $busy);

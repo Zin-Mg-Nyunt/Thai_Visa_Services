@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientServiceController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\JobOrderController;
+use App\Http\Controllers\Admin\JobOrderWorkerController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -83,9 +84,11 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->scopeBindings()
             ->name('clients.services.documents.destroy');
         Route::resource('services', ServiceController::class);
+        Route::post('job-search/{jobOrder}/workers/lookup', [JobOrderWorkerController::class, 'lookup'])->name('job-search.workers.lookup');
+        Route::post('job-search/{jobOrder}/workers', [JobOrderWorkerController::class, 'store'])->name('job-search.workers.store');
         Route::post('job-search/{jobOrder}/close', [JobOrderController::class, 'close'])->name('job-search.close');
         Route::resource('job-search', JobOrderController::class)
-            ->only(['index', 'create', 'store', 'edit', 'update'])
+            ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
             ->parameters(['job-search' => 'jobOrder']);
         Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');
     });

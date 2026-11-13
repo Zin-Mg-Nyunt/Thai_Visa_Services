@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { formatDate } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
-import { create, index } from '@/routes/admin/job-search';
+import { create, index, show } from '@/routes/admin/job-search';
 import type {
     JobOrder,
     JobOrderStatusValue,
@@ -53,9 +53,17 @@ const visit = () => {
     );
 };
 
+const workersText = (order: JobOrder) =>
+    order.cancelled_workers_count
+        ? t('jobOrders.workers.withCancelled', {
+              active: order.active_workers_count,
+              cancelled: order.cancelled_workers_count,
+          })
+        : String(order.active_workers_count);
+
 const exceedsText = (order: JobOrder) =>
     t('jobOrders.exceeds', {
-        count: order.workers_count,
+        count: order.active_workers_count,
         manpower: order.manpower,
     });
 
@@ -139,9 +147,13 @@ watch(chosen, visit);
                 data-test="job-order-card"
             >
                 <div class="flex items-start justify-between gap-3">
-                    <p class="font-semibold wrap-break-word text-brand-dark">
+                    <Link
+                        :href="show(order.id)"
+                        class="font-semibold wrap-break-word text-brand-dark hover:underline"
+                        data-test="job-order-link"
+                    >
                         {{ order.company_name }}
-                    </p>
+                    </Link>
                     <StatusBadge kind="jobOrderStatus" :status="order.status" />
                 </div>
                 <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
@@ -170,7 +182,7 @@ watch(chosen, visit);
                     <dt class="text-muted-foreground">
                         {{ t('jobOrders.columns.workers') }}
                     </dt>
-                    <dd class="text-right">{{ order.workers_count }}</dd>
+                    <dd class="text-right">{{ workersText(order) }}</dd>
                 </dl>
                 <p
                     v-if="order.exceeds_manpower"
@@ -227,7 +239,13 @@ watch(chosen, visit);
                         data-test="job-order-row"
                     >
                         <td class="px-3 py-3 font-medium text-brand-dark">
-                            {{ order.company_name }}
+                            <Link
+                                :href="show(order.id)"
+                                class="hover:underline"
+                                data-test="job-order-link"
+                            >
+                                {{ order.company_name }}
+                            </Link>
                         </td>
                         <td class="px-3 py-3">{{ order.manpower }}</td>
                         <td class="px-3 py-3 whitespace-nowrap">
@@ -241,7 +259,7 @@ watch(chosen, visit);
                         </td>
                         <td class="px-3 py-3">
                             <span class="inline-flex items-center gap-1.5">
-                                {{ order.workers_count }}
+                                {{ workersText(order) }}
                                 <TriangleAlert
                                     v-if="order.exceeds_manpower"
                                     class="size-4 text-warning-foreground"

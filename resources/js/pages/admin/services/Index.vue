@@ -23,6 +23,7 @@ const statRows = (service: Service) => {
         total_clients: 0,
         in_progress: 0,
         complete: 0,
+        cancelled: 0,
         total_received: '0.00',
     };
 
@@ -38,6 +39,10 @@ const statRows = (service: Service) => {
         {
             label: t('services.stats.complete'),
             value: stats.complete,
+        },
+        {
+            label: t('services.stats.cancelled'),
+            value: stats.cancelled,
         },
         {
             label: t('services.stats.totalReceived'),

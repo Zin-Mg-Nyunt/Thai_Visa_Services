@@ -59,7 +59,7 @@ describe('index', function () {
                 ->component('admin/job-search/Index')
                 ->has('jobOrders.data', 10)
                 ->where('jobOrders.data.0.id', $newest->id)
-                ->where('jobOrders.data.0.workers_count', 2)
+                ->where('jobOrders.data.0.active_workers_count', 2)
                 ->where('jobOrders.meta.total', 13));
     });
 
@@ -260,7 +260,7 @@ describe('edit and update', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->component('admin/job-search/Edit')
                 ->where('jobOrder.data.id', $order->id)
-                ->where('jobOrder.data.workers_count', 2)
+                ->where('jobOrder.data.active_workers_count', 2)
                 ->where('jobOrder.data.exceeds_manpower', true));
     });
 

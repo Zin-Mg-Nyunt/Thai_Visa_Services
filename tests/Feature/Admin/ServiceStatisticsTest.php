@@ -226,28 +226,78 @@ test('the clients list sends the filters and the service options to the page', f
             ->has('serviceOptions.0.sub_services', 2));
 });
 
-test('a deleted client still counts in the clients, the statuses and the money', function () {
+test('a deleted client leaves the counts but their money stays in the total', function () {
     $gone = Client::factory()->create();
     takeService($this->passport, $this->bath, '3000.00', client: $gone);
     takeService($this->passport, null, '1000.00', state: ['status' => 'complete'], client: $gone);
+    takeService($this->passport, $this->mou, '800.00', state: ['status' => 'cancel', 'cancelled_at' => now(), 'cancel_refund_amount' => '300.00'], client: $gone);
     takeService($this->passport, $this->mou, '500.00');
     $gone->delete();
 
     $this->actingAs($this->admin)
         ->get(route('admin.services.show', $this->passport))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('stats.total_clients', 2)
-            ->where('stats.in_progress', 2)
-            ->where('stats.complete', 1)
-            ->where('stats.total_received', '4500.00')
+            // Counts are operational: only the client who is not deleted.
+            ->where('stats.total_clients', 1)
+            ->where('stats.in_progress', 1)
+            ->where('stats.complete', 0)
+            ->where('stats.cancelled', 0)
+            // Money is financial: every record, the deleted client's kept money included (3000 + 1000 + 800 - 300 + 500).
+            ->where('stats.total_received', '5000.00')
+            ->where('breakdown.0.stats.total_clients', 0)
             ->where('breakdown.0.stats.total_received', '3000.00')
+            ->where('breakdown.1.stats.total_clients', 1)
+            ->where('breakdown.1.stats.cancelled', 0)
+            ->where('breakdown.1.stats.total_received', '1000.00')
             ->where('breakdown.2.stats.total_received', '1000.00'));
 
     $this->actingAs($this->admin)
         ->get(route('admin.services.index'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where("stats.{$this->passport->id}.total_clients", 2)
-            ->where("stats.{$this->passport->id}.total_received", '4500.00'));
+            ->where("stats.{$this->passport->id}.total_clients", 1)
+            ->where("stats.{$this->passport->id}.cancelled", 0)
+            ->where("stats.{$this->passport->id}.total_received", '5000.00'));
+
+    // The counts match the Clients list the service filter leads to.
+    $this->actingAs($this->admin)
+        ->get(route('admin.clients.index', ['service' => $this->passport->id]))
+        ->assertInertia(fn (Assert $page) => $page->has('clients.data', 1));
+});
+
+test('cancelled services are counted apart, and still count as clients and in the money', function () {
+    takeService($this->passport, $this->bath, '1000.00');
+    takeService($this->passport, $this->bath, '2000.00', state: ['status' => 'cancel', 'cancelled_at' => now(), 'cancel_refund_amount' => '500.25']);
+    takeService($this->passport, null, '0.00', state: ['status' => 'cancel', 'cancelled_at' => now()]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->passport))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.total_clients', 3)
+            ->where('stats.in_progress', 1)
+            ->where('stats.complete', 0)
+            ->where('stats.cancelled', 2)
+            ->where('stats.total_received', '2499.75')
+            ->where('breakdown.0.stats.cancelled', 1)
+            ->where('breakdown.2.stats.cancelled', 1));
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->bath))
+        ->assertInertia(fn (Assert $page) => $page->where('stats.cancelled', 1)->where('stats.total_received', '2499.75'));
+});
+
+test('a deleted client\'s money stays exact to the satang', function () {
+    $gone = Client::factory()->create();
+    $record = takeService($this->passport, $this->bath, '0.10', client: $gone);
+    Payment::factory()->create(['client_service_id' => $record->id, 'amount' => '0.20']);
+    takeService($this->passport, null, '9999999999.99', client: $gone);
+    $gone->delete();
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.services.show', $this->passport))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.total_clients', 0)
+            ->where('stats.total_received', '10000000000.29')
+            ->where('breakdown.0.stats.total_received', '0.30'));
 });
 
 test('the totals equal the money kept of every client service, with fee refunds and cancel refunds', function () {
@@ -291,6 +341,9 @@ test('the money is exact to the satang', function () {
 test('the service pages add up in the database and never load payments into PHP', function () {
     takeService($this->passport, $this->bath, '5000.00');
     takeService($this->passport, null, '3000.00', '500.00');
+    $gone = Client::factory()->create();
+    takeService($this->passport, $this->mou, '700.00', client: $gone);
+    $gone->delete();
 
     $loaded = 0;
     Event::listen('eloquent.retrieved: '.Payment::class, function () use (&$loaded) {

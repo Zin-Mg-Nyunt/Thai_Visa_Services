@@ -50,7 +50,7 @@ const submit = () => {
             <TriangleAlert class="mt-0.5 size-4 shrink-0" />
             {{
                 t('jobOrders.exceeds', {
-                    count: jobOrder.workers_count,
+                    count: jobOrder.active_workers_count,
                     manpower: jobOrder.manpower,
                 })
             }}

@@ -48,6 +48,10 @@ const statCards = computed(() => {
             value: stats.complete,
         },
         {
+            label: t('services.stats.cancelled'),
+            value: stats.cancelled,
+        },
+        {
             label: t('services.stats.totalReceived'),
             value: formatMoney(stats.total_received),
         },
@@ -313,6 +317,9 @@ const details = computed(() => [
                                 {{ t('services.stats.complete') }}
                             </th>
                             <th class="px-3 py-3 text-right">
+                                {{ t('services.stats.cancelled') }}
+                            </th>
+                            <th class="px-3 py-3 text-right">
                                 {{ t('services.stats.totalReceived') }}
                             </th>
                             <th class="px-3 py-3"></th>
@@ -342,6 +349,9 @@ const details = computed(() => [
                             </td>
                             <td class="px-3 py-3 text-right">
                                 {{ row.stats.complete }}
+                            </td>
+                            <td class="px-3 py-3 text-right">
+                                {{ row.stats.cancelled }}
                             </td>
                             <td class="px-3 py-3 text-right whitespace-nowrap">
                                 {{ formatMoney(row.stats.total_received) }}

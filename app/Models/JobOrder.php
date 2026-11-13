@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Enums\JobOrderStatus;
+use Closure;
 use Database\Factories\JobOrderFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -90,6 +93,29 @@ class JobOrder extends Model
 
             $this->setRawAttributes($locked->getAttributes(), true);
         });
+    }
+
+    /**
+     * The worker counts of an order, for withCount() and loadCount(): active workers and cancelled workers, both without
+     * deleted people. Manpower is compared with the active workers only.
+     *
+     * @return array<string, Closure>
+     */
+    public static function workerCounts(): array
+    {
+        return [
+            'workers as active_workers_count' => fn ($workers) => $workers->active(),
+            'workers as cancelled_workers_count' => fn ($workers) => $workers->cancelled(),
+        ];
+    }
+
+    /**
+     * @param  Builder<JobOrder>  $query
+     */
+    #[Scope]
+    protected function withWorkerCounts(Builder $query): void
+    {
+        $query->withCount(self::workerCounts());
     }
 
     /**

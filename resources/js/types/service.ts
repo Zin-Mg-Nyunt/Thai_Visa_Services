@@ -26,6 +26,7 @@ export type ServiceStats = {
     total_clients: number;
     in_progress: number;
     complete: number;
+    cancelled: number;
     /** A decimal string such as "3000.00"; money is never a float. */
     total_received: string;
 };

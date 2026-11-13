@@ -8,8 +8,12 @@ use App\Http\Requests\CloseJobOrderRequest;
 use App\Http\Requests\StoreJobOrderRequest;
 use App\Http\Requests\UpdateJobOrderRequest;
 use App\Http\Resources\JobOrderResource;
+use App\Http\Resources\JobOrderWorkerResource;
 use App\Models\JobOrder;
+use App\Models\JobOrderWorker;
+use App\Models\Service;
 use DomainException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -35,7 +39,7 @@ class JobOrderController extends Controller
         $status = JobOrderStatus::tryFrom($request->string('status')->toString());
 
         $jobOrders = JobOrder::query()
-            ->withCount('workers')
+            ->withWorkerCounts()
             ->when($search !== '', fn ($query) => $query->whereRaw("company_name like ? escape '!'", ['%'.$this->escapeLike($search).'%']))
             ->when($status !== null, fn ($query) => $query->where('status', $status->value))
             ->latest()
@@ -47,6 +51,21 @@ class JobOrderController extends Controller
             'jobOrders' => JobOrderResource::collection($jobOrders),
             'search' => $search,
             'filters' => (object) array_filter(['status' => $status?->value]),
+        ]);
+    }
+
+    /**
+     * The order and its workers, read-only. It works for a closed order too, which has no edit page: the workers of a
+     * closed order can still be paid and followed. Cancelled workers are listed and marked; deleted people are not listed.
+     */
+    public function show(JobOrder $jobOrder): Response
+    {
+        Gate::authorize('view', $jobOrder);
+
+        return Inertia::render('admin/job-search/Show', [
+            'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
+            'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
+            'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
         ]);
     }
 
@@ -77,7 +96,10 @@ class JobOrderController extends Controller
         Gate::authorize('update', $jobOrder);
 
         return Inertia::render('admin/job-search/Edit', [
-            'jobOrder' => JobOrderResource::make($jobOrder->loadCount('workers')),
+            'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
+            'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
+            // The Job Search default fee prefills the Add worker dialog. It may be empty: the admin then types the fee.
+            'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
         ]);
     }
 
@@ -120,6 +142,21 @@ class JobOrderController extends Controller
     private function afterClose(CloseJobOrderRequest $request): RedirectResponse
     {
         return $request->validated('from') === 'edit' ? to_route('admin.job-search.index') : back();
+    }
+
+    /**
+     * The workers of an order that are shown: every worker whose person is not deleted, cancelled ones included, newest first.
+     * Loaded with their person, record and payments in three queries.
+     *
+     * @return Collection<int, JobOrderWorker>
+     */
+    private function workersOf(JobOrder $jobOrder): Collection
+    {
+        return $jobOrder->workers()
+            ->operational()
+            ->with(['client', 'clientService.payments'])
+            ->latest('id')
+            ->get();
     }
 
     /**

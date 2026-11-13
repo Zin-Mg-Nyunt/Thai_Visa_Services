@@ -129,14 +129,30 @@ const en = {
             empty: 'No money received in this range.',
         },
     },
+    workerCaseStatus: {
+        applied: 'Applied',
+        interview: 'Interview',
+        hired: 'Hired',
+        working: 'Working',
+        rejected: 'Rejected',
+    },
     jobOrders: {
         title: 'Job orders',
         new: 'New job order',
         searchPlaceholder: 'Search by company',
         empty: 'No job orders found.',
         exceeds:
-            'This order has {count} workers, more than the {manpower} the company asked for. This is only a reminder; you can keep adding workers.',
+            'This order has {count} active workers, more than the {manpower} the company asked for. This is only a reminder; you can keep adding workers.',
+        show: {
+            head: 'Job order',
+            back: '← Job orders',
+            requested: 'Manpower requested',
+            active: 'Active workers',
+            cancelledWorkers: 'Cancelled workers',
+        },
         columns: {
+            male: 'Male',
+            female: 'Female',
             company: 'Company',
             manpower: 'Manpower',
             split: 'Male / Female',
@@ -176,6 +192,22 @@ const en = {
                 title: 'Cancel this job order?',
                 description: '“{company}” will be closed as cancelled.',
             },
+        },
+        workers: {
+            title: 'Workers ({count})',
+            withCancelled: '{active} ({cancelled} cancelled)',
+            cancelled: 'Cancelled',
+            add: 'Add worker',
+            empty: 'No workers yet.',
+            searchFirst: 'Search the phone number first.',
+            phone: 'Phone number',
+            fee: 'Fee (฿)',
+            received: 'Received',
+            existingPerson:
+                'This person already exists and will be added as a worker.',
+            newPerson:
+                'No one has this phone number. Fill in the details of the new person.',
+            alreadyOnOrder: 'This person is already on this job order.',
         },
         create: {
             head: 'New job order',
@@ -437,6 +469,7 @@ const en = {
             totalClients: 'Total clients',
             inProgress: 'In progress',
             complete: 'Complete',
+            cancelled: 'Cancelled',
             totalReceived: 'Total received (after refunds)',
             notAvailable: '–',
         },

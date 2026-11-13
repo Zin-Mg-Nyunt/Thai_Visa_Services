@@ -28,7 +28,8 @@ use Illuminate\Support\Facades\DB;
  * - So a past month never changes because of something that happened later.
  * - Received is net: payments minus refunds. There is no profit figure; costs are not tracked in this version.
  * - Outstanding is the balance still owed today, so it does not depend on the date range.
- * - Deleted services and deleted clients stay in the figures.
+ * - Deleted services and deleted clients stay in the money received. A deleted client's unpaid balance is not outstanding:
+ *   they leave the lists, so what they still owed is no longer shown (the same as the Clients list).
  */
 class BusinessReport
 {
@@ -241,8 +242,9 @@ class BusinessReport
     }
 
     /**
-     * The balance still owed today on every service that is not cancelled, added up in the database in whole satang.
-     * Each service owes its fee minus its payments, never less than nothing (the same rule as ClientService::remaining()).
+     * The balance still owed today on every service that is not cancelled and belongs to a client who is not deleted, added
+     * up in the database in whole satang. Each service owes its fee minus its payments, never less than nothing (the same
+     * rule as ClientService::remaining()). A deleted client's balance is left out; their received money is not.
      *
      * @return numeric-string
      */
@@ -255,7 +257,9 @@ class BusinessReport
 
         $balances = ClientService::query()
             ->toBase()
+            ->join('clients', 'clients.id', '=', 'client_services.client_id')
             ->leftJoinSub($paid, 'paid', 'paid.client_service_id', '=', 'client_services.id')
+            ->whereNull('clients.deleted_at')
             ->where('client_services.status', '!=', ClientServiceStatus::Cancel->value)
             ->selectRaw('ROUND(client_services.fee * 100) - COALESCE(paid.satang, 0) as owed');
 

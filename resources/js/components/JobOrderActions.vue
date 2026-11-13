@@ -21,6 +21,8 @@ const props = defineProps<{
      * labelled: Done and Cancel buttons with text (the edit page).
      */
     layout: 'icons' | 'menu' | 'labelled';
+    /** Set on the edit page: a closed order's edit page is refused, so after closing the admin goes to the list. */
+    fromEdit?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -144,7 +146,7 @@ const ask = (status: 'done' | 'cancelled') => {
             :job-order-id="props.jobOrder.id"
             :company-name="props.jobOrder.company_name"
             :status="closing"
-            :from-edit="layout === 'labelled'"
+            :from-edit="fromEdit"
         />
     </div>
 </template>

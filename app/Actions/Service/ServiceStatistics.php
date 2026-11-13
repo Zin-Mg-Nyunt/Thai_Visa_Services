@@ -18,10 +18,13 @@ use Illuminate\Database\Query\Builder;
  * repeats a client service, and money is summed in whole satang (SUM(ROUND(amount * 100))), which is exact on
  * MySQL and on SQLite. No payment row is loaded into PHP.
  *
- * Every client service counts, also those of deleted clients and of deleted sub-services; client services
- * themselves are never deleted. A cancelled service counts in the clients and the money, not in the statuses.
+ * The counts are operational and the money is financial, so they follow different rules:
+ * - Counts (clients, in progress, complete, cancelled) leave out deleted clients, the same as the Clients list the
+ *   service filter leads to. A cancelled service counts in the clients and in the cancelled count.
+ * - Money counts every client service, also those of deleted clients and of deleted sub-services: their history stays.
+ *   Client services themselves are never deleted.
  *
- * @phpstan-type Stats array{total_clients: int, in_progress: int, complete: int, total_received: numeric-string}
+ * @phpstan-type Stats array{total_clients: int, in_progress: int, complete: int, cancelled: int, total_received: numeric-string}
  */
 class ServiceStatistics
 {
@@ -93,7 +96,9 @@ class ServiceStatistics
     }
 
     /**
-     * The totals of the client services the caller filters and groups: clients, statuses and the money kept, in satang.
+     * The totals of the client services the caller filters and groups: clients and statuses of clients who are not
+     * deleted, and the money kept by every client service (deleted clients included), in satang. The join to clients only
+     * decides what is counted; it never drops a row, so the money is untouched.
      */
     private function totals(): Builder
     {
@@ -104,10 +109,12 @@ class ServiceStatistics
 
         return ClientService::query()
             ->toBase()
+            ->join('clients', 'clients.id', '=', 'client_services.client_id')
             ->leftJoinSub($paid, 'paid', 'paid.client_service_id', '=', 'client_services.id')
-            ->selectRaw('COUNT(DISTINCT client_services.client_id) as total_clients')
-            ->selectRaw('SUM(CASE WHEN client_services.status = ? THEN 1 ELSE 0 END) as in_progress', [ClientServiceStatus::InProgress->value])
-            ->selectRaw('SUM(CASE WHEN client_services.status = ? THEN 1 ELSE 0 END) as complete', [ClientServiceStatus::Complete->value])
+            ->selectRaw('COUNT(DISTINCT CASE WHEN clients.deleted_at IS NULL THEN client_services.client_id END) as total_clients')
+            ->selectRaw('SUM(CASE WHEN clients.deleted_at IS NULL AND client_services.status = ? THEN 1 ELSE 0 END) as in_progress', [ClientServiceStatus::InProgress->value])
+            ->selectRaw('SUM(CASE WHEN clients.deleted_at IS NULL AND client_services.status = ? THEN 1 ELSE 0 END) as complete', [ClientServiceStatus::Complete->value])
+            ->selectRaw('SUM(CASE WHEN clients.deleted_at IS NULL AND client_services.status = ? THEN 1 ELSE 0 END) as cancelled', [ClientServiceStatus::Cancel->value])
             ->selectRaw('SUM(COALESCE(paid.satang, 0) - ROUND(client_services.refund_amount * 100) - ROUND(client_services.cancel_refund_amount * 100)) as kept_satang');
     }
 
@@ -122,6 +129,7 @@ class ServiceStatistics
             'total_clients' => (int) ($row->total_clients ?? 0),
             'in_progress' => (int) ($row->in_progress ?? 0),
             'complete' => (int) ($row->complete ?? 0),
+            'cancelled' => (int) ($row->cancelled ?? 0),
             'total_received' => $this->fromSatang($row->kept_satang ?? null),
         ];
     }
