@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\MysqlTestCase;
 use Tests\TestCase;
 
 /*
@@ -17,6 +18,12 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// The retry helper is tested without RefreshDatabase: that trait wraps every test in a transaction, and Laravel does not
+// retry inside a nested transaction. The MySQL tests need a real server and refuse any database but the testing one.
+pest()->extend(TestCase::class)->in('Concurrency/Retry');
+
+pest()->extend(MysqlTestCase::class)->in('Concurrency/Mysql');
 
 /*
 |--------------------------------------------------------------------------

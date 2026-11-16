@@ -52,5 +52,6 @@
     "Choose a PDF, JPG or PNG file.": "PDF၊ JPG သို့မဟုတ် PNG ဖိုင်တစ်ခု ရွေးပါ။",
     "The file is too large. A PDF can be at most 5 MB and a JPG or PNG at most 2 MB.": "ဖိုင်ကြီးလွန်းသည်။ PDF သည် ၅ MB အထိ၊ JPG သို့မဟုတ် PNG သည် ၂ MB အထိ ဖြစ်နိုင်သည်။",
     "The server did not accept this file. It may be larger than the upload limit of the server (a PDF can be at most 5 MB, a JPG or PNG at most 2 MB).": "ဆာဗာက ဤဖိုင်ကို လက်မခံပါ။ ဆာဗာ၏ ဖိုင်တင်ကန့်သတ်ချက်ထက် ကြီးနေနိုင်သည် (PDF ၅ MB အထိ၊ JPG သို့မဟုတ် PNG ၂ MB အထိ)။",
-    "File replaced.": "ဖိုင် အစားထိုးပြီးပါပြီ။"
+    "File replaced.": "ဖိုင် အစားထိုးပြီးပါပြီ။",
+    "The system is busy. Please try again.": "စနစ် အလုပ်များနေပါသည်။ ကျေးဇူးပြု၍ ထပ်မံကြိုးစားပါ။"
 }
