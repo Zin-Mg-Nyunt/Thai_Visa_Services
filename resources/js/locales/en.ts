@@ -133,8 +133,8 @@ const en = {
         applied: 'Applied',
         interview: 'Interview',
         hired: 'Hired',
-        working: 'Working',
         rejected: 'Rejected',
+        cancelled: 'Cancelled',
     },
     jobOrders: {
         title: 'Job orders',

@@ -81,7 +81,7 @@ test('a worker record must be a Job Search record', function () {
     ]))->toThrow(DomainException::class);
 });
 
-test('a person is on a job order once, and one service record serves one worker row', function () {
+test('a person is on a job order once, but one service record can hold several applications', function () {
     $worker = JobOrderWorker::factory()->create();
     $jobSearch = Service::query()->where('key', Service::JOB_SEARCH_KEY)->first();
     $second = ClientService::factory()->forService($jobSearch)->create(['client_id' => $worker->client_id]);
@@ -92,10 +92,20 @@ test('a person is on a job order once, and one service record serves one worker 
         'client_service_id' => $second->id,
     ]))->toThrow(QueryException::class);
 
-    expect(fn () => JobOrderWorker::factory()->create([
+    // An engagement (one service record) is reused across job orders: a second application on another order is allowed.
+    $another = JobOrderWorker::factory()->create([
         'client_id' => $worker->client_id,
         'client_service_id' => $worker->client_service_id,
-    ]))->toThrow(QueryException::class);
+    ]);
+
+    expect($another->client_service_id)->toBe($worker->client_service_id)
+        ->and($another->job_order_id)->not->toBe($worker->job_order_id)
+        ->and($worker->clientService->fresh()->id)->toBe($worker->client_service_id);
+});
+
+test('the application statuses are applied, interview, hired, rejected and cancelled', function () {
+    expect(array_column(WorkerCaseStatus::cases(), 'value'))
+        ->toBe(['applied', 'interview', 'hired', 'rejected', 'cancelled']);
 });
 
 test('the database keeps history: an order with workers, or a worker with a record, cannot be hard deleted', function () {
@@ -227,4 +237,14 @@ test('a new order is open straight after it is created, before it is read again'
     expect($order->status)->toBe(JobOrderStatus::Open)
         ->and($order->isOpen())->toBeTrue()
         ->and(Gate::forUser(User::factory()->create())->allows('update', $order))->toBeTrue();
+});
+
+test('the engagement migration stops instead of guessing when a row still has the removed "working" status', function () {
+    $worker = JobOrderWorker::factory()->create();
+    DB::table('job_order_workers')->where('id', $worker->id)->update(['case_status' => 'working']);
+
+    $migration = require database_path('migrations/2026_11_17_090000_prepare_job_order_workers_for_engagements.php');
+
+    expect(fn () => $migration->up())->toThrow(RuntimeException::class, '1 job_order_workers row(s)')
+        ->and(DB::table('job_order_workers')->where('id', $worker->id)->value('case_status'))->toBe('working');
 });

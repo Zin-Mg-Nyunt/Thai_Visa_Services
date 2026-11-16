@@ -73,9 +73,9 @@ class JobOrderWorker extends Model
     }
 
     /**
-     * Operational workers whose Job Search service is not cancelled and whose case is not rejected: the ones who count
-     * against manpower. A rejected worker may still have a service in progress; the case status alone leaves them out.
-     * Nothing is deleted: a rejected worker keeps their record, payments and history.
+     * Operational workers whose Job Search service is not cancelled and whose case is neither rejected nor cancelled: the
+     * ones who count against manpower. A rejected or cancelled application may sit on a service that is still in progress;
+     * the case status alone leaves it out. Nothing is deleted: the record, payments and history stay.
      *
      * @param  Builder<JobOrderWorker>  $query
      */
@@ -83,7 +83,7 @@ class JobOrderWorker extends Model
     protected function active(Builder $query): void
     {
         $query->operational()
-            ->where('case_status', '!=', WorkerCaseStatus::Rejected->value)
+            ->whereNotIn('case_status', [WorkerCaseStatus::Rejected->value, WorkerCaseStatus::Cancelled->value])
             ->whereHas('clientService', fn ($service) => $service->where('status', '!=', ClientServiceStatus::Cancel->value));
     }
 

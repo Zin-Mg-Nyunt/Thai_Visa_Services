@@ -135,8 +135,8 @@ const my: MessageSchema = {
         applied: 'လျှောက်ထားပြီး',
         interview: 'အင်တာဗျူး',
         hired: 'ခန့်အပ်ပြီး',
-        working: 'အလုပ်လုပ်နေသည်',
         rejected: 'ငြင်းပယ်ခံရသည်',
+        cancelled: 'ပယ်ဖျက်ပြီး',
     },
     jobOrders: {
         title: 'အလုပ်အော်ဒါများ',

@@ -39,8 +39,8 @@ export type WorkerCaseStatusValue =
     | 'applied'
     | 'interview'
     | 'hired'
-    | 'working'
-    | 'rejected';
+    | 'rejected'
+    | 'cancelled';
 
 /** A worker on a job order, with the money of their Job Search record as decimal strings (never floats). */
 export type JobOrderWorker = {

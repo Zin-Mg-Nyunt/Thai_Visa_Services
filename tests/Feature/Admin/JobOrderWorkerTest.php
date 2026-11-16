@@ -428,7 +428,7 @@ describe('worker counts', function () {
             ->and($record->kept())->toBe('1500.25');
     });
 
-    test('every case status but rejected counts as active', function (WorkerCaseStatus $status, int $active) {
+    test('every case status but rejected and cancelled counts as active', function (WorkerCaseStatus $status, int $active) {
         $order = JobOrder::factory()->create();
         JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => $status]);
 
@@ -437,8 +437,8 @@ describe('worker counts', function () {
         'applied' => [WorkerCaseStatus::Applied, 1],
         'interview' => [WorkerCaseStatus::Interview, 1],
         'hired' => [WorkerCaseStatus::Hired, 1],
-        'working' => [WorkerCaseStatus::Working, 1],
         'rejected' => [WorkerCaseStatus::Rejected, 0],
+        'cancelled' => [WorkerCaseStatus::Cancelled, 0],
     ]);
 
     test('a cancelled worker stays on the order and is listed and marked; a deleted person is not listed', function () {
