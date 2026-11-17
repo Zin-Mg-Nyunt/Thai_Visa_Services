@@ -68,4 +68,13 @@ export type WorkerLookup = {
         gender: 'male' | 'female';
     } | null;
     on_this_order: boolean;
+    /**
+     * What adding this person does with their In Progress Job Search record. Null when they have none (a new one is
+     * created). A reusable record sends its fee and the money received.
+     */
+    engagement: {
+        state: 'reusable' | 'open_application' | 'inconsistent';
+        fee?: string;
+        received?: string;
+    } | null;
 };

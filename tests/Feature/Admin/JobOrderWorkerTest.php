@@ -168,7 +168,7 @@ describe('adding a worker', function () {
         expect(JobOrderWorker::count())->toBe(1);
     });
 
-    test('a person is on an order once, but may be on another', function () {
+    test('a person is on an order once, and cannot join another order while the first application is open', function () {
         $client = Client::factory()->create();
         $other = JobOrder::factory()->create();
         $url = route('admin.job-search.workers.store', $this->order);
@@ -176,11 +176,14 @@ describe('adding a worker', function () {
         $this->actingAs($this->admin)->post($url, ['client_id' => $client->id, 'fee' => '1000'])->assertSessionHasNoErrors();
         $this->actingAs($this->admin)->post($url, ['client_id' => $client->id, 'fee' => '1000'])
             ->assertSessionHasErrors(['client_id' => 'This person is already on this job order.']);
+        // Strict V1 rule: the first application is still Applied, so another order is refused and nothing is created.
         $this->actingAs($this->admin)->post(route('admin.job-search.workers.store', $other), ['client_id' => $client->id, 'fee' => '1000'])
-            ->assertSessionHasNoErrors();
+            ->assertRedirect();
 
-        expect(JobOrderWorker::count())->toBe(2)
-            ->and($client->clientServices()->count())->toBe(2);
+        expect(session('inertia.flash_data.toast.message') ?? session('toast.message'))
+            ->toBe('This person already has an open application (Applied or Interview). Reject or cancel it before adding them to another job order.')
+            ->and(JobOrderWorker::count())->toBe(1)
+            ->and($client->clientServices()->count())->toBe(1);
     });
 
     test('a deleted or unknown person cannot be picked', function () {

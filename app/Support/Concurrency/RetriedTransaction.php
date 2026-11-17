@@ -40,6 +40,7 @@ class RetriedTransaction
      * @return TReturn
      *
      * @throws TryAgainException when deadlocks or lock-wait timeouts used up every attempt
+     * @throws Throwable anything else the callback throws, unchanged and not retried
      */
     public static function run(Closure $callback, ?string $connection = null): mixed
     {

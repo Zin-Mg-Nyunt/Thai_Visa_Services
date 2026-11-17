@@ -208,6 +208,12 @@ const en = {
             newPerson:
                 'No one has this phone number. Fill in the details of the new person.',
             alreadyOnOrder: 'This person is already on this job order.',
+            reuseRecord:
+                'This person already has an In Progress Job Search record. It is reused: keep its fee or change it.',
+            openApplication:
+                'This person already has an open application (Applied or Interview). Reject or cancel it before adding them to another job order.',
+            inconsistentRecord:
+                "This person's Job Search record is in an unexpected state, so nothing can be changed. Please check it first.",
         },
         create: {
             head: 'New job order',

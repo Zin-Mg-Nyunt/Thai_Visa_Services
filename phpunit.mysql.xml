@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    The concurrency tests on a real MySQL server, against the separate thai_visa_services_testing database only.
-    Run: php artisan test -c phpunit.mysql.xml
-    The user name and password come from .env; MysqlTestCase refuses any database that is not the testing one.
+    The concurrency tests on a real MySQL server, against the separate Thai_Visa_Services_Testing database only.
+    Run (the testing user's password is given on the command line, never written in a file):
+        read -s -p "Testing DB password: " DB_PASSWORD; echo; export DB_PASSWORD
+        DB_USERNAME=zin_visa_test php artisan test -c phpunit.mysql.xml
+    MysqlTestCase refuses any database that is not the testing one.
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
@@ -26,7 +28,7 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
-        <env name="DB_DATABASE" value="thai_visa_services_testing"/>
+        <env name="DB_DATABASE" value="Thai_Visa_Services_Testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\JobSearch\AddWorker;
+use App\Actions\JobSearch\FindEngagement;
 use App\Concerns\HandlesMoney;
+use App\Enums\EngagementState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LookupJobOrderWorkerRequest;
 use App\Http\Requests\StoreJobOrderWorkerRequest;
 use App\Models\Client;
 use App\Models\JobOrder;
+use App\Models\Service;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +27,7 @@ class JobOrderWorkerController extends Controller
      * already on this order. Soft-deleted people are not found (their phone number can be used again). It is a POST so the
      * phone number stays out of the address, the browser history and the access logs; it changes nothing.
      */
-    public function lookup(LookupJobOrderWorkerRequest $request, JobOrder $jobOrder): JsonResponse
+    public function lookup(LookupJobOrderWorkerRequest $request, JobOrder $jobOrder, FindEngagement $findEngagement): JsonResponse
     {
         $phone = $request->validated('phone');
         $client = Client::query()->where('phone', $phone)->first();
@@ -39,7 +42,36 @@ class JobOrderWorkerController extends Controller
                 'gender' => $client->gender->value,
             ],
             'on_this_order' => $client !== null && $jobOrder->workers()->where('client_id', $client->id)->exists(),
+            'engagement' => $client === null ? null : $this->engagementOf($client, $findEngagement),
         ]);
+    }
+
+    /**
+     * What adding this person would do with their In Progress Job Search record, for the dialog: null when they have none
+     * (a new record is created). A reusable record also sends its fee and what was received, so the admin can keep or change
+     * the fee. Nothing is locked: this only informs; Add Worker decides again under locks.
+     *
+     * @return array{state: string, fee?: string, received?: string}|null
+     */
+    private function engagementOf(Client $client, FindEngagement $findEngagement): ?array
+    {
+        $jobSearch = Service::query()->where('key', Service::JOB_SEARCH_KEY)->first();
+
+        if ($jobSearch === null) {
+            return null;
+        }
+
+        $check = $findEngagement->for($client, $jobSearch);
+
+        return match ($check->state) {
+            EngagementState::None => null,
+            EngagementState::Reusable => [
+                'state' => $check->state->value,
+                'fee' => $check->record->fee,
+                'received' => $check->record->received(),
+            ],
+            default => ['state' => $check->state->value],
+        };
     }
 
     /**
@@ -56,6 +88,7 @@ class JobOrderWorkerController extends Controller
                 isset($data['client_id']) ? (int) $data['client_id'] : null,
                 Arr::only($data, ['name', 'phone', 'birthday', 'gender']),
                 $this->money($data['fee']),
+                $request->user()?->id,
             );
         } catch (DomainException $exception) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);

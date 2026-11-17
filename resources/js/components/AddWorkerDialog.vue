@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm, useHttp } from '@inertiajs/vue3';
 import { Search, TriangleAlert, UserPlus } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     lookup as lookupRoute,
@@ -81,11 +81,23 @@ const find = async () => {
         result.value = response;
         form.phone = response.phone;
         form.client_id = response.client?.id ?? null;
+        // A reused record keeps its own fee unless the admin changes it; otherwise the default fee is offered.
+        form.fee =
+            response.engagement?.state === 'reusable'
+                ? (response.engagement.fee ?? '')
+                : (props.defaultFee ?? '');
         form.clearErrors();
     } catch {
         // A phone number that is not valid shows as an error under the field.
     }
 };
+
+// A person with an open application, or a record in an unexpected state, cannot be added.
+const isBlocked = computed(
+    () =>
+        result.value?.engagement?.state === 'open_application' ||
+        result.value?.engagement?.state === 'inconsistent',
+);
 
 const submit = () => {
     form.transform((data) =>
@@ -158,6 +170,20 @@ const submit = () => {
                     </p>
 
                     <template v-else>
+                        <p
+                            v-if="isBlocked"
+                            class="flex items-start gap-2 rounded-xl bg-warning px-3 py-2 text-sm text-warning-foreground"
+                            role="status"
+                            data-test="worker-engagement-blocked"
+                        >
+                            <TriangleAlert class="mt-0.5 size-4 shrink-0" />
+                            {{
+                                result.engagement?.state === 'open_application'
+                                    ? t('jobOrders.workers.openApplication')
+                                    : t('jobOrders.workers.inconsistentRecord')
+                            }}
+                        </p>
+
                         <div
                             v-if="result.client"
                             class="rounded-xl border bg-muted/40 p-3 text-sm"
@@ -175,6 +201,13 @@ const submit = () => {
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{ t('jobOrders.workers.existingPerson') }}
+                            </p>
+                            <p
+                                v-if="result.engagement?.state === 'reusable'"
+                                class="mt-1 text-xs text-muted-foreground"
+                                data-test="worker-reuse-record"
+                            >
+                                {{ t('jobOrders.workers.reuseRecord') }}
                             </p>
                         </div>
 
@@ -242,7 +275,7 @@ const submit = () => {
                             <InputError :message="form.errors.phone" />
                         </div>
 
-                        <div class="grid gap-2">
+                        <div v-if="!isBlocked" class="grid gap-2">
                             <Label for="worker-fee"
                                 >{{ t('jobOrders.workers.fee') }} *</Label
                             >
@@ -272,7 +305,10 @@ const submit = () => {
                         type="submit"
                         variant="pill"
                         :disabled="
-                            form.processing || !result || result.on_this_order
+                            form.processing ||
+                            !result ||
+                            result.on_this_order ||
+                            isBlocked
                         "
                         data-test="save-worker-button"
                     >

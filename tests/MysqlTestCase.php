@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * Base for tests that need a real MySQL server: locking, deadlocks and timeouts cannot be proven on SQLite.
  *
- * It refuses to run against anything but thai_visa_services_testing, so these tests cannot touch the development or
+ * It refuses to run against anything but Thai_Visa_Services_Testing, so these tests cannot touch the development or
  * production data by accident. Run them with: php artisan test -c phpunit.mysql.xml
  *
  * One explicit exception, for tests that only create and drop their own scratch table: set MYSQL_TEST_DATABASE_OVERRIDE to
@@ -18,7 +18,7 @@ use RuntimeException;
  */
 abstract class MysqlTestCase extends TestCase
 {
-    public const TESTING_DATABASE = 'thai_visa_services_testing';
+    public const TESTING_DATABASE = 'Thai_Visa_Services_Testing';
 
     /** @var array<int, string> */
     private array $peerNames = [];
@@ -28,7 +28,12 @@ abstract class MysqlTestCase extends TestCase
         parent::setUp();
 
         if (DB::getDriverName() !== 'mysql') {
-            $this->markTestSkipped('These tests need MySQL. Run them with: php artisan test -c phpunit.mysql.xml');
+            $this->markTestSkipped(sprintf(
+                'These tests need MySQL, but this run uses the [%s] driver (database [%s], config [%s]). Run them with: php artisan test -c phpunit.mysql.xml',
+                DB::getDriverName(),
+                DB::connection()->getDatabaseName(),
+                app()->configurationIsCached() ? 'cached' : (string) env('APP_ENV'),
+            ));
         }
 
         $this->guardTestingDatabase(allowOverride: true);
