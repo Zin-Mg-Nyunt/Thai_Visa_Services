@@ -130,15 +130,16 @@ test('only the signed-in superadmin manages job orders, and a closed order is fi
         ->and(Gate::allows('view', $open))->toBeFalse();
 });
 
-test('a closed order takes no new worker, but its workers can still be updated', function () {
+test('a closed order takes no new worker and its application statuses are frozen', function () {
     $admin = User::factory()->create();
     $closed = JobOrder::factory()->cancelled()->create();
-    $worker = JobOrderWorker::factory()->create(['job_order_id' => $closed->id]);
+    $open = JobOrder::factory()->create();
 
     expect(Gate::forUser($admin)->allows('create', [JobOrderWorker::class, $closed]))->toBeFalse()
-        ->and(Gate::forUser($admin)->allows('create', [JobOrderWorker::class, JobOrder::factory()->create()]))->toBeTrue()
-        ->and(Gate::forUser($admin)->allows('update', $worker))->toBeTrue()
-        ->and(Gate::allows('update', $worker))->toBeFalse();
+        ->and(Gate::forUser($admin)->allows('create', [JobOrderWorker::class, $open]))->toBeTrue()
+        ->and(Gate::forUser($admin)->allows('changeStatus', [JobOrderWorker::class, $open]))->toBeTrue()
+        ->and(Gate::forUser($admin)->allows('changeStatus', [JobOrderWorker::class, $closed]))->toBeFalse()
+        ->and(Gate::allows('changeStatus', [JobOrderWorker::class, $open]))->toBeFalse();
 });
 
 test('closing an order sets its status and closing time together', function (JobOrderStatus $status) {

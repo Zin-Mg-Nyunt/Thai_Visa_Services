@@ -55,5 +55,16 @@
     "File replaced.": "ဖိုင် အစားထိုးပြီးပါပြီ။",
     "The system is busy. Please try again.": "စနစ် အလုပ်များနေပါသည်။ ကျေးဇူးပြု၍ ထပ်မံကြိုးစားပါ။",
     "This person already has an open application (Applied or Interview). Reject or cancel it before adding them to another job order.": "ဤသူတွင် ဆက်လက်ဆောင်ရွက်နေသော လျှောက်လွှာ (လျှောက်ထားပြီး သို့မဟုတ် အင်တာဗျူး) ရှိနေပါသည်။ အခြားအလုပ်အော်ဒါသို့ ထည့်မည်ဆိုပါက ၎င်းကို ငြင်းပယ် သို့မဟုတ် ပယ်ဖျက်ရန် လိုအပ်ပါသည်။",
-    "This person's Job Search record is in an unexpected state, so nothing was changed. Please check it first.": "ဤသူ၏ အလုပ်ရှာဖွေရေး မှတ်တမ်းသည် မမျှော်လင့်သော အခြေအနေတွင် ရှိနေသဖြင့် မည်သည့်အရာမျှ မပြောင်းလဲခဲ့ပါ။ ကျေးဇူးပြု၍ ဦးစွာ စစ်ဆေးပါ။"
+    "This person's Job Search record is in an unexpected state, so nothing was changed. Please check it first.": "ဤသူ၏ အလုပ်ရှာဖွေရေး မှတ်တမ်းသည် မမျှော်လင့်သော အခြေအနေတွင် ရှိနေသဖြင့် မည်သည့်အရာမျှ မပြောင်းလဲခဲ့ပါ။ ကျေးဇူးပြု၍ ဦးစွာ စစ်ဆေးပါ။",
+    ":name was deleted, so the application cannot change.": ":name ကို ဖျက်လိုက်ပြီးဖြစ်သဖြင့် လျှောက်လွှာကို မပြောင်းနိုင်ပါ။",
+    "The Job Search record of :name is no longer in progress, so the application cannot change.": ":name ၏ အလုပ်ရှာဖွေရေး မှတ်တမ်းသည် ဆောင်ရွက်နေဆဲ မဟုတ်တော့သဖြင့် လျှောက်လွှာကို မပြောင်းနိုင်ပါ။",
+    "The application of :name cannot change from :from to :to.": ":name ၏ လျှောက်လွှာကို :from မှ :to သို့ မပြောင်းနိုင်ပါ။",
+    "One of these applications is not on this job order.": "ဤလျှောက်လွှာများထဲမှ တစ်ခုသည် ဤအလုပ်အော်ဒါတွင် မပါဝင်ပါ။",
+    "Status updated.": "အခြေအနေကို ပြောင်းလဲပြီးပါပြီ။",
+    "Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order, and Hired cannot be undone.": "ဦးစွာ ခန့်အပ်ပြီးကို အတည်ပြုပါ — အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု ပြီးဆုံးသွားမည်၊ ထိုသူကို အခြားအလုပ်အော်ဒါသို့ ထပ်မံမသတ်မှတ်နိုင်တော့ပါ၊ ခန့်အပ်ပြီးကို ပြန်ပြင်၍ မရပါ။",
+    "Applied": "လျှောက်ထားပြီး",
+    "Interview": "အင်တာဗျူး",
+    "Hired": "ခန့်အပ်ပြီး",
+    "Rejected": "ငြင်းပယ်ခံရသည်",
+    "Cancelled": "ပယ်ဖျက်ပြီး"
 }

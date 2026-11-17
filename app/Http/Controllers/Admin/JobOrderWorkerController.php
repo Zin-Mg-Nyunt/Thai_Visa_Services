@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\JobSearch\AddWorker;
 use App\Actions\JobSearch\FindEngagement;
+use App\Actions\JobSearch\UpdateApplicationStatuses;
 use App\Concerns\HandlesMoney;
 use App\Enums\EngagementState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LookupJobOrderWorkerRequest;
 use App\Http\Requests\StoreJobOrderWorkerRequest;
+use App\Http\Requests\UpdateApplicationStatusesRequest;
 use App\Models\Client;
 use App\Models\JobOrder;
 use App\Models\Service;
@@ -100,6 +102,26 @@ class JobOrderWorkerController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Worker added.')]);
+
+        return back();
+    }
+
+    /**
+     * Change the status of one or several applications of an open order, all or nothing. If anything is not allowed (a
+     * transition the rules refuse, a deleted person, a Job Search record that is no longer in progress, or an application
+     * another admin already changed), nothing changes and the admin is told why.
+     */
+    public function updateStatus(UpdateApplicationStatusesRequest $request, JobOrder $jobOrder, UpdateApplicationStatuses $update): RedirectResponse
+    {
+        try {
+            $update->handle($jobOrder, $request->statusChanges());
+        } catch (DomainException $exception) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);
+
+            return back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
 
         return back();
     }

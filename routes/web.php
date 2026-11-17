@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\JobOrderController;
 use App\Http\Controllers\Admin\JobOrderWorkerController;
 use App\Http\Controllers\Admin\PaymentController;
-use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\ServiceController;   
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\PhotoController;
@@ -86,6 +86,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::resource('services', ServiceController::class);
         Route::post('job-search/{jobOrder}/workers/lookup', [JobOrderWorkerController::class, 'lookup'])->name('job-search.workers.lookup');
         Route::post('job-search/{jobOrder}/workers', [JobOrderWorkerController::class, 'store'])->name('job-search.workers.store');
+        Route::patch('job-search/{jobOrder}/workers/status', [JobOrderWorkerController::class, 'updateStatus'])->name('job-search.workers.status');
         Route::post('job-search/{jobOrder}/close', [JobOrderController::class, 'close'])->name('job-search.close');
         Route::resource('job-search', JobOrderController::class)
             ->only(['index', 'create', 'store', 'show', 'edit', 'update'])

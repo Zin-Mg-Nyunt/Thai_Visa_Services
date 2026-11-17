@@ -208,6 +208,19 @@ const en = {
             newPerson:
                 'No one has this phone number. Fill in the details of the new person.',
             alreadyOnOrder: 'This person is already on this job order.',
+            changeStatus: 'Change status',
+            selected: '{count} selected',
+            setStatusTo: 'Set status to…',
+            apply: 'Apply',
+            selectAll: 'Select all',
+            hiredConfirm: {
+                title: 'Confirm Hired',
+                intro: 'You are about to mark {count} application(s) as Hired.',
+                complete: 'Their Job Search service becomes Complete.',
+                noReassign: 'They cannot be assigned to another job order.',
+                irreversible: 'Hired cannot be undone.',
+                confirm: 'Confirm Hired',
+            },
             reuseRecord:
                 'This person already has an In Progress Job Search record. It is reused: keep its fee or change it.',
             openApplication:
