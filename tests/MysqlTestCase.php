@@ -12,9 +12,8 @@ use RuntimeException;
  * It refuses to run against anything but Thai_Visa_Services_Testing, so these tests cannot touch the development or
  * production data by accident. Run them with: php artisan test -c phpunit.mysql.xml
  *
- * One explicit exception, for tests that only create and drop their own scratch table: set MYSQL_TEST_DATABASE_OVERRIDE to
- * the exact database name (the user allowed this for the dev database on 2026-11-17). A schema wipe (migrate:fresh) never
- * honours the override, so it can only ever run on the testing database.
+ * There is no override: the database name must match exactly (MySQL database names are case-sensitive on this machine's
+ * Linux file system, so the case matters too).
  */
 abstract class MysqlTestCase extends TestCase
 {
@@ -36,7 +35,7 @@ abstract class MysqlTestCase extends TestCase
             ));
         }
 
-        $this->guardTestingDatabase(allowOverride: true);
+        $this->guardTestingDatabase();
     }
 
     protected function tearDown(): void
@@ -68,17 +67,12 @@ abstract class MysqlTestCase extends TestCase
      */
     protected function beforeRefreshingDatabase(): void
     {
-        $this->guardTestingDatabase(allowOverride: false);
+        $this->guardTestingDatabase();
     }
 
-    protected function guardTestingDatabase(bool $allowOverride): void
+    protected function guardTestingDatabase(): void
     {
         $database = (string) DB::connection()->getDatabaseName();
-        $override = (string) env('MYSQL_TEST_DATABASE_OVERRIDE', '');
-
-        if ($allowOverride && $override !== '' && $database === $override) {
-            return;
-        }
 
         if ($database !== self::TESTING_DATABASE) {
             throw new RuntimeException("Refusing to run: the database is [{$database}], not [".self::TESTING_DATABASE.'].');

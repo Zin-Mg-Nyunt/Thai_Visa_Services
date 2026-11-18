@@ -39,6 +39,15 @@ class JobOrderMoney
      */
     public function forOrder(int $jobOrderId): array
     {
+        // One transaction, so both reads see the same snapshot (InnoDB's default REPEATABLE READ fixes it at the first read).
+        return DB::transaction(fn () => $this->orderMoney($jobOrderId));
+    }
+
+    /**
+     * @return array{amount: numeric-string, includes_deleted: bool}
+     */
+    private function orderMoney(int $jobOrderId): array
+    {
         $amount = $this->attributed()->where('a.job_order_id', $jobOrderId)->value('satang');
 
         // count(), not exists(): the base query is an aggregate, which always yields one row, even when nothing matched.
@@ -58,6 +67,17 @@ class JobOrderMoney
      * @return array{kept: numeric-string, attributed: numeric-string, unassigned: numeric-string}
      */
     public function totals(): array
+    {
+        // The Job Search total and the attributed amount are read in one transaction, so both come from the same snapshot.
+        // Read apart, a payment or a move committed between the two reads made the attributed amount larger than the total
+        // and the Unassigned amount negative (found by the MySQL concurrency test).
+        return DB::transaction(fn () => $this->snapshotTotals());
+    }
+
+    /**
+     * @return array{kept: numeric-string, attributed: numeric-string, unassigned: numeric-string}
+     */
+    private function snapshotTotals(): array
     {
         $jobSearch = Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('id');
 
