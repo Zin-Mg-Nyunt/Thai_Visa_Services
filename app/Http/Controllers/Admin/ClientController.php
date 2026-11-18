@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Client\TrackingPinGuard;
+use App\Actions\JobSearch\JobOrderMoney;
 use App\Enums\ClientServiceStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeleteClientRequest;
@@ -13,8 +14,10 @@ use App\Http\Resources\ClientResource;
 use App\Http\Resources\ClientServiceResource;
 use App\Models\Client;
 use App\Models\ClientService;
+use App\Models\JobOrder;
 use App\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -223,6 +226,7 @@ class ClientController extends Controller
             'photoUrl' => $client->photoUrl(),
             'lockedMinutes' => (int) ceil((new TrackingPinGuard($client))->lockedForSeconds() / 60),
             'clientServices' => ClientServiceResource::collection($clientServices),
+            'jobSearchAttribution' => $this->jobSearchAttribution($clientServices),
             'totals' => [
                 // Net of refunds: what the agency keeps from this client.
                 'received' => $clientServices->reduce(fn (string $total, ClientService $item) => bcadd($total, $item->kept(), 2), '0.00'),
@@ -293,5 +297,28 @@ class ClientController extends Controller
     private function escapeLike(string $value): string
     {
         return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
+    }
+
+    /**
+     * For each Job Search service of the client: the job order its Kept Amount is attributed to right now, or null when it is
+     * Unassigned. Other services are not in the map. Worked out live, never stored.
+     *
+     * @param  Collection<int, ClientService>  $clientServices
+     * @return array<int, array{id: int, company_name: string}|null>
+     */
+    private function jobSearchAttribution(Collection $clientServices): array
+    {
+        $jobSearchServices = $clientServices->filter(fn (ClientService $item) => $item->service?->isJobSearch() === true);
+
+        if ($jobSearchServices->isEmpty()) {
+            return [];
+        }
+
+        $orders = app(JobOrderMoney::class)->ordersOf($jobSearchServices->modelKeys());
+        $names = JobOrder::query()->whereIn('id', array_values($orders))->pluck('company_name', 'id');
+
+        return $jobSearchServices->mapWithKeys(fn (ClientService $item) => [
+            $item->id => isset($orders[$item->id]) ? ['id' => $orders[$item->id], 'company_name' => (string) $names[$orders[$item->id]]] : null,
+        ])->all();
     }
 }

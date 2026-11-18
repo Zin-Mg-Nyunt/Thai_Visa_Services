@@ -58,7 +58,7 @@ class UpdateApplicationStatusesRequest extends FormRequest
                 }
 
                 if ($hired && ! $this->boolean('confirm_hired')) {
-                    $validator->errors()->add('confirm_hired', __('Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order, and Hired cannot be undone.'));
+                    $validator->errors()->add('confirm_hired', __('Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order while Hired, and Hired can be undone only by cancelling the Hired application later.'));
                 }
             },
         ];

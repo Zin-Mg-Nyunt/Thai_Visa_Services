@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\JobSearch\AddWorker;
+use App\Actions\JobSearch\CancelHiredApplication;
 use App\Actions\JobSearch\FindEngagement;
 use App\Actions\JobSearch\UpdateApplicationStatuses;
 use App\Concerns\HandlesMoney;
 use App\Enums\EngagementState;
+use App\Enums\WorkerCaseStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CancelHiredApplicationRequest;
 use App\Http\Requests\LookupJobOrderWorkerRequest;
 use App\Http\Requests\StoreJobOrderWorkerRequest;
 use App\Http\Requests\UpdateApplicationStatusesRequest;
 use App\Models\Client;
 use App\Models\JobOrder;
+use App\Models\JobOrderWorker;
 use App\Models\Service;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +47,7 @@ class JobOrderWorkerController extends Controller
                 'birthday' => $client->birthday->toDateString(),
                 'gender' => $client->gender->value,
             ],
-            'on_this_order' => $client !== null && $jobOrder->workers()->where('client_id', $client->id)->exists(),
+            'on_this_order' => $client !== null && $jobOrder->workers()->where('client_id', $client->id)->whereIn('case_status', WorkerCaseStatus::activeValues())->exists(),
             'engagement' => $client === null ? null : $this->engagementOf($client, $findEngagement),
         ]);
     }
@@ -122,6 +126,28 @@ class JobOrderWorkerController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Status updated.')]);
+
+        return back();
+    }
+
+    /**
+     * Hired to Cancelled for one application, also on a closed order (which stays closed). It is its own workflow: the normal
+     * status update and the job order close never allow it. The application and its Job Search record change together or not
+     * at all. Nothing is refused silently: the admin is told why.
+     */
+    public function cancelHired(CancelHiredApplicationRequest $request, JobOrder $jobOrder, JobOrderWorker $worker, CancelHiredApplication $cancel): RedirectResponse
+    {
+        abort_unless($worker->job_order_id === $jobOrder->id, 404);
+
+        try {
+            $cancel->handle($worker);
+        } catch (DomainException $exception) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);
+
+            return back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('The Hired application was cancelled. The Job Search service is In Progress again.')]);
 
         return back();
     }

@@ -185,19 +185,86 @@ test('more than one In Progress Job Search record is refused and logged', functi
     Log::shouldHaveReceived('warning')->once()->withArgs(fn ($message, $context) => count($context['client_service_ids']) === 2);
 });
 
-test('a person is on an order once: a rejected row on this order is never reactivated or duplicated', function () {
+test('the same person can be added to the same order again after a rejected row: a new row, the old one untouched', function () {
     $record = engagementWith($this->client, []);
-    JobOrderWorker::factory()->create([
+    $old = JobOrderWorker::factory()->create([
         'job_order_id' => $this->order->id,
         'client_id' => $this->client->id,
         'client_service_id' => $record->id,
         'case_status' => WorkerCaseStatus::Rejected,
     ]);
+    $before = $old->fresh()->getAttributes();
+
+    addToOrder($this, $this->order, $this->client)->assertSessionHasNoErrors();
+
+    $new = JobOrderWorker::query()->where('id', '!=', $old->id)->sole();
+
+    expect(JobOrderWorker::count())->toBe(2)
+        ->and($old->fresh()->getAttributes())->toBe($before)
+        ->and($new->job_order_id)->toBe($this->order->id)
+        ->and($new->case_status)->toBe(WorkerCaseStatus::Applied)
+        ->and($new->client_service_id)->toBe($record->id)
+        ->and(ClientService::count())->toBe(1);
+});
+
+test('the same person can be added to the same order again after a cancelled row too', function () {
+    $record = engagementWith($this->client, []);
+    JobOrderWorker::factory()->create([
+        'job_order_id' => $this->order->id,
+        'client_id' => $this->client->id,
+        'client_service_id' => $record->id,
+        'case_status' => WorkerCaseStatus::Cancelled,
+    ]);
+
+    addToOrder($this, $this->order, $this->client)->assertSessionHasNoErrors();
+
+    expect(JobOrderWorker::count())->toBe(2);
+});
+
+test('an active application of the person on this order (applied, interview or hired) blocks adding them again', function (WorkerCaseStatus $status, ClientServiceStatus $service) {
+    $record = engagementWith($this->client, [], status: $service);
+    JobOrderWorker::factory()->create([
+        'job_order_id' => $this->order->id,
+        'client_id' => $this->client->id,
+        'client_service_id' => $record->id,
+        'case_status' => $status,
+    ]);
 
     addToOrder($this, $this->order, $this->client)->assertSessionHasErrors('client_id');
 
     expect(JobOrderWorker::count())->toBe(1)
-        ->and(JobOrderWorker::query()->sole()->case_status)->toBe(WorkerCaseStatus::Rejected);
+        ->and(ClientService::count())->toBe(1)
+        ->and(JobOrderWorker::query()->sole()->case_status)->toBe($status);
+})->with([
+    'applied' => [WorkerCaseStatus::Applied, ClientServiceStatus::InProgress],
+    'interview' => [WorkerCaseStatus::Interview, ClientServiceStatus::InProgress],
+    'hired' => [WorkerCaseStatus::Hired, ClientServiceStatus::Complete],
+]);
+
+test('the action refuses an active application on the order even when the request validation was skipped', function () {
+    $record = engagementWith($this->client, [], status: ClientServiceStatus::Complete);
+    JobOrderWorker::factory()->create([
+        'job_order_id' => $this->order->id,
+        'client_id' => $this->client->id,
+        'client_service_id' => $record->id,
+        'case_status' => WorkerCaseStatus::Hired,
+    ]);
+
+    expect(fn () => app(AddWorker::class)->handle($this->order, $this->client->id, [], '3000.00'))
+        ->toThrow(DomainException::class, 'This person is already on this job order.');
+
+    expect(JobOrderWorker::count())->toBe(1)->and(ClientService::count())->toBe(1);
+});
+
+test('reassignment rules are unchanged: an open application on another order still blocks the same-order case', function () {
+    $other = JobOrder::factory()->create();
+    $record = engagementWith($this->client, []);
+    JobOrderWorker::factory()->create(['job_order_id' => $this->order->id, 'client_id' => $this->client->id, 'client_service_id' => $record->id, 'case_status' => WorkerCaseStatus::Rejected]);
+    JobOrderWorker::factory()->create(['job_order_id' => $other->id, 'client_id' => $this->client->id, 'client_service_id' => $record->id, 'case_status' => WorkerCaseStatus::Interview]);
+
+    addToOrder($this, $this->order, $this->client);
+
+    expect(JobOrderWorker::count())->toBe(2)->and(lastToast())->toContain('open application');
 });
 
 test('the phone number taken by another admin a moment ago becomes a normal validation error, not a server error', function () {

@@ -17,6 +17,8 @@ const props = defineProps<{
     jobOrderId: number;
     companyName: string;
     status: 'done' | 'cancelled';
+    /** Ids of the open applications of deleted people: the close cancels them, and the server checks they are still the same. */
+    deletedOpen: number[];
     /** Set on the edit page: a closed order's edit page is refused, so the server sends the admin to the list. */
     fromEdit?: boolean;
 }>();
@@ -30,7 +32,12 @@ const processing = ref(false);
 const confirm = () => {
     router.post(
         close.url(props.jobOrderId),
-        { status: props.status, from: props.fromEdit ? 'edit' : undefined },
+        {
+            status: props.status,
+            from: props.fromEdit ? 'edit' : undefined,
+            // Nothing for the admin to resolve; this is what the screen showed.
+            expected: { open: [], deleted_open: props.deletedOpen },
+        },
         {
             preserveScroll: true,
             onStart: () => (processing.value = true),
@@ -56,6 +63,18 @@ const confirm = () => {
                     }}
                 </DialogDescription>
             </DialogHeader>
+
+            <p
+                v-if="deletedOpen.length"
+                class="rounded-xl bg-warning px-3 py-2 text-sm text-warning-foreground"
+                data-test="close-deleted-note"
+            >
+                {{
+                    t('jobOrders.close.deletedNote', {
+                        count: deletedOpen.length,
+                    })
+                }}
+            </p>
 
             <p class="text-sm text-muted-foreground">
                 {{ t('jobOrders.close.final') }}

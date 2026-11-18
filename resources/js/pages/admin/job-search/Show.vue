@@ -1,21 +1,29 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Pencil, TriangleAlert, UserCheck, UserX, Users } from '@lucide/vue';
+import {
+    Banknote,
+    Pencil,
+    TriangleAlert,
+    UserCheck,
+    UserX,
+    Users,
+} from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import JobOrderActions from '@/components/JobOrderActions.vue';
 import JobOrderWorkers from '@/components/JobOrderWorkers.vue';
 import StatCard from '@/components/StatCard.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
 import { pageTitle } from '@/lib/pageTitle';
 import { edit, index } from '@/routes/admin/job-search';
-import type { JobOrder, JobOrderWorker } from '@/types';
+import type { JobOrder, JobOrderMoney, JobOrderWorker } from '@/types';
 
 defineProps<{
     jobOrder: { data: JobOrder };
     workers: { data: JobOrderWorker[] };
     workerFee: string | null;
+    money: JobOrderMoney;
 }>();
 
 const { t } = useI18n();
@@ -71,7 +79,7 @@ const { t } = useI18n();
         }}
     </p>
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
             :label="t('jobOrders.show.requested')"
             :value="jobOrder.data.manpower"
@@ -96,6 +104,23 @@ const { t } = useI18n();
             :icon="UserX"
             data-test="cancelled-workers-card"
         />
+        <StatCard
+            :label="t('jobOrders.show.money')"
+            :value="formatMoney(money.amount)"
+            :icon="Banknote"
+            data-test="money-card"
+        >
+            <p class="text-xs text-muted-foreground">
+                {{ t('jobOrders.show.moneyHint') }}
+            </p>
+            <p
+                v-if="money.includes_deleted"
+                class="text-xs text-muted-foreground"
+                data-test="money-includes-deleted"
+            >
+                {{ t('jobOrders.show.includesDeleted') }}
+            </p>
+        </StatCard>
     </div>
 
     <section

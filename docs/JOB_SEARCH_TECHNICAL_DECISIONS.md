@@ -27,6 +27,17 @@
   - lock-order audit refreshed (§11)
 - **Round 7 (2026-11-17):** the close's auto-cancel of a deleted Person's Applied/Interview application removes that application's Job Order Money attribution. This needs no write, because attribution is computed. The Kept Amount is unchanged and no financial row is created (§5, §14, §16).
 
+- **Round 9 (2026-11-17):** consequences of the new business rules (Hired → Cancelled, live Job Order Money, Unassigned Kept Amount), in §17:
+  - Hired → Cancelled runs in the existing **single application status update** retry workflow, with its own validation path and a server-checked confirmation (§3.1, §17.1–§17.3, §17.13)
+  - it works on a closed order and returns the ClientService to In Progress in the same transaction (§17.3, §17.4)
+  - Job Order Money and Unassigned Kept Amount are **computed, not stored**; no schema change is proposed (§17.6–§17.11)
+  - lock-protocol row and test scenarios added (§11.3, §16, §17.14)
+  - implementation choices still pending review are marked in §17.15
+- **Round 10 (2026-11-17):** the round 9 open items are decided (§17.15), and the implementation was started:
+  - Hired → Cancelled refuses a soft-deleted Person and a Person with another In Progress Job Search engagement, and is individual only (§17.3, §17.13)
+  - Unassigned Kept Amount is defined and derived, with a Business Dashboard figure (§17.9, §17.11)
+  - the unique `(job_order_id, client_id)` key is removed from the create migration, with no replacement index; duplicate **active** applications are prevented by locks (§17.16)
+
 The business behaviour these decisions support is in [`JOB_SEARCH_BUSINESS_RULES.md`](JOB_SEARCH_BUSINESS_RULES.md). HLD v0.9 was the last approved HLD baseline; HLD v1.0 is **not approved**.
 
 These are approved decisions, not a record of what is built. Most of them are **not implemented yet** (see the business rules, Section 13).
@@ -44,7 +55,8 @@ These are approved decisions, not a record of what is built. Most of them are **
 
 ## 2. Engagement relationship
 
-- Drop the unique constraint on `job_order_workers.client_service_id` and add a normal non-unique index.
+- `job_order_workers.client_service_id` has no unique constraint; its foreign key keeps an ordinary index.
+- **Round 10:** `(job_order_id, client_id)` has no unique constraint either, and no replacement composite index (§17.16).
 - No `live_service_id` backstop in V1.
 - "At most one In Progress Job Search engagement per Person" rests on transaction boundaries and row locking. These concurrency assumptions must be written down wherever the workflow is implemented.
 
@@ -57,7 +69,7 @@ These are approved decisions, not a record of what is built. Most of them are **
 Exactly **four** workflows retry, through one shared helper:
 
 1. Add Worker, including reassignment, and a fee change made inside Add Worker.
-2. Single application status update, including Hired.
+2. Single application status update, including Hired and, from round 9, **Hired → Cancelled** (§17.13). Hired → Cancelled is not part of bulk updates or the close (pending confirmation, §17.15).
 3. Bulk application status update.
 4. Job Order close, including the resolutions made in the close modal (business rules §4.1).
 
@@ -176,6 +188,7 @@ So with `attempts: 3`:
   **Money (round 7):** the auto-cancel is only an application status update (`case_status` → cancelled). Job Order Money attribution is **computed** from application and engagement states (business rules §6.3). So once the row is Cancelled, rule 6.3.2 removes its attribution from the order with **no** extra write. Nothing is written to `client_services`, `payments` or `client_service_remarks`, so Kept is unchanged and no payment, refund, write-off or adjustment is created.
 
   It is retried as a whole (§3.1). A retry reruns the entire closure.
+- **Hired → Cancelled (round 9)** is one transaction that changes the application and its ClientService together. It locks the Person and all of their Job Search engagements before any application row (§11.3, §17.3). It does not lock or change the Job Order row's data.
 - **Bulk Hired** locks all affected ClientServices in **ascending ID order**.
 - Keep lock ordering consistent across workflows to reduce deadlocks.
 - Never claim concurrency safety because SQLite tests pass.
@@ -238,6 +251,8 @@ HLD v1.0 was reviewed and **not approved**. Any corrected HLD must reflect these
 
 ## 10. Read-only code audit: current locking and file behaviour (verified facts)
 
+> **Historical audit.** Sections 10.1–10.6 describe the code at commit `b7730dd` (round 4–6 audit). Since then Add Worker, the status updates, the close, the Job Order edit lock and Hired → Cancelled were built (see business rules §13), so their rows in §10.1, §10.2 and race 3 of §10.6 no longer describe today's code. The Person-deletion, Add Service, document and financial-model findings are still current.
+
 Audited on 2026-11-16 at commit `b7730dd` by reading the code. No code was run against a database. These are facts about **today's code**, not decisions.
 
 **Environment notes:**
@@ -266,7 +281,7 @@ There is **no** application status update, bulk update, resolve-and-close, Job S
 4. `exists()` check on `job_order_workers` (plain read).
 5. INSERT `client_services`. The FK check takes shared locks on the `clients` row and the Job Search `services` row.
 6. `JobOrderWorker::saving` re-reads the ClientService (plain read).
-7. INSERT `job_order_workers`. The FK checks take shared locks on the `job_orders`, `clients` and `client_services` parents. The unique index `(job_order_id, client_id)` and the unique `client_service_id` are also checked.
+7. INSERT `job_order_workers`. The FK checks take shared locks on the `job_orders`, `clients` and `client_services` parents. No unique key on `(job_order_id, client_id)` or `client_service_id` is checked: both were removed, so a duplicate active application is prevented by the locks (§17.16).
 
 **Notes:**
 
@@ -418,9 +433,10 @@ Already correct:
 
 | Workflow | Current (explicit / implicit) | Target sequence | Conflict with direction? |
 | --- | --- | --- | --- |
-| **Add Worker** | Explicit: JobOrder FOR UPDATE → existing Person FOR UPDATE. Implicit: INSERT client (unique-index locks), INSERT client_service (S on Person and the `services` row), INSERT worker (S on JobOrder, Person, client_service). | L1 order → L2 Person (or INSERT) → L3 the Person's In Progress Job Search engagement FOR UPDATE (detects more than one) → L4 **all** its rows FOR UPDATE, ascending → INSERT the new row, plus a refund remark (L5) if the fee changes | None. Today's order L1 → L2 already matches. |
+| **Add Worker** | Explicit: JobOrder FOR UPDATE → existing Person FOR UPDATE. Implicit: INSERT client (unique-index locks), INSERT client_service (S on Person and the `services` row), INSERT worker (S on JobOrder, Person, client_service). | L1 order → L2 Person (or INSERT) → L3 the Person's In Progress Job Search engagement FOR UPDATE (detects more than one) → L4 **all** its rows FOR UPDATE, ascending → INSERT the new row, plus a refund remark (L5) if the fee changes. **Round 10:** after the Person lock and before the insert, check that the Person has no **active** (Applied, Interview or Hired) application on this order | None. Today's order L1 → L2 already matches. |
 | **Reassignment** | Not built | Same as Add Worker. The previous Job Order is **not** locked, because attribution is computed. | — |
-| **Single status update** | Not built | L1 order (must be Open) → L2 Person → L3 engagement → L4 row → UPDATE (L3 too when Hired) | — |
+| **Single status update** | Not built at `b7730dd` (built later in Phase 4) | L1 order (must be Open) → L2 Person → L3 engagement → L4 row → UPDATE (L3 too when Hired) | — |
+| **Hired → Cancelled** (round 9; **pending approval**) | Not built | L1 order (**no Open check**; locked only so the order of locking matches the other workflows) → L2 Person → L3 **all** the Person's Job Search engagements, ascending → L4 the engagement's rows, ascending → re-validate (§17.3) → UPDATE row → Cancelled and UPDATE engagement → In Progress | None. L1 → L2 → L3 → L4 holds. It conflicts with no other workflow, because the Person lock serialises it with Add Worker for the same Person (§11.4). |
 | **Bulk status update / bulk Hired** | Not built | L1 order → L2 Persons ascending → L3 engagements ascending → L4 rows ascending → UPDATEs | — |
 | **Resolve-and-close** | Only the JobOrder FOR UPDATE (`JobOrder::close`) | L1 order → L2 Persons of **all** the order's Applied/Interview rows, **including soft-deleted Persons** (locked `withTrashed`), ascending → L3 their engagements ascending → L4 **all** the order's rows ascending → re-validate (§14) → auto-cancel the deleted Persons' open rows; apply the admin's resolutions (L4 updates; L3 updates for Hired) → UPDATE order | None. The close must not lock L4 before L3. Deleted Persons must be locked too, or a concurrent deletion could re-classify a row between the read and the update. |
 | **Whole-service cancellation** | Explicit: client_service FOR UPDATE. Implicit: INSERT remark (S on client_service). No cascade. | L2 Person → L3 engagement → L4 **all** its rows across orders, ascending (**no L1**) → L5 cancel remark | **Documented exception:** it skips L1. It must change rows on closed orders without the freeze check, and never needs a JobOrder lock, so skipping L1 avoids an L1-after-L2 inversion. |
@@ -446,6 +462,11 @@ Already correct:
 - **Close vs Person deletion (round 6).**
   - The close holds L1 and locks the Persons (L2). Deletion starts at L2 and never takes L1, so there is no cycle.
   - If a deletion commits while the close waits, that Person's open row moves from "admin resolves" to "auto-cancel". The stale-state check sees the change and aborts (§14), so the admin's choice for that row is not applied silently.
+- **Hired → Cancelled vs Add Worker for the same Person (round 9).** Both lock the Person (L2) before touching an engagement, so they run one after the other.
+  - If Add Worker commits first, it may have created a second In Progress engagement, and the cancellation refuses (§17.3).
+  - If the cancellation commits first, the engagement is In Progress with every row Cancelled, and Add Worker reuses it as a reassignment.
+  - They lock different L1 rows (two orders) in the same direction, so there is no cycle.
+- **Hired → Cancelled vs close, whole-service cancellation, payment (round 9).** The close and the whole-service cancellation go L2 → L3 → L4 in ascending order, as the cancellation does. A payment locks one L3 row, which the cancellation also locks, so they are serialised. A waiting workflow re-reads after the lock and finds the changed state (stale-state rules, §14, §17.3).
 - **Bulk Hired and close** lock several L3 rows in ascending id, as approved.
 - **Implicit FK shared locks** are always on parents already held in X mode by the same transaction, or on catalogue and user rows that are never X-locked inside these workflows.
 - **Unique-index insert races** can still raise duplicate-key errors, and rarely InnoDB deadlocks among three or more inserters (race 4).
@@ -478,6 +499,7 @@ Already correct:
 - **Still to approve:**
   - the per-workflow sequences in §11.3
   - the three documented exceptions: whole-service cancellation skips L1; Person deletion skips L1, L3 and L4; single-service workflows start at L3
+  - the Hired → Cancelled row of §11.3 (round 9), including locking the order without an Open check
   - the L2 `FOR SHARE` vs `FOR UPDATE` choice for document workflows
 
 ## 12. Remaining balance = 0 on Person deletion: **Option A, derived (approved in round 6)**
@@ -606,4 +628,212 @@ Nothing here may be built without approval.
   - **round 7:** the deleted Person stays out of Outstanding
   - **round 7:** Person deletion **alone** leaves the order's Money unchanged
 - **No Activity rows** are written by any workflow (round 6).
+- **Round 9:** the Hired → Cancelled, live Money, Unassigned Kept Amount and Hired Workers scenarios are in §17.14.
 - **UI rules:** the manpower warning only when Hired > manpower; the Worker-name link goes to Client Detail.
+
+## 17. Hired → Cancelled, live Job Order Money and Unassigned Kept Amount (round 9)
+
+Technical consequences of the round 9 business rules (`JOB_SEARCH_BUSINESS_RULES.md` §3.1, §6.3). The business rules are approved. Where a point below is an implementation choice, it is marked **pending review**. No schema change is proposed, and none may be assumed. Nothing here is built.
+
+### 17.1 The transition and its special validation path
+
+- The transition table gains one exception: **Hired → Cancelled**. Every other transition out of Hired stays refused, in every workflow (single, bulk and close).
+- Cancelled stays terminal.
+- Hired → Cancelled has its **own validation path**. It differs from the normal status update in three ways:
+  1. **No Open-order check.** The closed-order freeze does not apply to this transition. It still applies to every other transition on a closed order.
+  2. **Mandatory confirmation, checked on the server.** The request must carry an explicit confirmation, as Hired does today. The server must not rely on the dialog alone. The request field name is an implementation choice (**pending review**).
+  3. **Preconditions re-checked under locks** (§17.3).
+- It uses the existing admin authorization. Whether it gets its own policy ability is an implementation choice (**pending review**).
+- The application row is updated in place (`case_status` → cancelled). It is never deleted or recreated.
+
+### 17.2 Confirmation dialog
+
+The dialog is a UI requirement. It must state the five consequences of business rules §3.1: Hired → Cancelled; the ClientService returning from Complete to In Progress; possible reassignment under the existing rules; the previous Job Order's Money decreasing; the Kept Amount becoming Unassigned.
+
+- The request is sent only after the admin confirms.
+- Cancelling or dismissing the dialog sends nothing, so no data changes.
+- The dialog texts need English and Burmese.
+
+### 17.3 Atomic update, locks and re-validation
+
+One retried transaction (§17.13). Lock sequence in §11.3. Inside it:
+
+1. Discover the Person and engagement with plain reads, then lock in order and re-read with locking reads (§11.2).
+2. **Re-validate** under the locks:
+   - the application is still **Hired**. If not, it is a changed state: abort with a friendly message. This is a domain error and is **not** retried.
+   - its ClientService is still **Complete**. A Hired row whose engagement is not Complete is an anomaly (business rules §11.4): refuse and log it after the transaction, as the other anomalies are.
+   - **Decided (round 10):** the Person is **not soft-deleted**. The Person is read with `withTrashed()` under the lock, as in the close. If deleted, refuse with the existing "was deleted" message and change nothing.
+   - **Decided (round 10):** the Person has **no other In Progress Job Search engagement**. Under the L3 locks, any other `client_services` row of the Person for the Job Search service with status In Progress means refuse, with a message that names the cause and tells the admin to resolve that other service first. It is a domain error: not retried, and no other ClientService is touched.
+3. **Write, in the same transaction:**
+   - `job_order_workers.case_status` → `cancelled`
+   - `client_services.status` → `in_progress`
+4. Nothing else is written: no fee, refund field, payment, remark, document or Job Order change. Marking Complete currently writes only `status`, so there is no end date or other field to undo.
+5. The status change of the ClientService goes through this workflow, **not** through the Client page edit form, which keeps refusing changes to a Complete record. The exact method is an implementation choice.
+
+If any step fails, both changes roll back. A partial result (row Cancelled with the engagement still Complete, or the reverse) must be impossible.
+
+### 17.4 Closed Job Orders
+
+- The operation does not use the order's status as a gate and does not write the order row. The order stays Done or Cancelled, with the same `closed_at`.
+- It does not reopen, edit or add workers to the order. Those rules are not touched.
+- Taking the order lock (L1) first, with no Open check, is for lock-order consistency only (§11.3, pending approval).
+
+### 17.5 Reassignment creates a new row
+
+- After the transaction, the engagement is In Progress with every row Rejected or Cancelled. `FindEngagement` therefore returns **Reusable**, and Add Worker creates a **new** `job_order_workers` row for the new order, as it does today.
+- The old Cancelled row is not updated or reused. The existing rules stay: an open (Applied/Interview) row still blocks reassignment, and an In Progress engagement with no rows is still refused and logged.
+- Round 10 decided the same-order case: the same Person may be added to the same order again once the earlier application there is terminal, and a new row is created (§17.16).
+
+### 17.6 How current Job Order Money is derived
+
+- **Nothing is stored.** The Money on a Job Order is computed, as in §5 (round 7).
+- Per engagement, the **Kept Amount** is `received − refund_amount − cancel_refund_amount` (the existing `ClientService::kept()` formula, and the same whole-satang arithmetic as `ServiceStatistics` in SQL).
+- That Kept Amount is attributed to the order of **one** application of the engagement:
+
+  | Engagement | Application | Attributed to |
+  | --- | --- | --- |
+  | In Progress | Applied or Interview | that application's order |
+  | Complete | Hired | that application's order |
+  | In Progress | every row Rejected or Cancelled (including after Hired → Cancelled) | no order (Unassigned) |
+  | Cancelled (whole-service) | any | no order |
+
+- **Job Order Money** = the sum of the Kept Amounts attributed to it, with the existing handling of soft-deleted Persons (business rules §6.3 rules 8 and 9).
+- The query shape, an accessor or a view is an implementation choice for Step 11 (**pending review**). It must not double count (§17.11).
+- **Closure freezes nothing.** The order's `status` and `closed_at` do not enter the calculation, so the Money of a closed order stays live.
+
+### 17.7 Payments after the Job Order closes
+
+A payment is an INSERT into `payments` through the existing payment workflow. Because Money is computed from payments, the closed order's Money rises with no write to the order and no reopening. Example A of the business rules (10,000 → 15,000 THB; Outstanding 5,000 → 0) follows from this. Payment still locks only the ClientService row.
+
+### 17.8 How Hired cancellation removes the attribution
+
+The only write is the status change of §17.3. After it, the engagement is In Progress with no Applied/Interview row, so the table in §17.6 attributes it to no order. The old order's Money falls by the Kept Amount without any write to financial tables.
+
+### 17.9 How Unassigned Kept Amount is represented
+
+- It is **derived, never stored**: no table, column, enum value, payment, refund or ledger row.
+- For one engagement, it is the Kept Amount when §17.6 attributes it to no order. For the Job Search part of the business:
+
+  `Unassigned = Σ Kept (all Job Search engagements) − Σ Job Order Money (all orders, open and closed)`
+
+- Payments received while unassigned raise the Kept Amount and therefore the Unassigned total. When a new Applied/Interview application is created (§17.5), the same formula attributes the Kept Amount to the new order and removes it from Unassigned.
+- **Decided (round 10):** the name covers **all** Kept Amount of Job Search engagements that §17.6 attributes to no order (all-Rejected/Cancelled In Progress engagements, whole-service Cancelled engagements, the amount released by the deleted-Person auto-cancel, and after Hired → Cancelled). Kept is unchanged: real payments minus real refunds.
+- **Display (round 10):** the Business Dashboard shows the Unassigned figure, and Client Detail shows each Job Search service's attribution (Job Order or Unassigned) next to its own Kept Amount. No Job Order card includes it.
+- **Query:** one aggregate over `job_order_workers` joined to `client_services` and a per-engagement payments subquery, in whole satang, as in `ServiceStatistics`. An engagement with more than one qualifying row (an anomaly) is attributed through its newest qualifying row only, so it can never be counted twice. No column, table or view is added.
+
+### 17.10 A new Job Order assignment receives the amount
+
+No transfer is written. Creating the new row in Add Worker (§11.3) changes the engagement's attributed application, so §17.6 attributes the Kept Amount to the new order the moment the transaction commits. The old order stays at zero because its application is Cancelled.
+
+### 17.11 Business Dashboard totals without double counting
+
+- Dashboard and statistics totals stay computed **from `client_services` and `payments`**: Total Received / Kept is the sum of all engagements' Kept Amounts (including Unassigned amounts, whole-service Cancelled engagements and deleted Persons' history, as today). They do **not** read attribution.
+- **Never total the Job Order Money cards.** That would drop Unassigned amounts, and it could double count if one amount were counted from both the engagement side and the order side.
+- Job Order Money cards show only the attributed part. Unassigned amounts are in no card.
+- **Outstanding** keeps its existing SQL (`BusinessReport::outstanding`, unchanged). Attribution does not enter it.
+- **Consistency invariant for tests:** Σ Job Order Money (all orders) + Unassigned = Job Search Kept. An engagement is attributed to at most one order (§17.6), so the same Kept Amount can never appear in two orders.
+
+### 17.12 Hired Workers card recalculation
+
+The Hired Workers count is a query on the current data: rows of the order whose `case_status` is `hired` and whose Person is not soft-deleted. It is computed on each request, with no stored counter. After Hired → Cancelled the row no longer matches, so the count falls, also on a closed order. The row stays in the table, and no history table is added (round 6).
+
+### 17.13 Transaction, locking and retry
+
+- **Hired → Cancelled uses the existing "single application status update" workflow** (§3.1, item 2). It gets **no new retry policy**.
+  - 3 attempts, deadlocks and lock-wait timeouts only, Laravel's default detector, no backoff.
+  - The 5-second session `innodb_lock_wait_timeout` is set and **restored on every exit path** by the shared helper.
+  - It must be the **outermost** transaction, and its closure free of side effects: anomaly logging happens after it.
+  - Domain refusals (changed state, anomaly, second In Progress engagement) are not concurrency errors and are not retried.
+  - After exhaustion, the existing "Please try again" message.
+- It is **not** part of bulk updates or the close (decided in round 10). Both keep refusing every change out of Hired, because the transition table (`WorkerCaseStatus::allowedNext`) still has no exit from Hired. Their retry behaviour is unchanged.
+- Whole-service cancellation and Person deletion stay not retried and keep the normal timeout. This is a different workflow and is not merged with them.
+- The lock sequence is in §11.3. It is part of the lock protocol that is **pending approval**.
+
+### 17.14 Required test scenarios
+
+Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) wherever locking, retry or timeout restoration is claimed.
+
+**Transition and confirmation**
+
+1. Hired → Cancelled succeeds after the admin confirms.
+2. Without the confirmation, the request is refused. If the dialog is dismissed, no request is sent and nothing changes (a browser test checks the dialog).
+3. Hired → Applied is refused.
+4. Hired → Interview is refused.
+5. Hired → Rejected is refused.
+6. Hired → Cancelled changes the ClientService from Complete to In Progress in the same transaction.
+7. If any write fails, neither the application nor the ClientService is changed.
+
+**Closed orders**
+
+8. Hired → Cancelled works when the Job Order is Done.
+9. Hired → Cancelled works when the Job Order is Cancelled.
+10. The closed order stays closed, with the same status and `closed_at`, cannot be edited, and still takes no new worker. Other transitions on a closed order are still refused.
+
+**Reassignment**
+
+11. A new Job Order assignment creates a new `job_order_workers` row and reuses the same ClientService.
+12. The old Cancelled row is unchanged afterwards.
+13. A worker cannot be reassigned while any application of the engagement is still Applied or Interview.
+
+**Money**
+
+14. The old Job Order's attributed Money falls after Hired → Cancelled.
+15. The amount becomes Unassigned until a new order is assigned.
+16. A payment while Unassigned increases the Unassigned amount.
+17. Outstanding is correct and unchanged while the amount is Unassigned.
+18. The new Job Order gets the correct attributed amount after assignment.
+19. The same Kept Amount is never in two Job Orders.
+20. A payment after the Job Order closed raises that closed order's Money while the attribution stays there (Example A: 10,000 → 15,000; Outstanding 5,000 → 0).
+21. The Hired Workers card falls after Hired → Cancelled (Open and closed orders), and the row remains.
+22. Dashboard totals include Unassigned amounts without double counting: Σ Job Order Money + Unassigned = Job Search Kept, and Total Received / Kept is unchanged by the cancellation and reassignment.
+
+**Retry, timeout and concurrency (MySQL)**
+
+23. Retry exhaustion shows the friendly message, and the session timeout is restored after success, exception and exhaustion, for this workflow.
+24. Hired → Cancelled versus Add Worker for the same Person, versus a payment, and versus the close of the same order: no partial state and no deadlock cycle.
+
+**Guards (decided in round 10)**
+
+25. Refusal when the Person already has another In Progress Job Search engagement, with nothing changed.
+26. A Hired row whose ClientService is not Complete is refused and logged.
+27. Refusal for a soft-deleted Person; the Hired application and its attribution stay.
+28. A bulk update and the close modal cannot perform Hired → Cancelled (the request is refused and nothing changes).
+29. Round 7 and Person-deletion behaviours are unchanged (Person deletion alone leaves Money unchanged; the close auto-cancel still removes that application's attribution).
+
+**Same Person, same Job Order (round 10)**
+
+30. After a Rejected or Cancelled application on an order, adding the same Person to the same order creates a new row and the old row is unchanged.
+31. An Applied, Interview or Hired application of the Person on that order blocks the new application.
+32. Two concurrent Add Worker requests for the same Person and order create one row (MySQL).
+33. Existing reassignment rules still hold (open application elsewhere blocks; Complete engagement is not reused).
+
+**Unassigned Kept Amount (round 10)**
+
+34. The Business Dashboard shows the Unassigned figure; Total Kept = Σ Job Order Money + Unassigned; a whole-service Cancelled engagement's Kept and a deleted Person's auto-cancelled amount count as Unassigned and nothing is double counted.
+
+### 17.15 Decisions of round 10 and what remains
+
+**Decided:**
+
+- Refusal when the Person has another In Progress Job Search engagement (§17.3).
+- Refusal for a soft-deleted Person (§17.3).
+- Individual action only, outside bulk updates and the close (§17.13).
+- The meaning, scope and display of Unassigned Kept Amount (§17.9) and the aggregate query (§17.6, §17.9).
+- Same Person on the same order again (§17.16).
+
+**Implementation choices made** (no schema change except §17.16): the confirmation field is `confirm_cancel_hired`; the route is `PATCH job-search/{jobOrder}/workers/{worker}/cancel-hired`; authorization is a new `cancelHired` ability on `JobOrderWorkerPolicy` (admin, no Open check).
+
+**Still pending:** the detailed lock protocol as a whole, including the L1 → L2 → L3 → L4 sequence of Hired → Cancelled in §11.3 and the Add Worker check of §17.16. Neither has been proven on MySQL by a concurrency test unless §17.17 says so.
+
+### 17.16 Same Person on the same Job Order again (round 10)
+
+- **Index change.** `unique(['job_order_id', 'client_id'])` is removed from the original create migration (`create_job_order_workers_table`). **No replacement composite index is created** unless query-performance evidence requires one. The existing `client_id` index and the foreign-key indexes (`job_order_id`, `client_id`, `client_service_id`) stay. **No separate migration** is needed (the earlier prepare and "allow same person" migrations do not exist), because the database is rebuilt from scratch. A database built from the old migrations would still carry the unique key and would need a guarded migration.
+- **What "active" means.** An application that is Applied, Interview or Hired. A Rejected or Cancelled application is terminal and does not block.
+- **Where it is enforced.** Inside the Add Worker transaction, after the order lock (L1) and the Person lock (L2), a locking read looks for an active application of that Person on that order and refuses if there is one ("This person is already on this job order."). The form request rule is changed the same way (active only), so the usual message is shown without opening a transaction. Add Worker reads the Person row under `FOR UPDATE`, so two requests for the same Person queue on that lock, and two requests for the same order queue on the order lock.
+- **No database backstop** for "one active application per Person per order" (the same position as for "one In Progress engagement": §2). This is a weaker guarantee than the unique key that was removed, and it relies on every writer of `job_order_workers` taking the locks. Add Worker is the only writer that creates rows.
+- **Compatibility with reassignment.** The engagement rules are evaluated first and unchanged: an open application anywhere blocks, a Complete engagement is not reused, and old rows are never touched. The new row is a new application under the same engagement when reusable.
+- **Worker list and counts.** Several rows of one Person can now show on one order. The Applied Workers and Hired Workers counts already count by current status, so history rows do not inflate them.
+
+### 17.17 Verification status (round 10)
+
+Implemented in the working tree, uncommitted. Behaviour is covered by SQLite tests (`CancelHiredTest`, `JobOrderMoneyTest`, `AddWorkerEngagementTest`, and the updated Job Search suite) and by a browser run on an isolated scratch database. **No MySQL concurrency test was run** for Hired → Cancelled, the same-order duplicate check, or the Money query: SQLite ignores `FOR UPDATE`, so the lock sequence of §11.3 and §17.16 is argued from the code, not proven. The tests listed as MySQL in §17.14 (23 and 24, 32) are still to be written and run on `Thai_Visa_Services_Testing`.

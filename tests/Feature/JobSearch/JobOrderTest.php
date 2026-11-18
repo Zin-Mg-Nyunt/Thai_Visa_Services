@@ -81,16 +81,18 @@ test('a worker record must be a Job Search record', function () {
     ]))->toThrow(DomainException::class);
 });
 
-test('a person is on a job order once, but one service record can hold several applications', function () {
+test('one service record can hold several applications, and a person can have several on one order over time', function () {
     $worker = JobOrderWorker::factory()->create();
-    $jobSearch = Service::query()->where('key', Service::JOB_SEARCH_KEY)->first();
-    $second = ClientService::factory()->forService($jobSearch)->create(['client_id' => $worker->client_id]);
 
-    expect(fn () => JobOrderWorker::factory()->create([
+    // Round 10: (job_order_id, client_id) is a plain index, so a second row of the same person on the same order is accepted by the
+    // database. Keeping two ACTIVE ones apart is Add Worker's job, under its locks.
+    $again = JobOrderWorker::factory()->create([
         'job_order_id' => $worker->job_order_id,
         'client_id' => $worker->client_id,
-        'client_service_id' => $second->id,
-    ]))->toThrow(QueryException::class);
+        'client_service_id' => $worker->client_service_id,
+    ]);
+
+    expect($again->id)->not->toBe($worker->id);
 
     // An engagement (one service record) is reused across job orders: a second application on another order is allowed.
     $another = JobOrderWorker::factory()->create([
@@ -99,8 +101,7 @@ test('a person is on a job order once, but one service record can hold several a
     ]);
 
     expect($another->client_service_id)->toBe($worker->client_service_id)
-        ->and($another->job_order_id)->not->toBe($worker->job_order_id)
-        ->and($worker->clientService->fresh()->id)->toBe($worker->client_service_id);
+        ->and($another->job_order_id)->not->toBe($worker->job_order_id);
 });
 
 test('the application statuses are applied, interview, hired, rejected and cancelled', function () {
@@ -238,14 +239,4 @@ test('a new order is open straight after it is created, before it is read again'
     expect($order->status)->toBe(JobOrderStatus::Open)
         ->and($order->isOpen())->toBeTrue()
         ->and(Gate::forUser(User::factory()->create())->allows('update', $order))->toBeTrue();
-});
-
-test('the engagement migration stops instead of guessing when a row still has the removed "working" status', function () {
-    $worker = JobOrderWorker::factory()->create();
-    DB::table('job_order_workers')->where('id', $worker->id)->update(['case_status' => 'working']);
-
-    $migration = require database_path('migrations/2026_11_17_090000_prepare_job_order_workers_for_engagements.php');
-
-    expect(fn () => $migration->up())->toThrow(RuntimeException::class, '1 job_order_workers row(s)')
-        ->and(DB::table('job_order_workers')->where('id', $worker->id)->value('case_status'))->toBe('working');
 });

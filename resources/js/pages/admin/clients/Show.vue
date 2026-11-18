@@ -42,6 +42,11 @@ const props = defineProps<{
     photoUrl: string | null;
     clientServices: { data: ClientService[] };
     totals: { received: string; remaining: string };
+    /** Only Job Search services are keys: the job order their kept amount is on now, or null when it is Unassigned. */
+    jobSearchAttribution: Record<
+        string,
+        { id: number; company_name: string } | null
+    >;
     lockedMinutes: number;
     pinAttempts: { data: PinAttempt[] };
 }>();
@@ -62,7 +67,7 @@ const dateRange = (service: ClientService) =>
 const money = (value: string | undefined) =>
     value === undefined ? t('clientServices.notAvailable') : formatMoney(value);
 
-const serviceRows = (service: ClientService) =>
+const baseRows = (service: ClientService) =>
     service.status === 'cancel'
         ? [
               {
@@ -120,6 +125,36 @@ const serviceRows = (service: ClientService) =>
                   value: money(service.remaining),
               },
           ];
+
+/**
+ * The money rows of a service. A Job Search service also always shows what it keeps and where that money is attributed right
+ * now: a job order, or Unassigned. The service keeps its own retained money either way; the attribution is only a label.
+ */
+const serviceRows = (service: ClientService) => {
+    const rows = baseRows(service);
+
+    if (!(String(service.id) in props.jobSearchAttribution)) {
+        return rows;
+    }
+
+    const attribution = props.jobSearchAttribution[String(service.id)];
+
+    if (!rows.some((row) => row.label === t('clientServices.kept'))) {
+        rows.push({
+            label: t('clientServices.kept'),
+            value: money(service.kept),
+        });
+    }
+
+    rows.push({
+        label: t('clientServices.attributedTo'),
+        value: attribution
+            ? attribution.company_name
+            : t('clientServices.unassigned'),
+    });
+
+    return rows;
+};
 
 const canCancel = (service: ClientService) => service.status === 'in_progress';
 

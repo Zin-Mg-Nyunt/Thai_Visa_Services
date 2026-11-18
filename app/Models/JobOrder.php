@@ -89,10 +89,19 @@ class JobOrder extends Model
                 throw new DomainException('A closed job order is final.');
             }
 
-            $locked->forceFill(['status' => $status, 'closed_at' => now()])->save();
+            $locked->markClosed($status);
 
             $this->setRawAttributes($locked->getAttributes(), true);
         });
+    }
+
+    /**
+     * Set the closed status and the closing time together. No transaction and no lock: the caller holds the row's lock inside
+     * its own transaction (close() above, and the close workflow that resolves applications first).
+     */
+    public function markClosed(JobOrderStatus $status): void
+    {
+        $this->forceFill(['status' => $status, 'closed_at' => now()])->save();
     }
 
     /**

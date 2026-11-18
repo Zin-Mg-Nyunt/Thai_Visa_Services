@@ -48,14 +48,29 @@ class UpdateApplicationStatuses
      */
     private function apply(JobOrder $jobOrder, array $changes): Collection
     {
-        $ids = array_keys($changes);
-        sort($ids);
-
         $order = JobOrder::query()->lockForUpdate()->findOrFail($jobOrder->id);
 
         if ($order->isClosed()) {
             throw new DomainException('This job order is already closed.');
         }
+
+        return $this->applyLocked($order, $changes);
+    }
+
+    /**
+     * Check and apply the changes. The caller is inside a transaction and already holds the job order's lock (the first level
+     * of the lock order), and has checked that the order is open. This is also what the job order close uses for the admin's
+     * resolutions, so a close and a plain status update follow exactly the same rules.
+     *
+     * @param  array<int, WorkerCaseStatus>  $changes
+     * @return Collection<int, JobOrderWorker>
+     *
+     * @throws DomainException when an application is not on the order or a change is not allowed
+     */
+    public function applyLocked(JobOrder $order, array $changes): Collection
+    {
+        $ids = array_keys($changes);
+        sort($ids);
 
         // Find out whose rows these are with a plain read, then lock level by level and read again.
         $found = JobOrderWorker::query()->where('job_order_id', $order->id)->whereIn('id', $ids)->get(['id', 'client_id', 'client_service_id']);

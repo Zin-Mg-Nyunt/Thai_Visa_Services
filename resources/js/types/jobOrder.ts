@@ -50,11 +50,31 @@ export type JobOrderWorker = {
     phone: string;
     gender: 'male' | 'female';
     case_status: WorkerCaseStatusValue;
+    /** Hired on a Complete record: the admin may cancel it, also on a closed order. */
+    can_cancel_hired: boolean;
     service_status: 'in_progress' | 'complete' | 'cancel';
     fee: string;
     received: string;
     remaining: string;
     payment_status: 'unpaid' | 'deposit' | 'fully_paid';
+};
+
+/** One open (Applied or Interview) application the admin must resolve before an order can close. */
+export type OpenApplication = {
+    worker_id: number;
+    name: string;
+    phone: string;
+    status: 'applied' | 'interview';
+};
+
+/**
+ * What closing an order involves: the open applications of people who are not deleted (the admin resolves them) and the ids
+ * of the open applications of deleted people (the close cancels them by itself). Sent back with the close so the server can
+ * check that nothing changed in between.
+ */
+export type ClosePreview = {
+    open: OpenApplication[];
+    deleted_open: number[];
 };
 
 /** The answer of the phone lookup in the Add worker dialog. */
@@ -77,4 +97,10 @@ export type WorkerLookup = {
         fee?: string;
         received?: string;
     } | null;
+};
+
+/** The Kept Amount currently attributed to an order; live, never stored. */
+export type JobOrderMoney = {
+    amount: string;
+    includes_deleted: boolean;
 };

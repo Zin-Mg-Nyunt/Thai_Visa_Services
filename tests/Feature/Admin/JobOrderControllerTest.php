@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\JobOrderStatus;
+use App\Enums\WorkerCaseStatus;
 use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
 use App\Models\User;
@@ -364,15 +365,17 @@ describe('closing', function () {
         'done then done' => ['done', 'done'],
     ]);
 
-    test('closing leaves the workers and their payments alone', function () {
+    test('closing leaves settled workers and their payments alone', function () {
         $order = JobOrder::factory()->create();
-        $worker = JobOrderWorker::factory()->create(['job_order_id' => $order->id]);
+        // Only an open application (Applied or Interview) has to be resolved first; a settled one stays as it is.
+        $worker = JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Rejected]);
 
         $this->actingAs(User::factory()->create())
             ->post(route('admin.job-search.close', $order), ['status' => 'cancelled'])
             ->assertRedirect();
 
         expect($worker->fresh()->job_order_id)->toBe($order->id)
+            ->and($worker->fresh()->case_status)->toBe(WorkerCaseStatus::Rejected)
             ->and($worker->clientService->fresh()->status->value)->toBe('in_progress')
             ->and($order->workers()->count())->toBe(1);
     });

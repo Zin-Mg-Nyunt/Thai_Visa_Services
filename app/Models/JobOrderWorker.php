@@ -73,6 +73,17 @@ class JobOrderWorker extends Model
     }
 
     /**
+     * Applications that are still open: Applied or Interview.
+     *
+     * @param  Builder<JobOrderWorker>  $query
+     */
+    #[Scope]
+    protected function open(Builder $query): void
+    {
+        $query->whereIn('case_status', [WorkerCaseStatus::Applied->value, WorkerCaseStatus::Interview->value]);
+    }
+
+    /**
      * Operational workers whose Job Search service is not cancelled and whose case is neither rejected nor cancelled: the
      * ones who count against manpower. A rejected or cancelled application may sit on a service that is still in progress;
      * the case status alone leaves it out. Nothing is deleted: the record, payments and history stay.

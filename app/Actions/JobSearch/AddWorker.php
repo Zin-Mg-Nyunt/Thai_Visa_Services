@@ -28,6 +28,8 @@ use Illuminate\Validation\ValidationException;
  *   every fee change.
  * - A person with an application still Applied or Interview, or with a record that normal workflows cannot produce, is
  *   refused and nothing is changed. The impossible cases are logged.
+ * - The same person may be added to the same order again when their earlier applications on it are all Rejected or Cancelled: a
+ *   new row is created and the old rows stay as they are. An Applied, Interview or Hired application on this order refuses.
  *
  * Locks, in this order: the job order, the person, the person's In Progress record, then its applications. The order is
  * checked again once locked, so a worker cannot slip onto an order that was closed a moment ago. The worker count is never
@@ -87,7 +89,10 @@ class AddWorker
             ? Client::query()->lockForUpdate()->findOrFail($clientId)
             : Client::create($person);
 
-        if ($order->workers()->where('client_id', $client->id)->exists()) {
+        // The same person may come back to this order after a Rejected or Cancelled application (a new row is added), but not
+        // while an application of theirs here is Applied, Interview or Hired. The order and the person are locked, so another
+        // request for the same person and order waits here and then sees this one's row.
+        if ($order->workers()->where('client_id', $client->id)->whereIn('case_status', WorkerCaseStatus::activeValues())->lockForUpdate()->first(['id']) !== null) {
             throw new DomainException('This person is already on this job order.');
         }
 

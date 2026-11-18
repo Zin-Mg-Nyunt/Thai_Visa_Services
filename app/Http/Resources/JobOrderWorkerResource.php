@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ClientServiceStatus;
+use App\Enums\WorkerCaseStatus;
 use App\Models\JobOrderWorker;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -26,6 +28,10 @@ class JobOrderWorkerResource extends JsonResource
             'phone' => $this->client->phone,
             'gender' => $this->client->gender->value,
             'case_status' => $this->case_status->value,
+            // Hired to Cancelled: offered for a Hired application whose record is Complete, also on a closed order.
+            'can_cancel_hired' => $this->case_status === WorkerCaseStatus::Hired
+                && $this->clientService->status === ClientServiceStatus::Complete
+                && ($request->user()?->can('cancelHired', $this->resource) ?? false),
             'service_status' => $this->clientService->status->value,
             'fee' => $this->clientService->fee,
             'received' => $this->clientService->received(),

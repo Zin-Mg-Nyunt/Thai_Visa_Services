@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Concerns\ClientValidationRules;
+use App\Enums\WorkerCaseStatus;
 use App\Models\Client;
 use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
@@ -51,7 +52,7 @@ class StoreJobOrderWorkerRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists(Client::class, 'id')->whereNull('deleted_at'),
-                Rule::unique(JobOrderWorker::class, 'client_id')->where('job_order_id', $jobOrder->id),
+                Rule::unique(JobOrderWorker::class, 'client_id')->where('job_order_id', $jobOrder->id)->whereIn('case_status', WorkerCaseStatus::activeValues()),
             ],
             'fee' => ['required', 'numeric', 'min:0', 'max:9999999999.99', 'decimal:0,2'],
         ] + $person;

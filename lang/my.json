@@ -61,10 +61,17 @@
     "The application of :name cannot change from :from to :to.": ":name ၏ လျှောက်လွှာကို :from မှ :to သို့ မပြောင်းနိုင်ပါ။",
     "One of these applications is not on this job order.": "ဤလျှောက်လွှာများထဲမှ တစ်ခုသည် ဤအလုပ်အော်ဒါတွင် မပါဝင်ပါ။",
     "Status updated.": "အခြေအနေကို ပြောင်းလဲပြီးပါပြီ။",
-    "Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order, and Hired cannot be undone.": "ဦးစွာ ခန့်အပ်ပြီးကို အတည်ပြုပါ — အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု ပြီးဆုံးသွားမည်၊ ထိုသူကို အခြားအလုပ်အော်ဒါသို့ ထပ်မံမသတ်မှတ်နိုင်တော့ပါ၊ ခန့်အပ်ပြီးကို ပြန်ပြင်၍ မရပါ။",
     "Applied": "လျှောက်ထားပြီး",
     "Interview": "အင်တာဗျူး",
     "Hired": "ခန့်အပ်ပြီး",
     "Rejected": "ငြင်းပယ်ခံရသည်",
-    "Cancelled": "ပယ်ဖျက်ပြီး"
+    "Cancelled": "ပယ်ဖျက်ပြီး",
+    "The data changed while you were working. Please review the current state and try again.": "သင်လုပ်ဆောင်နေစဉ် ဒေတာများ ပြောင်းလဲသွားပါသည်။ လက်ရှိအခြေအနေကို ပြန်လည်စစ်ဆေး၍ ထပ်မံကြိုးစားပါ။",
+    "Every open application must be resolved before the job order can close.": "အလုပ်အော်ဒါကို မပိတ်မီ ဆက်လက်ဆောင်ရွက်နေသော လျှောက်လွှာအားလုံးကို ဆုံးဖြတ်ပေးရန် လိုအပ်ပါသည်။",
+    "An open application can only be resolved as Hired, Rejected or Cancelled.": "ဆက်လက်ဆောင်ရွက်နေသော လျှောက်လွှာကို ခန့်အပ်ပြီး၊ ငြင်းပယ်ခံရသည် သို့မဟုတ် ပယ်ဖျက်ပြီး အဖြစ်သာ ဆုံးဖြတ်နိုင်ပါသည်။",
+    "Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order while Hired, and Hired can be undone only by cancelling the Hired application later.": "ဦးစွာ ခန့်အပ်ပြီးကို အတည်ပြုပါ — အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု ပြီးဆုံးသွားမည်၊ ခန့်အပ်ပြီးဖြစ်နေစဉ် ထိုသူကို အခြားအလုပ်အော်ဒါသို့ ထပ်မံမသတ်မှတ်နိုင်ပါ၊ ခန့်အပ်ပြီးကို နောက်ပိုင်းတွင် ခန့်အပ်ထားသော လျှောက်လွှာကို ပယ်ဖျက်ခြင်းဖြင့်သာ ပြန်ပြင်နိုင်ပါသည်။",
+    ":name already has another Job Search service in progress. Resolve that one first (for example complete it, or cancel it from the client page), then cancel this Hired application.": ":name တွင် ဆောင်ရွက်နေဆဲ အခြားအလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု ရှိနေပါသည်။ ဦးစွာ ၎င်းကို ဖြေရှင်းပါ (ဥပမာ ပြီးဆုံးစေပါ သို့မဟုတ် ဖောက်သည်စာမျက်နှာမှ ပယ်ဖျက်ပါ)၊ ထို့နောက် ဤခန့်အပ်ပြီး လျှောက်လွှာကို ပယ်ဖျက်ပါ။",
+    "The application of :name is no longer Hired, so it cannot be cancelled. Please review it and try again.": ":name ၏ လျှောက်လွှာသည် ခန့်အပ်ပြီး မဟုတ်တော့သဖြင့် ပယ်ဖျက်၍ မရပါ။ ပြန်လည်စစ်ဆေး၍ ထပ်မံကြိုးစားပါ။",
+    "Confirm first: the application becomes Cancelled, the Job Search service goes back to In Progress, the job order's money decreases, and the kept amount becomes Unassigned until another job order is assigned.": "ဦးစွာ အတည်ပြုပါ — လျှောက်လွှာသည် ပယ်ဖျက်ပြီးဖြစ်မည်၊ အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုသည် ဆောင်ရွက်နေဆဲသို့ ပြန်ပြောင်းမည်၊ အလုပ်အော်ဒါ၏ ငွေပမာဏ လျော့ကျမည်၊ အခြားအလုပ်အော်ဒါ မသတ်မှတ်မီအထိ ထိန်းထားငွေသည် မသတ်မှတ်ရသေးသော ပမာဏ ဖြစ်မည်။",
+    "The Hired application was cancelled. The Job Search service is In Progress again.": "ခန့်အပ်ပြီး လျှောက်လွှာကို ပယ်ဖျက်ပြီးပါပြီ။ အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုသည် ဆောင်ရွက်နေဆဲ ဖြစ်ပြန်ပါသည်။"
 }

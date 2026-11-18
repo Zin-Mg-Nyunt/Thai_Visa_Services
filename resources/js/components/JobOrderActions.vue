@@ -3,7 +3,9 @@ import { Link } from '@inertiajs/vue3';
 import { Ban, CircleCheck, EllipsisVertical, Pencil } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { closePreview } from '@/actions/App/Http/Controllers/Admin/JobOrderController';
 import CloseJobOrderDialog from '@/components/CloseJobOrderDialog.vue';
+import ResolveAndCloseDialog from '@/components/ResolveAndCloseDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -12,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { edit } from '@/routes/admin/job-search';
-import type { JobOrder } from '@/types';
+import type { ClosePreview, JobOrder } from '@/types';
 
 const props = defineProps<{
     jobOrder: JobOrder;
@@ -29,9 +31,29 @@ const { t } = useI18n();
 
 const closing = ref<'done' | 'cancelled' | null>(null);
 const isOpen = ref(false);
+const preview = ref<ClosePreview>({ open: [], deleted_open: [] });
 
-const ask = (status: 'done' | 'cancelled') => {
+/**
+ * Closing starts by asking the server what is open on the order. Open applications of people who are not deleted must be
+ * resolved first, in the resolution dialog; with none, the plain confirmation is enough. If the answer cannot be read, the
+ * plain confirmation is shown and the server, which checks again, refuses the close while anything is open.
+ */
+const ask = async (status: 'done' | 'cancelled') => {
     closing.value = status;
+
+    try {
+        const response = await fetch(closePreview.url(props.jobOrder.id), {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+        });
+
+        preview.value = response.ok
+            ? ((await response.json()) as ClosePreview)
+            : { open: [], deleted_open: [] };
+    } catch {
+        preview.value = { open: [], deleted_open: [] };
+    }
+
     isOpen.value = true;
 };
 </script>
@@ -140,12 +162,23 @@ const ask = (status: 'done' | 'cancelled') => {
             </Button>
         </template>
 
-        <CloseJobOrderDialog
-            v-if="closing"
+        <ResolveAndCloseDialog
+            v-if="closing && preview.open.length"
             v-model:open="isOpen"
             :job-order-id="props.jobOrder.id"
             :company-name="props.jobOrder.company_name"
             :status="closing"
+            :open-applications="preview.open"
+            :deleted-open="preview.deleted_open"
+            :from-edit="fromEdit"
+        />
+        <CloseJobOrderDialog
+            v-else-if="closing"
+            v-model:open="isOpen"
+            :job-order-id="props.jobOrder.id"
+            :company-name="props.jobOrder.company_name"
+            :status="closing"
+            :deleted-open="preview.deleted_open"
             :from-edit="fromEdit"
         />
     </div>

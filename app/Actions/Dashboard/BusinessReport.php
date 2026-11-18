@@ -2,6 +2,7 @@
 
 namespace App\Actions\Dashboard;
 
+use App\Actions\JobSearch\JobOrderMoney;
 use App\Concerns\HandlesMoney;
 use App\Enums\ClientServiceStatus;
 use App\Enums\RemarkKind;
@@ -45,6 +46,7 @@ class BusinessReport
      *     received: numeric-string,
      *     refunded: numeric-string,
      *     outstanding: numeric-string,
+     *     unassigned_kept: numeric-string,
      *     active_clients: int,
      *     months: array<int, array{month: string, received: numeric-string, height_percent: int}>,
      *     by_service: array<int, array{service: array{id: int, title: string|null, title_my: string|null, is_inactive: bool}, received: numeric-string, share_percent: int, sub_services: array<int, array{sub_service: array{id: int, title: string|null, title_my: string|null}|null, received: numeric-string}>}>
@@ -129,6 +131,9 @@ class BusinessReport
             'received' => $received,
             'refunded' => $refunded,
             'outstanding' => $this->outstanding(),
+            // Kept Amount of Job Search records that no job order owns right now. It is part of the money received, never added
+            // to it again: Job Search kept = the Money of all orders + this. Like outstanding, it is today's figure, not the range's.
+            'unassigned_kept' => app(JobOrderMoney::class)->totals()['unassigned'],
             'active_clients' => Client::query()
                 ->whereHas('clientServices', fn ($query) => $query->where('status', ClientServiceStatus::InProgress))
                 ->count(),

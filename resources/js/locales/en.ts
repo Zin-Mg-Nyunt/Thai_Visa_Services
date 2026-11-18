@@ -114,6 +114,9 @@ const en = {
             refunded: 'Refunded: {amount}',
             outstanding: 'Outstanding',
             outstandingHint: 'Balance still owed today',
+            unassigned: 'Unassigned kept amount',
+            unassignedHint:
+                'Kept by Job Search services, not on any job order. Already part of the money received.',
             profit: 'Profit',
             profitSoon: 'Not available yet',
             comingSoon: 'Coming soon',
@@ -149,6 +152,9 @@ const en = {
             requested: 'Manpower requested',
             active: 'Active workers',
             cancelledWorkers: 'Cancelled workers',
+            money: 'Money',
+            moneyHint: 'Kept amount attributed to this order now',
+            includesDeleted: 'includes people who were deleted',
         },
         columns: {
             male: 'Male',
@@ -184,6 +190,20 @@ const en = {
         },
         close: {
             final: 'Closing is final: the order takes no more workers and cannot be edited or reopened. The workers already on it keep their records and can still pay their balance.',
+            deletedNote:
+                '{count} open application(s) of deleted people will be cancelled when the order closes.',
+            resolve: {
+                intro: 'Every open application on “{company}” needs a decision before the order can close. Choose Hired, Rejected or Cancelled for each one.',
+                reviewIntro:
+                    'Check the decisions. Nothing changes until you confirm.',
+                choose: 'Choose…',
+                review: 'Review',
+                summary:
+                    '{hired} Hired · {rejected} Rejected · {cancelled} Cancelled',
+                understood:
+                    'I understand: {count} person(s) become Hired, their Job Search service becomes Complete, and this cannot be undone.',
+                confirm: 'Confirm and close',
+            },
             done: {
                 title: 'Mark this job order as done?',
                 description: '“{company}” will be closed as done.',
@@ -218,8 +238,24 @@ const en = {
                 intro: 'You are about to mark {count} application(s) as Hired.',
                 complete: 'Their Job Search service becomes Complete.',
                 noReassign: 'They cannot be assigned to another job order.',
-                irreversible: 'Hired cannot be undone.',
+                irreversible:
+                    'Hired can be undone only by cancelling the Hired application later.',
                 confirm: 'Confirm Hired',
+            },
+            cancelHired: {
+                button: 'Cancel hire',
+                title: 'Cancel this Hired application?',
+                intro: '{name} is Hired on this job order. If you continue:',
+                application: 'The application changes from Hired to Cancelled.',
+                service:
+                    'Their Job Search service changes from Complete back to In Progress.',
+                reassign:
+                    'They can then be assigned to another job order, under the usual rules.',
+                money: 'The money attributed to this job order decreases.',
+                unassigned:
+                    'The kept amount becomes Unassigned until another job order is assigned.',
+                closed: 'This job order stays closed.',
+                confirm: 'Cancel the Hired application',
             },
             reuseRecord:
                 'This person already has an In Progress Job Search record. It is reused: keep its fee or change it.',
@@ -349,6 +385,8 @@ const en = {
         payment: 'Payment',
         notAvailable: '–',
         kept: 'Kept',
+        attributedTo: 'Job order',
+        unassigned: 'Unassigned',
         refund: 'Refund',
         cancelRefund: 'Cancel refund',
         remarks: {

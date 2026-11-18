@@ -17,13 +17,10 @@ return new class extends Migration
             // The shared person record: the same person may also be a normal client.
             $table->foreignId('client_id')->constrained()->restrictOnDelete();
             // The worker's Job Search record: fee, payments and documents live there. One record per worker row.
-            $table->foreignId('client_service_id')->unique()->constrained()->restrictOnDelete();
+            $table->foreignId('client_service_id')->constrained()->restrictOnDelete();
             $table->string('case_status')->default('applied');
             $table->text('notes')->nullable();
             $table->timestamps();
-
-            // A person is on a job order once.
-            $table->unique(['job_order_id', 'client_id']);
             $table->index('client_id');
         });
     }

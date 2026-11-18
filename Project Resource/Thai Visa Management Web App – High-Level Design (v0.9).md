@@ -1,6 +1,6 @@
 # Thai Visa Management Web App – High-Level Design (v0.9)
 
-Status: **v0.9 (reconstructed), approved by the user on 2026-11-17.** · Stack: Laravel, Vue.js, Inertia.js, MySQL · Hosting: DigitalOcean Droplet · File storage: DigitalOcean Spaces (approved)
+Status: **v0.9 (reconstructed), approved by the user on 2026-11-17. Round 9 and round 10 revisions (2026-11-17) are a DRAFT pending user review and are NOT approved.** · Stack: Laravel, Vue.js, Inertia.js, MySQL · Hosting: DigitalOcean Droplet · File storage: DigitalOcean Spaces (approved)
 
 > **About this document.**
 >
@@ -14,6 +14,16 @@ Status: **v0.9 (reconstructed), approved by the user on 2026-11-17.** · Stack: 
 >   - **Round 7:** that auto-cancel removes the application's Job Order Money attribution, with the Kept Amount unchanged.
 >
 >   **Approved by the user on 2026-11-17.** HLD v0.8 was removed from the repository at the same time; it remains in Git history. Approval of this HLD is not approval to implement: each implementation step needs its own go-ahead.
+> - **Round 9 (2026-11-17), DRAFT pending user review, not approved:** this document was revised to match the business rules approved in round 9.
+>   - **Hired → Cancelled** is allowed (the only way out of Hired), with a mandatory confirmation, also on a closed Job Order. The ClientService returns from Complete to In Progress in the same transaction.
+>   - **Job Order Money is live**, also after the order closes. **Unassigned Kept Amount** is a derived classification, not a transaction.
+>   - The Hired Workers card counts current Hired applications only.
+>   - Revision history: v0.9 reconstructed (rounds 1–8, approved 2026-11-17) → round 9 draft (this revision). The version number and file name are unchanged. The changed sections are 4.2, 4.7.2–4.7.7, 4.7.10, 4.12, 5, 7, 9.1, 11, 13 and 14, and every change is marked *Round 9* or sits in a paragraph that says so.
+> - **Round 10 (2026-11-17), DRAFT pending user review, not approved:** the five open round 9 questions are decided.
+>   - Hired → Cancelled is refused for a soft-deleted person and when the person has another In Progress engagement, and is an individual action only (not in bulk updates or the close modal).
+>   - Unassigned Kept Amount is money retained by a Job Search engagement and not attributed to any Job Order; the dashboard shows it.
+>   - The same person may be added to the same order again after their earlier application on it is terminal. The unique `(job_order_id, client_id)` key is removed, with no replacement index.
+>   - The implementation was started in the working tree (uncommitted). The implementation-gap lists were refreshed.
 > - **HLD v1.0 was reviewed and is not approved.** Its correction items (U1–U4) are applied here.
 > - **For Job Search,** the two `docs/` files are authoritative. Where this HLD and those files disagree, the files win.
 > - **Everything not related to Job Search, Person deletion or concurrency is carried over from v0.8 unchanged.**
@@ -147,7 +157,7 @@ Images are reduced in the browser before they are uploaded, so large photos from
 
 **Dashboard tabs:** Business, Services, Clients, Settings.
 
-- **Business dashboard:** total received, outstanding balances, profit, by month and by main service with an optional sub-service breakdown; Job Search profit is included in the overall service profit. Date-range filter. Total received is the money kept (received minus refunds; not a net profit, as costs are not tracked) and does not drop when a person is deleted: a deleted person's financial history stays in it. **Outstanding** is the balance still owed today on services that are not cancelled, for clients who are not deleted. A Complete service with an unpaid balance stays in Outstanding: Complete means the work is finished, not that it is paid. A deleted person's unpaid balance is left out, the same as the Clients list. Person deletion sets the remaining balance of their services to zero and does not change service statuses (Section 4.12). **Active clients** counts clients who are not deleted. A deleted service stays in the figures with status inactive (Section 4.12).
+- **Business dashboard:** total received, outstanding balances, profit, by month and by main service with an optional sub-service breakdown; Job Search profit is included in the overall service profit. Date-range filter. Total received is the money kept (received minus refunds; not a net profit, as costs are not tracked) and does not drop when a person is deleted: a deleted person's financial history stays in it. **Outstanding** is the balance still owed today on services that are not cancelled, for clients who are not deleted. A Complete service with an unpaid balance stays in Outstanding: Complete means the work is finished, not that it is paid. A deleted person's unpaid balance is left out, the same as the Clients list. Person deletion sets the remaining balance of their services to zero and does not change service statuses (Section 4.12). *Round 9:* these totals come from the services and payments, **not** from adding up Job Order Money cards. Total received (kept) includes Kept Amount that no Job Order is attributed (Unassigned). See Section 4.7.7. **Active clients** counts clients who are not deleted. A deleted service stays in the figures with status inactive (Section 4.12).
 - **Clients:** table with search; filter by service, sub-service and status; create/edit; cancel and delete follow Section 4.12.
 - **Services:** catalog management for services and sub-services (add, edit, deactivate, delete), the clients of each service shown with their sub-service or “Parent service only”, a sub-service filter on that client list, and per-service statistics with an optional sub-service breakdown.
 - **Settings:** admin account, Google sign-in link, default currency, document-lock default, public website content (Section 4.10) and website appearance (Section 4.11).
@@ -245,7 +255,7 @@ erDiagram
     CLIENT_SERVICES ||--o{ CLIENT_SERVICE_REMARKS : remarks
 ```
 
-- **Relationship change:** the unique constraint on `job_order_workers.client_service_id` is replaced by a non-unique index.
+- **Relationship change:** `job_order_workers.client_service_id` has no unique constraint (one engagement, many applications); its foreign key keeps an ordinary index.
 - **No `live_service_id` backstop** in V1. "One In Progress engagement per Person" relies on transactions and row locks (Section 9.1).
 
 #### 4.7.2 Add Worker and reassignment
@@ -255,7 +265,8 @@ erDiagram
 3. **An In Progress engagement exists:** check **every** application row of it.
    - **All rows are Rejected or Cancelled:** reuse the engagement and create a **new** application row. Old rows are never reactivated or overwritten.
    - **Any row is Applied or Interview:** refuse. This is a strict V1 block, not a warning.
-   - A Hired row never allows reassignment, because Hired has already made the engagement Complete.
+   - *Round 10:* the same person may be added to the **same** order again once every earlier application of theirs on it is terminal. A new row is created and the old one stays as history. It is refused while the person has an Applied, Interview or Hired application on that order. This is checked in the Add Worker transaction under the order and person locks.
+   - A Hired row never allows reassignment while it is Hired, because Hired has already made the engagement Complete. *Round 9:* if the Hired application is changed to Cancelled (Section 4.7.3), the engagement returns to In Progress with every row Rejected or Cancelled, and a new application can be created for another order. The old rows are never reused.
 4. **An In Progress engagement with no application rows** is an anomaly. Refuse and log it.
 5. **The fee** may be kept or changed during reassignment, using the existing fee-change and refund logic.
 6. **Money attribution moves** to the new Job Order in full. No payment or refund is created.
@@ -275,12 +286,14 @@ stateDiagram-v2
     Interview --> Rejected
     Applied --> Cancelled : application-level cancel
     Interview --> Cancelled : application-level cancel
-    Hired --> [*]
+    Hired --> Cancelled : Round 9 exception, confirmation required, also on a closed order
     Rejected --> [*]
     Cancelled --> [*]
     note right of Hired
-      Terminal. The engagement becomes Complete
-      in the same transaction. Irreversible.
+      The engagement becomes Complete in the
+      same transaction. The only way out is
+      Hired to Cancelled, which returns the
+      engagement to In Progress atomically.
     end note
     note left of Cancelled
       Whole-service cancellation may set ANY row
@@ -291,12 +304,19 @@ stateDiagram-v2
     end note
 ```
 
-- **Hired, Rejected and Cancelled are terminal.** Rejected and Cancelled rows are never reactivated. A new application is a new row.
-- **Hired** completes the engagement in the same transaction and cannot be undone.
+- **Rejected and Cancelled are terminal.** They are never reactivated. A new application is a new row.
+- **Hired** completes the engagement in the same transaction. *Round 9:* its **only** exit is **Hired → Cancelled** (below). Hired → Applied, Interview or Rejected are never allowed.
 - **Application-level Cancelled** means the Worker no longer wants that Job Order. It gives no refund and does not cancel the engagement, which stays In Progress. So does an engagement after Rejected.
-- **Status changes** are possible only while the Job Order is Open. They can be made **individually or in bulk**:
+- **Hired → Cancelled (round 9, draft):**
+  - The admin may change one Hired application to Cancelled, also when its Job Order is Done or Cancelled. This does **not** reopen, edit or add workers to the order.
+  - A **confirmation dialog is mandatory.** It explains that the application changes from Hired to Cancelled; the engagement returns from Complete to In Progress; the worker can be assigned to another order under the existing rules; the previous order's Money decreases; and the Kept Amount becomes Unassigned. If the admin dismisses it, nothing changes.
+  - **One atomic transaction** changes the application and the engagement. No new engagement is created, no application row is deleted or recreated, and no payment, refund or write-off is created.
+  - It is a separate workflow from whole-service cancellation and from the close's automatic cancellation of a deleted person's application.
+  - **Refused (round 10)** when the person is soft-deleted (their Hired application and its attribution stay unchanged), when the person already has another In Progress Job Search engagement (the admin must resolve that one first; no other service is changed silently), or when the application is not Hired on a Complete engagement.
+  - **Individual only:** never in bulk updates, never an option in the close modal.
+- **Other status changes** are possible only while the Job Order is Open. They can be made **individually or in bulk**:
   - Bulk updates are all-or-nothing.
-  - Hired always needs an explicit confirmation explaining that the engagement becomes Complete, cannot be reassigned, and that Hired is irreversible.
+  - Hired always needs an explicit confirmation explaining that the engagement becomes Complete, cannot be reassigned while Hired, and can be undone only by Hired → Cancelled with its own confirmation.
   - Bulk Hired locks the affected engagements in ascending id.
 
 #### 4.7.4 Engagement lifecycle
@@ -305,6 +325,7 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> InProgress : first Add Worker (or a new engagement when none is In Progress)
     InProgress --> Complete : an application becomes Hired (same transaction)
+    Complete --> InProgress : Round 9, only when its Hired application is changed to Cancelled (same transaction)
     InProgress --> Cancelled : whole-service cancellation (Client Detail page)
     Cancelled --> [*]
     note left of InProgress
@@ -312,7 +333,9 @@ stateDiagram-v2
       It only sets the remaining balance to 0.
     end note
     note right of Complete
-      Fee, status and application statuses locked.
+      Fee, status and application statuses locked
+      (except Hired to Cancelled, which returns the
+      engagement to In Progress).
       No reassignment, no new application, no remarks.
       Payments allowed while a balance remains.
       Documents: full admin CRUD.
@@ -324,12 +347,12 @@ stateDiagram-v2
 | Fee | Editable, incl. during reassignment | Locked | Settled by the cancel refund |
 | Payments | Up to the remaining balance | While a balance remains | None |
 | Outstanding | Included | Included while unpaid | Excluded |
-| Application statuses | Changeable while the order is Open | Locked; Hired terminal | All rows Cancelled |
-| Reassignment / new application | Only when all rows are Rejected or Cancelled | No | No |
-| Remarks | As today | No adding or editing | New remarks allowed; no new edit or delete rights |
+| Application statuses | Changeable while the order is Open | Locked, except Hired → Cancelled (also on a closed order) | All rows Cancelled |
+| Reassignment / new application | Only when all rows are Rejected or Cancelled | No (until the Hired row is cancelled; the engagement is then In Progress) | No |
+| Remarks | As today | No adding or editing while Complete | New remarks allowed; no new edit or delete rights |
 | Documents (admin) | Full CRUD | **Full CRUD** (supersedes any "read-only" text) | Read and download only; access logged |
 | Documents (Client Portal) | Never | Never | Never |
-| Job Order Money | On the current Applied/Interview order | On the hired order, permanently | None |
+| Job Order Money | On the current Applied/Interview order; none after Hired → Cancelled until a new application exists (Unassigned) | On the hired order while the application stays Hired, live after the order closes | None |
 | If the person is deleted | Status, applications, fee and attribution unchanged; remaining balance 0 | Same | Unchanged |
 
 #### 4.7.5 Job Order closing (Done or Cancelled)
@@ -347,7 +370,7 @@ stateDiagram-v2
    - Hired, Rejected and Cancelled applications are not changed by the close.
    - Non-deleted Persons' applications change only through the admin's resolutions.
    - Nothing is auto-rejected.
-5. **Hired consequences** follow the existing rules: the engagement becomes **Complete** in the same transaction, irreversibly, and can no longer be reassigned.
+5. **Hired consequences** follow the existing rules: the engagement becomes **Complete** in the same transaction, and cannot be reassigned while the application stays Hired. *Round 9:* only Hired → Cancelled (Section 4.7.3) can undo it.
 6. **One atomic database transaction** contains all four steps:
    1. the automatic cancellations
    2. the admin's resolutions
@@ -357,7 +380,7 @@ stateDiagram-v2
    If any step fails, the **entire operation rolls back**. There is no partial resolution and no partial close.
 7. **Changed state:** after acquiring its locks, the operation re-reads the order and application states. If they differ from what the admin's screen was based on, the whole transaction rolls back, and the admin refreshes, reviews and submits again.
 8. **Money:** the automatically cancelled applications' Job Order Money attribution is removed from the order being closed. The ClientService Kept Amount is unchanged, and no payment, refund, write-off or adjustment is created (Sections 4.7.7 and 4.7.10).
-9. **After closing,** the order is frozen: no edit, no reopen, no new workers, and no normal status changes. Payments on the engagements continue through the Client page.
+9. **After closing,** the order is frozen: no edit, no reopen, no new workers, and no normal status changes. Payments on the engagements continue through the Client page, and the order's attributed Money stays **live** (*round 9*: closing freezes nothing). The one status exception is **Hired → Cancelled** of a single application, through its confirmation workflow (Section 4.7.3). It does not reopen the order, which stays Done or Cancelled.
 
 **Distinctions:**
 
@@ -424,7 +447,7 @@ sequenceDiagram
   1. **In Progress + Applied/Interview:** the whole Kept Amount is on that order.
   2. **Rejected or application-level Cancelled:** nothing is on that order until a new application exists.
   3. **Reassignment A → B:** the full amount is released from A and attributed to B. No payment or refund is created.
-  4. **Complete + Hired:** the amount stays on the hired order permanently, and later payments increase it.
+  4. **Complete + Hired:** the amount is on the hired order **while the application stays Hired**, also after the order closes, and later payments increase it (*round 9*: no longer "permanent").
   5. **Whole-service Cancelled:** nothing on any order.
   6. **Person deletion:** attribution is **unchanged**. Deletion changes no status or money record, so rules 1–5 give the same result as before. For example, a Hired 10,000 THB stays on Job Order A.
      - Deletion alone never moves attribution. Only a later **close** that auto-cancels a deleted person's Applied/Interview application removes that application's attribution from the closed order. That rule was approved in round 7.
@@ -432,7 +455,24 @@ sequenceDiagram
      - Example: A goes from 10,000 to 0 THB attributed; Kept stays 10,000 THB.
      - A deleted person's Hired application is not auto-cancelled, so it stays attributed.
   7. **No partial transfers** in V1.
-- **Outstanding:** includes In Progress engagements, including after Rejected or application-level Cancelled, and Complete engagements with an unpaid balance. It excludes cancelled services and deleted Persons, whose remaining balance is **derived as 0** (approved Option A; no write-off or adjustment record).
+  8. **Hired → Cancelled (round 9):** the previous order loses the attribution and its Hired Workers count falls. The engagement is In Progress with every row Rejected or Cancelled, so rule 2 applies and the amount is Unassigned. No financial row is created, and the order stays closed.
+  9. **At most one order** receives an engagement's Kept Amount at any time. The same amount is never in two orders.
+- **Job Order Money is live (round 9).** It is calculated from current states and payments and is never frozen at Hired or at close.
+  - **Example A (payment after close):** Hired on order A, closed, 10,000 THB paid, the last 5,000 THB paid after the close. A's Money goes from 10,000 to 15,000 THB and Outstanding from 5,000 to 0. A is not reopened.
+  - **Example B (Hired cancelled):** A's Money goes from 15,000 to 0 THB, the 15,000 THB becomes Unassigned, no transaction is created, and A stays closed.
+  - **Example C (reassigned to B):** A stays at 0. B receives the 15,000 THB. The amount is not counted in both.
+- **Unassigned Kept Amount (round 9)** is a classification of existing Kept Amount that no Job Order is attributed. It is **not** a payment, refund, write-off or separate transaction, and it is never double counted.
+  - It arises when rule 2 leaves the Kept Amount with no order, for example after Hired → Cancelled. Payments received meanwhile increase it.
+  - When a new eligible application is created, the Kept Amount is attributed to the new order and is no longer Unassigned.
+  - It is in **no** Job Order Money card. It is derived, not stored.
+  - *Round 10:* it covers every Job Search engagement's Kept Amount that has no order (all-Rejected/Cancelled engagements, whole-service Cancelled engagements, the amount released by the deleted-person auto-cancel, and after Hired → Cancelled). The ClientService keeps showing its own Kept Amount, with its current attribution on the Client Detail page, and the Business Dashboard shows the Unassigned figure.
+- **Business totals versus Job Order amounts (round 9):**
+  - **Total Received / Kept** is the sum of every engagement's Kept Amount, **including** Unassigned amounts and deleted persons' history. It is calculated from services and payments.
+  - **Job Order Money** is only the part currently attributed to that order.
+  - Totals must **not** be built by adding the Job Order Money cards, which would omit Unassigned amounts or double count.
+  - Check: Σ Job Order Money (all orders) + Unassigned = Job Search Kept.
+  - **Outstanding** is unchanged.
+- **Outstanding** (unchanged by Hired → Cancelled, since fee, payments and remaining balance do not change): includes In Progress engagements, including after Rejected or application-level Cancelled, and Complete engagements with an unpaid balance. It excludes cancelled services and deleted Persons, whose remaining balance is **derived as 0** (approved Option A; no write-off or adjustment record).
 - **Financial totals** keep deleted Persons' history. Operational counts exclude them.
 
 #### 4.7.8 Documents
@@ -475,8 +515,8 @@ The UI shows each application's current status. *Future consideration only.*
   | --- | --- |
   | Manpower Requested | The company's requested manpower |
   | Applied Workers | Applied + Interview on this order. Excludes soft-deleted Persons and whole-service Cancelled engagements |
-  | Hired Workers | Hired on this order. Excludes soft-deleted Persons |
-  | Money | The Kept Amount **currently attributed** to this order under the attribution rules (4.7.7). Hint `includes people who were deleted` when any of it comes from deleted Persons. See "Money card: attribution vs Kept Amount" below |
+  | Hired Workers | Applications on this order whose **current** status is Hired. Excludes soft-deleted Persons. *Round 9:* after Hired → Cancelled the worker is no longer counted, also on a closed order; the row stays as data (no history system in V1) |
+  | Money | The Kept Amount **currently attributed** to this order under the attribution rules (4.7.7). Hint `includes people who were deleted` when any of it comes from deleted Persons. Live, also after the order closes. Never includes Unassigned Kept Amount. See "Money card: attribution vs Kept Amount" below |
 
 - **Money card: attribution vs Kept Amount.**
   - **Kept Amount** belongs to a **ClientService** (engagement): received − refunds. It is the engagement's financial history.
@@ -489,6 +529,9 @@ The UI shows each application's current status. *Future consideration only.*
     | Person deletion alone | Unchanged | Unchanged | None |
     | A deleted Person's **Hired** application | Stays on its Job Order (Hired rule) | Unchanged | None |
     | Close auto-cancels a deleted Person's Applied/Interview application (round 7) | **Removed** from the order being closed | Unchanged | None |
+    | Payment after the order closed (round 9) | **Increases** on that order | Increases | The payment itself |
+    | Hired → Cancelled (round 9) | **Removed** from that order; the amount is Unassigned | Unchanged | None |
+    | New application created on another order (round 9) | Attributed to the new order only | Unchanged | None |
 
   - **Example:**
     - Before the close, Job Order A's Money includes 10,000 THB attributed to a soft-deleted Person's Interview application.
@@ -510,7 +553,7 @@ The UI shows each application's current status. *Future consideration only.*
   - Historical cancelled applications are shown apart from the operational counts.
   - Cancelled and deleted Workers never inflate the counts.
   - Each row shows its current status, not a timeline.
-  - Status controls (individual and bulk, with the Hired confirmation) appear only while the order is Open.
+  - Status controls (individual and bulk, with the Hired confirmation) appear only while the order is Open. *Round 9:* a Hired application also shows its **Hired → Cancelled** control (with the mandatory confirmation) on closed orders.
 
 ### 4.8 Tracking Link and QR Code
 
@@ -595,7 +638,7 @@ An admin screen at `/admin/settings/appearance` (Settings tab) controls how the 
    - Hired, Rejected and Cancelled applications are not changed by the close.
    - Non-deleted Persons' applications change only through the admin's resolutions.
    - Nothing is auto-rejected.
-5. **Hired consequences** follow the existing rules: the engagement becomes **Complete** in the same transaction, irreversibly, and can no longer be reassigned.
+5. **Hired consequences** follow the existing rules: the engagement becomes **Complete** in the same transaction, and cannot be reassigned while the application stays Hired. *Round 9:* only Hired → Cancelled (Section 4.7.3) can undo it.
 6. **One atomic database transaction** contains all four steps:
    1. the automatic cancellations
    2. the admin's resolutions
@@ -605,7 +648,7 @@ An admin screen at `/admin/settings/appearance` (Settings tab) controls how the 
    If any step fails, the **entire operation rolls back**. There is no partial resolution and no partial close.
 7. **Changed state:** after acquiring its locks, the operation re-reads the order and application states. If they differ from what the admin's screen was based on, the whole transaction rolls back, and the admin refreshes, reviews and submits again.
 8. **Money:** the automatically cancelled applications' Job Order Money attribution is removed from the order being closed. The ClientService Kept Amount is unchanged, and no payment, refund, write-off or adjustment is created (Sections 4.7.7 and 4.7.10).
-9. **After closing,** the order is frozen: no edit, no reopen, no new workers, and no normal status changes. Payments on the engagements continue through the Client page.
+9. **After closing,** the order is frozen: no edit, no reopen, no new workers, and no normal status changes. Payments on the engagements continue through the Client page, and the order's attributed Money stays **live** (*round 9*: closing freezes nothing). The one status exception is **Hired → Cancelled** of a single application, through its confirmation workflow (Section 4.7.3). It does not reopen the order, which stays Done or Cancelled.
 
 **Distinctions:**
 
@@ -624,7 +667,7 @@ The resolution screen (Case A / Case B) and the sequence diagram are in Section 
   - started from the Client Detail page
   - every application row becomes Cancelled (no activity records in V1)
   - none of its money stays attributed to any Job Order
-- **Application-level cancel is different.** Cancelling one Job Search application cancels only that application: no refund, and the engagement stays In Progress.
+- **Application-level cancel is different.** Cancelling one Job Search application cancels only that application: no refund, and the engagement stays In Progress. *Round 9:* cancelling a **Hired** application (Section 4.7.3) is also application-level, but it returns the engagement from Complete to In Progress. It is not whole-service cancellation and gives no refund.
 - The record stays in the database as history and stays visible in the UI with Cancel status.
 - A cancelled service still accepts new remarks.
 
@@ -743,12 +786,12 @@ sequenceDiagram
 | payments | id, client\_service\_id, amount, paid\_at, method, note, created\_by |
 | documents | id, client\_service\_id, title, storage\_key, mime, size, client\_can\_download, uploaded\_by (no type column: the title is enough). For Job Search, the client service is the engagement |
 | job\_orders | id, company\_name, manpower, male\_count, female\_count, interview\_date, start\_date, status (open / done / cancelled), closed\_at, notes. No money column |
-| job\_order\_workers | One **application**: id, job\_order\_id, client\_id (shared person record), client\_service\_id (the Job Search engagement; **many applications per engagement**, so a non-unique index), case\_status (applied / interview / hired / rejected / cancelled), notes. Unique (job\_order\_id, client\_id) |
+| job\_order\_workers | One **application**: id, job\_order\_id, client\_id (shared person record), client\_service\_id (the Job Search engagement; **many applications per engagement**, so not unique; the foreign-key index remains), case\_status (applied / interview / hired / rejected / cancelled), notes. No unique key on (job\_order\_id, client\_id) and no replacement composite index (round 10: the same person can have several applications on one order over time; a duplicate *active* application is prevented by locks) |
 | site\_settings | id, agency\_name, hero\_heading, hero\_description, overview, mission, logo\_key (required), favicon\_key (required), hero\_image\_key (nullable), phone, email, address, messaging\_link, social\_links, approved\_statistics (which public numbers may be shown), is\_published, updated\_by, updated\_at; Burmese versions of the text fields |
 | document\_access\_logs | id, document\_id (nullable; kept when the document is deleted), client\_id and document\_title (copies), outcome (allowed / denied), reason (locked / not\_owner / not\_available), actor\_type, actor\_id, ip, created\_at |
 | client\_pin\_attempts | id, client\_id, ip\_address, user\_agent (nullable), caused\_lock, created\_at. One row per wrong PIN. The PIN is never stored. The admin sees the rows of one client on that client's detail page, where the Unlock button is also found. |
 
-**Verified current code (commit `b7730dd`, Phases 1–4 Step 4):**
+**Verified current code (commit `b7730dd`, Phases 1–4 Step 4; the `job_order_workers` and `case_status` lines below were changed by later steps, see the approved target changes):**
 
 - `clients`: unique `unique_token`; index on `phone`; unique generated column `active_phone` (the phone while the client is not deleted), which gives phone uniqueness among clients that are not deleted; soft deletes.
 - `client_pin_attempts`: foreign key `client_id` to `clients.id` (cascade on delete, which never fires because clients are only soft-deleted); index `(client_id, created_at)`.
@@ -756,14 +799,16 @@ sequenceDiagram
 - `client_services`: foreign keys to `clients` and `services` (restrict on delete); composite foreign key `(service_id, sub_service_id)` to `services(parent_id, id)`; indexes `(client_id, service_id, status)` and `(service_id, sub_service_id)`.
 - `payments`, `client_service_remarks`, `documents`: foreign key to `client_services` (restrict); index on `client_service_id`. `document_access_logs.document_id` is set to null when a document is deleted.
 - `job_orders`: indexes on `status` and `company_name`.
-- `job_order_workers`: foreign keys to `job_orders`, `clients` and `client_services` (restrict); **unique `client_service_id`** (to be replaced, below); unique `(job_order_id, client_id)`; index `client_id`.
+- `job_order_workers`: foreign keys to `job_orders`, `clients` and `client_services` (restrict); no unique key on `client_service_id` or `(job_order_id, client_id)` (both removed from the create migration); index `client_id`.
 
-**Approved target changes (not built):**
+**Approved target changes (built in the working tree on 2026-11-17, uncommitted; Phase 4 steps 5–9 and rounds 9–10):**
 
-- `job_order_workers.client_service_id`: drop the unique constraint and add a normal index.
+- `job_order_workers.client_service_id`: no unique constraint; the foreign-key index remains.
+- `job_order_workers (job_order_id, client_id)`: the unique constraint is removed from the original create migration, with **no replacement composite index** unless query-performance evidence requires one (round 10). No separate migration: the database is rebuilt from scratch.
 - `case_status`: values `applied, interview, hired, rejected, cancelled`. Remove `working`.
 - **No Application Activity table** (out of scope for V1).
 - No `live_service_id` column.
+- **Round 9: no schema change is proposed.** Job Order Money and Unassigned Kept Amount are derived from `client_services`, `payments` and `job_order_workers`, and nothing is stored. Any column or table that later proves necessary would be *Recommendation, pending approval*.
 
 **Derived values** (calculated in query/accessor, not stored): received, remaining, payment status, service counts, profit (grouped by main service, with an optional sub-service breakdown), public statistics.
 
@@ -807,10 +852,10 @@ sequenceDiagram
    - search by phone among active persons; reuse a match or create a new person
    - an existing In Progress engagement is reused only if all its applications are Rejected or Cancelled; otherwise the add is refused
    - with no In Progress engagement, a new one is created
-3. Update application statuses individually or in bulk. Hired needs confirmation and completes the engagement.
+3. Update application statuses individually or in bulk. Hired needs confirmation and completes the engagement. *Round 9:* a Hired application can later be changed to Cancelled (confirmation required, also on a closed order), which returns the engagement to In Progress so the worker can be added to another order.
 4. Track payments on the Client page.
 5. Close the order with Done or Cancel. Non-deleted persons' open applications are resolved first in the modal, and deleted persons' open applications are cancelled automatically, all in one atomic transaction. The order is then frozen.
-6. Job Order Money follows the attribution rules, and the money rolls into the Business dashboard (Section 4.7).
+6. Job Order Money follows the attribution rules and stays live after the order closes. Business dashboard totals come from services and payments, not from adding up the Job Order cards (Section 4.7.7).
 
 **Admin deletes a person:**
 
@@ -851,7 +896,7 @@ sequenceDiagram
 **Retried workflows (3 Laravel transaction attempts).** Only deadlocks and lock-wait timeouts are retried, with no custom backoff. Laravel retries immediately.
 
 1. Add Worker, including reassignment and a fee change inside it.
-2. Single application status update, including Hired.
+2. Single application status update, including Hired and (*round 9, draft*) **Hired → Cancelled**. It uses this same workflow with no new retry policy: 3 attempts, the 5-second session timeout restored on every exit path, outermost transaction, side-effect-free closure. It is not part of bulk updates or the close (decided in round 10).
 3. Bulk application status update.
 4. Job Order close, including its resolutions.
 
@@ -892,6 +937,7 @@ sequenceDiagram
 
 - Add Worker, including creating the engagement and the first application
 - Hired together with engagement Complete
+- *Round 9:* Hired → Cancelled together with the engagement returning from Complete to In Progress
 - bulk status updates
 - resolve-and-close
 - whole-service cancellation, including refund and rows
@@ -916,7 +962,9 @@ sequenceDiagram
   - **Documented exceptions:** whole-service cancellation skips the job-order level; Person deletion skips the job-order and application levels.
   - Missing locks to add: Add Service, documents and Job Order edit. Duplicate-phone handling is also needed.
 
-  Details and the per-workflow sequences are in Technical Decisions §11.
+  - *Round 9:* Hired → Cancelled locks the job order (no Open check), then the person, then all the person's Job Search engagements in ascending id, then the engagement's applications. This row is part of the pending protocol.
+
+  Details and the per-workflow sequences are in Technical Decisions §11 and §17.
 
 **Document and storage consistency (approved wording, U2/U3):**
 
@@ -974,6 +1022,8 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
     - every status, application, fee, payment, refund, remark and attribution unchanged
     - derived remaining balance 0, and Outstanding excludes it
     - documents, PDFs and the photo deleted only after commit
+  - *Round 9:* Hired → Cancelled with and without confirmation; Hired → Applied, Interview and Rejected refused; the application and the engagement change together or not at all; it works on a Done and a Cancelled order, which stays closed; a new application is a new row and the old one is unchanged; reassignment still blocked by an Applied or Interview row
+  - *Round 9:* Money after Hired → Cancelled (the old order falls, the amount is Unassigned, payments while Unassigned raise it, Outstanding unchanged, the new order receives it, never counted twice); a payment after close raises the closed order's Money; the Hired Workers card falls; Σ Job Order Money + Unassigned = Job Search Kept; dashboard totals not double counted
   - the four cards and the Money attribution, including the deleted-person hint
   - the document permission matrix and the portal exclusion
 - **MySQL concurrency tests:** run on `thai_visa_services_testing` with independent connections, covering:
@@ -983,6 +1033,7 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
   - forced MySQL 1213 and 1205 retried by the default detector
   - a stale resolution list aborting
   - bulk Hired lock ordering
+  - Hired → Cancelled against Add Worker for the same person, a payment and the close of the same order
   - retry exhaustion showing the friendly message
   - restoration of the session timeout on every exit path
 
@@ -996,8 +1047,7 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
 2. **Services and payments:** service catalog with sub-services, client-services (with optional sub-service selection), payment ledger, service overview stats.
 3. **Client portal:** profile, status view with main and sub-service titles, Work Permit documents (auto-unlock when fully paid).
 4. **Job Search:** job orders table, detail pages, worker linking, profit.
-   - *Verified status:* Steps 1–4 are built at commit `b7730dd`, under the older one-record-per-worker model.
-   - The approved engagement model, statuses, closing modal (with the deleted-person auto-cancel), cascades, four cards and retry helper still need to be planned and built (Section 13.3).
+   - *Verified status (2026-11-17):* steps 1–4 were built at commit `b7730dd`. Steps 5–9 (engagement model, retry helper, Add Worker reuse, status updates, resolve-and-close) followed, with Hired → Cancelled, live Money and the same-order reapplication added in rounds 9–10. Still to build: the Complete-engagement locks, whole-service cancellation, the four-card page, Job Search documents and the Person-deletion fixes (Section 13.3).
 5. **Business dashboard, public landing page, appearance settings and hardening:** reports, audit logs, security review.
 
 Possible later additions: LINE/SMS notifications with the tracking link, staff roles, invoices/receipts as PDF, Thai UI language.
@@ -1009,18 +1059,20 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 | Topic | Decision |
 | --- | --- |
 | Profit | For this version, the figure is the money kept: received money less refunds (fee-change refunds and cancel refunds). No costs are tracked in v1, so it is not a net profit; the dashboard Profit card stays disabled (Coming soon) |
-| Job Search money | **Superseded in v0.9.** Job Order Money is the Kept Amount *attributed* to the current application (Section 4.7.7): moved on reassignment, kept on the hired order, none after whole-service cancel. It is not called net profit, and the admin cannot edit it |
-| Job Order detail cards | Exactly four: Manpower Requested, Applied Workers, Hired Workers, Money (Section 4.7.10). This replaces the v0.8 active/cancelled worker counts. The manpower warning compares **Hired Workers** with manpower and shows only when Hired > manpower; it is never a block, and there is no male + female ≤ manpower rule |
+| Job Search money | **Superseded in v0.9.** Job Order Money is the Kept Amount *attributed* to the current application (Section 4.7.7): moved on reassignment, on the hired order while Hired, none after whole-service cancel. **Round 9:** it is live after the order closes and is not frozen. Kept Amount with no order is the derived **Unassigned Kept Amount**. It is not called net profit, and the admin cannot edit it |
+| Job Order detail cards | Exactly four: Manpower Requested, Applied Workers, Hired Workers (current Hired only, round 9), Money (live, never including Unassigned; Section 4.7.10). This replaces the v0.8 active/cancelled worker counts. The manpower warning compares **Hired Workers** with manpower and shows only when Hired > manpower; it is never a block, and there is no male + female ≤ manpower rule |
 | Worker-name links | Open the existing Client Detail page of the person |
 | Resolve-and-close concurrency | Re-read under locks; abort and roll back on any changed state; the admin refreshes and resubmits |
 | Deleted persons at close | The Job Order close automatically sets soft-deleted Persons' Applied/Interview applications to Cancelled, in the same atomic transaction. Non-deleted Persons' open applications are resolved by the admin (Sections 4.7.5 and 4.12) |
 | Attribution and Person deletion | Person deletion itself does **not** change Job Order Money attribution. A deleted Person's **Hired** application stays attributed to its order |
+| Same person, same order again (round 10) | Allowed after the earlier application on that order is terminal; a new row is created and the old row is kept. Refused while an Applied, Interview or Hired application exists on that order. Checked under the order and person locks; there is no unique key on this pair any more |
+| Hired → Cancelled (round 9) | Allowed for one application, with a mandatory confirmation, also on a closed Job Order (which stays closed). The engagement returns from Complete to In Progress in the same transaction, and no new engagement is created. The previous order's Money falls, the Kept Amount is Unassigned until a new application is created, and no financial row is created. Single status update retry workflow, no new retry policy (Sections 4.7.3, 4.7.7, 9.1) |
 | Attribution and the close auto-cancel (round 7) | The automatic cancellation removes that application's Job Order Money attribution from the order being closed. The ClientService Kept Amount is **unchanged**, and **no** payment, refund, write-off or adjustment transaction is created |
 | Remaining balance | Derived, never stored: 0 for a soft-deleted Person; 0 for a Cancel service; otherwise max(0, fee − received) (Section 4.5). Soft-deleted Persons are excluded from Outstanding |
 | Person-deletion files | Documents, PDF files and the profile photo are deleted, physically after the database commit. Failed deletions must not be treated as deleted and must be recoverable. **The recovery mechanism is not confirmed:** it is a pending technical decision (Section 4.12, Section 13.2 item A) |
 | Engagement model | One Job Search client service = one engagement with many applications; at most one In Progress per person; no `live_service_id` |
 | Reassignment | Allowed only when every application of the In Progress engagement is Rejected or Cancelled; strict block otherwise; the fee may be kept or changed |
-| Application statuses | Applied, Interview, Hired, Rejected, Cancelled; Hired, Rejected and Cancelled terminal; Hired completes the engagement atomically and is irreversible |
+| Application statuses | Applied, Interview, Hired, Rejected, Cancelled; Rejected and Cancelled terminal; Hired completes the engagement atomically. **Round 9:** Hired → Cancelled is the only way out of Hired (mandatory confirmation, also on a closed order, engagement back to In Progress atomically); it supersedes "Hired is irreversible" (Section 4.7.3) |
 | Application Activity | **Superseded in round 6:** out of scope for V1. No table, model, records or UI, and no replacement audit log |
 | Retry and timeout | 3 attempts, deadlocks and lock-wait timeouts only, no backoff; Laravel's default detector; four workflows only; 5-second session timeout, always restored (Section 9.1) |
 | Workers and clients | One shared person record per individual; a person can be a client, a worker, or both; worker-specific and service-specific data are stored separately and linked to it |
@@ -1045,7 +1097,7 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 | Budget | Approximate THB 1,000 per month for hosting and storage accepted by the client; domain billed annually; expected costs and limitations documented in the contract; sizing and prices confirmed before implementation |
 | Public website images | Separate public Spaces bucket for logo, favicon and hero image; profile photos and private documents stay private; object keys stored in the database |
 | Upload rules | Images up to 2 MB; logo PNG/JPG/WebP/SVG, favicon PNG/ICO, hero JPG/PNG/WebP, profile photo JPG only; PDFs up to 5 MB; SVG sanitized; checked on frontend and backend (Section 3.2) |
-| Job order closing | Done and Cancel are the same closing action. Soft-deleted Persons' Applied/Interview applications are auto-cancelled. Non-deleted Persons' Applied/Interview applications must be resolved by the admin to Hired, Rejected or Cancelled (individually or in bulk, all-or-nothing). Nothing else changes automatically, and nothing is auto-rejected. Automatic cancellations, resolutions, Hired consequences and the close are one atomic transaction. A closed order is frozen (Sections 4.7.5 and 4.12) |
+| Job order closing | (*Round 9:* the order's Money stays live, and Hired → Cancelled is the one status exception on a closed order.) Done and Cancel are the same closing action. Soft-deleted Persons' Applied/Interview applications are auto-cancelled. Non-deleted Persons' Applied/Interview applications must be resolved by the admin to Hired, Rejected or Cancelled (individually or in bulk, all-or-nothing). Nothing else changes automatically, and nothing is auto-rejected. Automatic cancellations, resolutions, Hired consequences and the close are one atomic transaction. A closed order is frozen (Sections 4.7.5 and 4.12) |
 | Worker or client cancel | Deposit-only payer's remaining balance becomes 0; a refund field appears and the refund is deducted from the service's total fees; the record stays in the database and in the UI with Cancel status. For Job Search: whole-service cancellation, In Progress only, from Client Detail, cascading to every application (no activity records in V1) |
 | Worker or client delete | **Corrected in rounds 5–7.** Permanent, no restore. Soft-delete the person; delete their documents, PDF files and profile photo after the database commit; their remaining balance is derived as 0 (Option A, with no write-off or adjustment entry). Change **no** service or application status, Job Order Money attribution, fee, payment, refund or remark. Left out of admin lists, worker lists, operational counts and Outstanding; the ledger, kept money and the landing page Clients Served count stay. The rounds 3–4 cancellation cascade is revoked |
 | Service overview statistics | Total clients, In Progress, Complete and Cancelled counts leave out deleted clients; total received (kept) includes them; added up in the database in whole satang |
@@ -1054,7 +1106,7 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 | Required and optional images | Logo and favicon are required; the hero image is nullable and its area is left blank when there is none |
 | PDF size limit | PDF documents up to 5 MB; images up to 2 MB |
 | Refund calculation | After a cancel, the amount kept is received minus refund, and the remaining balance is 0 |
-| Payments after closing | Workers already on a closed job order can still pay their remaining balance, through the Client page. Complete engagements with an unpaid balance stay in Outstanding |
+| Payments after closing | Workers already on a closed job order can still pay their remaining balance, through the Client page, and the closed order's Money rises with it (round 9). Complete engagements with an unpaid balance stay in Outstanding |
 | Delete scope | The profile photo is removed together with the documents and PDFs (v0.8, reconfirmed in round 6) |
 | Storage by environment | Development uses the local filesystem disk; production uses DigitalOcean Spaces; the disk is selected by an environment variable (Section 3.1) |
 | Image size reduction | Images are resized and compressed in the browser before upload; the server still validates type and size (Section 3.3) |
@@ -1078,6 +1130,8 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 
 **Resolved in round 7:** Job Order Money after the close auto-cancels a deleted person's application (attribution removed; Kept unchanged).
 
+**Resolved in round 10 and removed from this list:** a second In Progress engagement (refuse), a deleted person's Hired application (refuse), bulk and close (individual only), Unassigned Kept Amount (defined and shown), and the same person on the same order again (allowed after a terminal application).
+
 **Still open:**
 
 - **A. Person-deletion file recovery: PENDING TECHNICAL DECISION, NOT APPROVED FOR IMPLEMENTATION.** Undecided: a table or queue; record structure and fields; which metadata is stored; the retry mechanism (queued job, Artisan command or other); retry frequency and maximum attempts; failure retention and monitoring. See Section 4.12 and Technical Decisions §15.
@@ -1091,24 +1145,18 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 2. **Cost and sizing confirmation:** before implementation, confirm the DigitalOcean resources and current prices within the THB 1,000 monthly budget, and write the expected costs and limitations into the contract (Section 10.1).
 3. **Staging storage:** decide whether the staging environment uses the local disk or its own Spaces buckets.
 
-### 13.3 Implementation Gaps (verified current code vs approved rules)
+### 13.3 Implementation Status and Gaps (verified current code vs approved rules)
 
-At commit `b7730dd`, as listed in `docs/JOB_SEARCH_BUSINESS_RULES.md` §13:
+Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`). Phase 4 steps 5–8 are committed; Step 9 and the round 9–10 work are **uncommitted**. The full list is in `docs/JOB_SEARCH_BUSINESS_RULES.md` §13.
 
-- **Data model:** `client_service_id` is still unique, so every add creates a new Job Search record and there is no reuse or reassignment. `case_status` still has `working` and lacks `cancelled`.
-- **Status updates:** there is no status update, bulk update or Hired confirmation.
-- **Closing:** the close only sets the order status. There is no modal, no atomic resolution and no deleted-person auto-cancel.
-- **Whole-service cancellation:** the generic cancel does not cascade. No Activity exists, which is consistent with V1.
-- **Complete services:** still editable and revertible, and remarks can still be added.
-- **Documents:** Job Search document upload is blocked.
-- **Job Order detail page:** still shows the old cards, with no Money card and no attribution. The worker name is plain text, not a link to Client Detail. The manpower warning compares active workers, not Hired Workers.
-- **Retries:** none; every transaction uses 1 attempt.
-- **Person deletion:**
-  - It does not cancel services or applications, which matches round 5.
-  - It takes no explicit lock.
-  - The derived zero (Option A) is not yet in `remaining()` and `canTakePayment()`, although Outstanding already excludes deleted persons.
-  - A photo-deletion failure is not reported, and a document failure survives only in the log.
-  - Races exist with document upload and Add Service (Technical Decisions §11.5).
+- **Built:** the engagement model and reassignment; the five statuses, with single and bulk updates and the Hired confirmation; the retry helper; resolve-and-close with the deleted-person auto-cancel and the stale-state abort; the Job Order edit lock; *round 9–10:* Hired → Cancelled, live Job Order Money, the Unassigned Kept Amount on the dashboard and on Client Detail, and the same person on the same order again.
+- **Not built:**
+  - the Complete-engagement locks: the Client page form can still edit a Complete service and set it back to In Progress, which bypasses Hired → Cancelled and its one-In-Progress guard
+  - whole-service cancellation with its cascade
+  - the four-card Job Order page, Worker-name links and the Hired-based manpower warning
+  - Job Search documents
+  - the Person-deletion fixes (explicit lock, derived zero balance, photo failure reporting) and the races with document upload and Add Service
+- **Unproven:** no MySQL concurrency test has run for these workflows. SQLite cannot show locking.
 
 ## 14. V1 Exclusions and Known Risks
 
@@ -1123,6 +1171,8 @@ At commit `b7730dd`, as listed in `docs/JOB_SEARCH_BUSINESS_RULES.md` §13:
 - partial money transfers between job orders
 - a special workflow for anomalous applications (treated as data-integrity findings for audits, with no automatic repair)
 - `Working` and `Self Rejected` statuses
+- any status change out of Hired other than Hired → Cancelled (round 9)
+- a stored Job Order Money value or a stored Unassigned amount: both are derived
 
 **Known risks:**
 
@@ -1132,4 +1182,5 @@ At commit `b7730dd`, as listed in `docs/JOB_SEARCH_BUSINESS_RULES.md` §13:
 4. **Unique-index races** (a new person's phone) produce duplicate-key errors that are not retried. They need friendly handling.
 5. **Retries detect lock-wait timeouts by English message text** (verified Laravel behaviour).
 6. **The production MySQL isolation level** has not been verified. REPEATABLE READ is assumed.
-7. **Today's code is well behind the approved rules** (Section 13.3). It must not be read as the intended behaviour.
+7. **Hired → Cancelled and the one In Progress engagement rule** (round 9): without a guard, cancelling a Hired application could leave a person with two In Progress engagements. The guard is decided (round 10): the cancellation is refused in that case.
+8. **Today's code is well behind the approved rules** (Section 13.3). It must not be read as the intended behaviour.

@@ -290,7 +290,7 @@ test('the new messages and the five statuses have Burmese translations', functio
     'transition' => ['The application of :name cannot change from :from to :to.'],
     'not on order' => ['One of these applications is not on this job order.'],
     'updated' => ['Status updated.'],
-    'confirm' => ['Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order, and Hired cannot be undone.'],
+    'confirm' => ['Confirm Hired first: the Job Search service becomes Complete, the person cannot be assigned to another job order while Hired, and Hired can be undone only by cancelling the Hired application later.'],
     'applied' => ['Applied'],
     'interview' => ['Interview'],
     'hired' => ['Hired'],

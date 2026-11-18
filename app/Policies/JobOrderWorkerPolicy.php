@@ -29,4 +29,13 @@ class JobOrderWorkerPolicy
     {
         return $user->isSuperadmin() && $jobOrder->isOpen();
     }
+
+    /**
+     * Hired to Cancelled is the one status change allowed on a closed order. The order stays closed: it is neither reopened
+     * nor edited. This is its own ability, never part of the normal status update or the close.
+     */
+    public function cancelHired(User $user, JobOrderWorker $worker): bool
+    {
+        return $user->isSuperadmin();
+    }
 }

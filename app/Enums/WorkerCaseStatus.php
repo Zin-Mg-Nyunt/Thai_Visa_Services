@@ -5,7 +5,8 @@ namespace App\Enums;
 /**
  * Where an application is in the hiring flow of one job order. Separate from the payment status of the worker's service.
  *
- * Hired, Rejected and Cancelled are final. Cancelled means the worker no longer wants this job order; it is not the same
+ * Hired, Rejected and Cancelled are final under the normal status updates; Hired has exactly one exit, Hired to Cancelled, in
+ * its own confirmed workflow. Cancelled means the worker no longer wants this job order; it is not the same
  * as cancelling the whole Job Search service.
  */
 enum WorkerCaseStatus: string
@@ -38,7 +39,19 @@ enum WorkerCaseStatus: string
     }
 
     /**
-     * Hired, Rejected and Cancelled are final under the normal status updates.
+     * The statuses of an active application: the person is still in the running for the order, or is hired for it. Rejected
+     * and Cancelled applications are history. A person may not have two active applications on one order.
+     *
+     * @return array<int, string>
+     */
+    public static function activeValues(): array
+    {
+        return [self::Applied->value, self::Interview->value, self::Hired->value];
+    }
+
+    /**
+     * Hired, Rejected and Cancelled are final under the normal status updates. (Hired has one separate way out, Hired to
+     * Cancelled, which is its own workflow, never a normal status update, a bulk update or a close resolution.)
      */
     public function isFinal(): bool
     {

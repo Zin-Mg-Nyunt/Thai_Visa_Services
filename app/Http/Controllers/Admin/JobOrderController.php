@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\JobSearch\CloseJobOrder;
+use App\Actions\JobSearch\JobOrderChangedException;
+use App\Actions\JobSearch\JobOrderMoney;
 use App\Enums\JobOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseJobOrderRequest;
@@ -14,8 +17,10 @@ use App\Models\JobOrderWorker;
 use App\Models\Service;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,7 +63,7 @@ class JobOrderController extends Controller
      * The order and its workers, read-only. It works for a closed order too, which has no edit page: the workers of a
      * closed order can still be paid and followed. Cancelled workers are listed and marked; deleted people are not listed.
      */
-    public function show(JobOrder $jobOrder): Response
+    public function show(JobOrder $jobOrder, JobOrderMoney $money): Response
     {
         Gate::authorize('view', $jobOrder);
 
@@ -66,6 +71,8 @@ class JobOrderController extends Controller
             'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
             'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
             'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
+            // Live, never stored: the Kept Amount currently attributed to this order, also after it closed.
+            'money' => $money->forOrder($jobOrder->id),
         ]);
     }
 
@@ -105,7 +112,23 @@ class JobOrderController extends Controller
 
     public function update(UpdateJobOrderRequest $request, JobOrder $jobOrder): RedirectResponse
     {
-        $jobOrder->update($request->validated());
+        try {
+            // The row is locked and checked again, so an edit that passed the policy just before another admin closed the order
+            // cannot be saved onto the closed order.
+            DB::transaction(function () use ($request, $jobOrder): void {
+                $locked = JobOrder::query()->lockForUpdate()->findOrFail($jobOrder->id);
+
+                if ($locked->isClosed()) {
+                    throw new DomainException('This job order is already closed.');
+                }
+
+                $locked->update($request->validated());
+            });
+        } catch (DomainException $exception) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);
+
+            return to_route('admin.job-search.index');
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Job order updated.')]);
 
@@ -114,17 +137,24 @@ class JobOrderController extends Controller
 
     /**
      * Close the order as done or cancelled. Both close it for good: no new worker can be added, and it cannot be
-     * reopened or edited. The workers and their payments are not touched. If the order was closed by someone else a
-     * moment ago, nothing changes and the admin is told.
+     * reopened or edited. Open applications are resolved first, all in one transaction (CloseJobOrder): deleted people's
+     * open applications are cancelled automatically, and the admin's resolutions are applied for everyone else. Payments are
+     * not touched. If the order was closed by someone else a moment ago, or the open applications are not what the admin's
+     * screen showed, nothing changes and the admin is told.
      */
-    public function close(CloseJobOrderRequest $request, JobOrder $jobOrder): RedirectResponse
+    public function close(CloseJobOrderRequest $request, JobOrder $jobOrder, CloseJobOrder $closeJobOrder): RedirectResponse
     {
         $status = JobOrderStatus::from($request->validated('status'));
 
         try {
-            $jobOrder->close($status);
-        } catch (DomainException) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('This job order is already closed.')]);
+            $closeJobOrder->handle($jobOrder, $status, $request->resolutions(), $request->expectedOpen(), $request->expectedDeletedOpen());
+        } catch (JobOrderChangedException $exception) {
+            // The order is still open: stay on the page so the admin can look at the current state.
+            Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);
+
+            return back();
+        } catch (DomainException $exception) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __($exception->getMessage())]);
 
             return $this->afterClose($request);
         }
@@ -134,6 +164,29 @@ class JobOrderController extends Controller
             : __('Job order cancelled.')]);
 
         return $this->afterClose($request);
+    }
+
+    /**
+     * What closing this order would involve, for the close dialog: the open (Applied or Interview) applications of people who
+     * are not deleted, which the admin must resolve, and the ids of the open applications of deleted people, which the close
+     * cancels by itself. The close compares the admin's screen with the real state again under locks.
+     */
+    public function closePreview(JobOrder $jobOrder): JsonResponse
+    {
+        Gate::authorize('close', $jobOrder);
+
+        [$deleted, $live] = $jobOrder->workers()->open()->with('client')->orderBy('id')->get()
+            ->partition(fn (JobOrderWorker $worker) => $worker->client->trashed());
+
+        return response()->json([
+            'open' => $live->map(fn (JobOrderWorker $worker) => [
+                'worker_id' => $worker->id,
+                'name' => $worker->client->name,
+                'phone' => $worker->client->phone,
+                'status' => $worker->case_status->value,
+            ])->values(),
+            'deleted_open' => $deleted->pluck('id')->values(),
+        ]);
     }
 
     /**

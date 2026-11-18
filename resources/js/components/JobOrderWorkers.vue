@@ -3,8 +3,12 @@ import { useForm } from '@inertiajs/vue3';
 import { UserPlus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { updateStatus } from '@/actions/App/Http/Controllers/Admin/JobOrderWorkerController';
+import {
+    cancelHired,
+    updateStatus,
+} from '@/actions/App/Http/Controllers/Admin/JobOrderWorkerController';
 import AddWorkerDialog from '@/components/AddWorkerDialog.vue';
+import CancelHiredDialog from '@/components/CancelHiredDialog.vue';
 import HiredConfirmDialog from '@/components/HiredConfirmDialog.vue';
 import InputError from '@/components/InputError.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -131,6 +135,34 @@ const change = (ids: number[], status: string) => {
     send(ids, status, false);
 };
 
+// Hired to Cancelled is its own, individual action. It is offered on an open or a closed order, and only after the admin
+// confirms: the server checks the confirmation too, and refuses (with a message) when it is not allowed.
+const cancelHiredForm = useForm({ confirm_cancel_hired: false });
+const cancelHiredTarget = ref<JobOrderWorker | null>(null);
+const cancelHiredOpen = ref(false);
+
+const askCancelHired = (worker: JobOrderWorker) => {
+    cancelHiredTarget.value = worker;
+    cancelHiredOpen.value = true;
+};
+
+const confirmCancelHired = () => {
+    const worker = cancelHiredTarget.value;
+
+    if (!worker) {
+        return;
+    }
+
+    cancelHiredForm.confirm_cancel_hired = true;
+    cancelHiredForm.patch(cancelHired.url([props.jobOrder.id, worker.id]), {
+        preserveScroll: true,
+        onFinish: () => {
+            cancelHiredOpen.value = false;
+            cancelHiredForm.confirm_cancel_hired = false;
+        },
+    });
+};
+
 const isCancelled = (worker: JobOrderWorker) =>
     worker.service_status === 'cancel';
 
@@ -161,7 +193,11 @@ const isAddOpen = ref(false);
         </div>
 
         <InputError
-            :message="form.errors.confirm_hired ?? form.errors.changes"
+            :message="
+                form.errors.confirm_hired ??
+                form.errors.changes ??
+                cancelHiredForm.errors.confirm_cancel_hired
+            "
         />
 
         <div
@@ -256,6 +292,17 @@ const isAddOpen = ref(false);
                         >
                             {{ t(`workerCaseStatus.${worker.case_status}`) }}
                         </span>
+                        <Button
+                            v-if="worker.can_cancel_hired"
+                            type="button"
+                            size="sm"
+                            variant="pillOutline"
+                            class="h-7 text-xs"
+                            data-test="cancel-hired-button"
+                            @click="askCancelHired(worker)"
+                        >
+                            {{ t('jobOrders.workers.cancelHired.button') }}
+                        </Button>
                         <Select
                             v-if="canChange(worker)"
                             :key="`${worker.id}-${worker.case_status}`"
@@ -320,6 +367,13 @@ const isAddOpen = ref(false);
         :count="pending?.ids.length ?? 0"
         :processing="form.processing"
         @confirm="pending && send(pending.ids, pending.status, true)"
+    />
+
+    <CancelHiredDialog
+        v-model:open="cancelHiredOpen"
+        :name="cancelHiredTarget?.name ?? ''"
+        :processing="cancelHiredForm.processing"
+        @confirm="confirmCancelHired"
     />
 
     <AddWorkerDialog
