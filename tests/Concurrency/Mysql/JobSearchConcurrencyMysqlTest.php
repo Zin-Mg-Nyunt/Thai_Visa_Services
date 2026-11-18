@@ -3,11 +3,14 @@
 use App\Actions\JobSearch\JobOrderMoney;
 use App\Enums\ClientServiceStatus;
 use App\Enums\WorkerCaseStatus;
+use App\Models\Client;
 use App\Models\ClientService;
+use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
 use App\Support\Concurrency\TryAgainException;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\Concurrency\Mysql\Support\ChildWorkflow;
 use Tests\Concurrency\Mysql\Support\JobSearchWorld;
 
@@ -480,4 +483,150 @@ test('Add Worker and Hired to Cancelled started in either order never deadlock b
 })->with([
     'Hired to Cancelled starts first' => [true],
     'Add Worker starts first' => [false],
+]);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Whole-service cancellation of a Job Search service (Step 10): the service, its refund and every application, atomically.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * A person with an In Progress engagement holding an Applied row on an open order and a Rejected row on a closed one.
+ *
+ * @return array{person: Client, record: ClientService, open: JobOrder, closed: JobOrder, rows: array<int, JobOrderWorker>}
+ */
+function jsEngagement(object $test, WorkerCaseStatus $first = WorkerCaseStatus::Applied): array
+{
+    $person = $test->world->person();
+    $open = $test->world->order();
+    $closed = $test->world->order(closed: true);
+    $applied = $test->world->application($open, $person, $first);
+    $rejected = JobOrderWorker::factory()->create([
+        'job_order_id' => $closed->id, 'client_id' => $person->id,
+        'client_service_id' => $applied->client_service_id, 'case_status' => WorkerCaseStatus::Rejected,
+    ]);
+
+    return ['person' => $person, 'record' => $applied->clientService, 'open' => $open, 'closed' => $closed, 'rows' => [$applied, $rejected]];
+}
+
+function jsCancelArguments(object $test, ClientService $record): array
+{
+    return ['record' => $record->id, 'refund' => '2000.00', 'user' => $test->world->user()->id];
+}
+
+/**
+ * The rule that must hold whatever ran: no cancelled service keeps an application that is not Cancelled.
+ */
+function jsCancelledServicesHaveNoLiveApplication(Client $person): bool
+{
+    return ! JobOrderWorker::query()
+        ->where('client_id', $person->id)
+        ->where('case_status', '!=', WorkerCaseStatus::Cancelled->value)
+        ->whereHas('clientService', fn ($record) => $record->where('status', ClientServiceStatus::Cancel->value))
+        ->exists();
+}
+
+test('whole-service cancellation waits for a lock held on the person, service or application, then cancels everything atomically', function (string $table) {
+    ['person' => $person, 'record' => $record, 'open' => $open, 'rows' => $rows] = jsEngagement($this);
+
+    $target = match ($table) {
+        'clients' => $person->id,
+        'client_services' => $record->id,
+        'job_order_workers' => $rows[0]->id,
+    };
+
+    expect(jsMoney($open->id))->toBe('15000.00');
+
+    $peer = $this->peerConnection();
+    jsHold($peer, $table, $target);
+    $cancel = jsChild($this, 'cancel-service', jsCancelArguments($this, $record));
+
+    ChildWorkflow::waitUntilBlocked();
+
+    // While it waits nothing has changed.
+    expect($record->fresh()->status)->toBe(ClientServiceStatus::InProgress)
+        ->and($rows[0]->fresh()->case_status)->toBe(WorkerCaseStatus::Applied)
+        ->and($cancel->isRunning())->toBeTrue();
+
+    $peer->commit();
+    $result = $cancel->result();
+
+    // One attempt, and the connection's normal timeout: this workflow is not retried and does not use the 5 seconds.
+    expect($result)->toMatchArray(['ok' => true, 'attempts' => 1, 'inside' => 37, 'before' => 37, 'after' => 37])
+        ->and($record->fresh())->status->toBe(ClientServiceStatus::Cancel)->cancel_refund_amount->toBe('2000.00')
+        ->and(JobOrderWorker::query()->where('client_service_id', $record->id)->count())->toBe(2)
+        ->and(JobOrderWorker::query()->where('client_service_id', $record->id)->where('case_status', '!=', 'cancelled')->count())->toBe(0)
+        ->and($record->remarks()->where('kind', 'cancel')->count())->toBe(1)
+        ->and(jsMoney($open->id))->toBe('0.00');
+})->with([
+    'person lock (level 2)' => ['clients'],
+    'service lock (level 3)' => ['client_services'],
+    'application lock (level 4)' => ['job_order_workers'],
+]);
+
+test('two whole-service cancellations of the same service: exactly one succeeds, one remark, one refund', function () {
+    ['person' => $person, 'record' => $record] = jsEngagement($this);
+
+    $peer = $this->peerConnection();
+    jsHold($peer, 'clients', $person->id);
+    $first = jsChild($this, 'cancel-service', jsCancelArguments($this, $record));
+    $second = jsChild($this, 'cancel-service', jsCancelArguments($this, $record));
+
+    ChildWorkflow::waitUntilBlocked(2);
+    $peer->commit();
+
+    $results = collect([$first->result(), $second->result()]);
+
+    expect($results->where('ok', true))->toHaveCount(1)
+        ->and($results->where('ok', false)->first()['error'])->toBe(ValidationException::class)
+        ->and($results->where('ok', false)->first()['message'])->toContain('in progress')
+        ->and($record->fresh()->cancel_refund_amount)->toBe('2000.00')
+        ->and($record->remarks()->where('kind', 'cancel')->count())->toBe(1)
+        ->and(jsCancelledServicesHaveNoLiveApplication($person))->toBeTrue();
+});
+
+test('whole-service cancellation and Add Worker for the same person: a cancelled service never keeps a live application', function (string $firstToCommit) {
+    ['person' => $person, 'record' => $record, 'rows' => $rows] = jsEngagement($this, WorkerCaseStatus::Rejected);
+    $orderB = $this->world->order();
+
+    $peer = $this->peerConnection();
+
+    if ($firstToCommit === 'cancel') {
+        // Add Worker waits on its order; the cancellation runs to the end first, so Add Worker finds a Cancelled service.
+        jsHold($peer, 'job_orders', $orderB->id);
+        $add = jsChild($this, 'add-worker', jsAddArguments($orderB->id, $person->id));
+        ChildWorkflow::waitUntilBlocked(1);
+        $cancel = jsChild($this, 'cancel-service', jsCancelArguments($this, $record));
+        $cancelResult = $cancel->result();
+        $peer->commit();
+        $addResult = $add->result();
+
+        expect($cancelResult['ok'])->toBeTrue()
+            ->and($addResult['ok'])->toBeTrue()
+            ->and($addResult['record_id'])->not->toBe($record->id)
+            ->and($this->world->inProgressRecords($person))->toBe(1);
+    } else {
+        // Add Worker holds the order and the person and waits on the service; the cancellation waits on the person, so Add Worker
+        // commits first. Its new application is then cancelled with the service.
+        jsHold($peer, 'client_services', $record->id);
+        $add = jsChild($this, 'add-worker', jsAddArguments($orderB->id, $person->id));
+        ChildWorkflow::waitUntilBlocked(1);
+        $cancel = jsChild($this, 'cancel-service', jsCancelArguments($this, $record));
+        ChildWorkflow::waitUntilBlocked(2);
+        $peer->commit();
+        $addResult = $add->result();
+        $cancelResult = $cancel->result();
+
+        expect($addResult['ok'])->toBeTrue()
+            ->and($addResult['record_id'])->toBe($record->id)
+            ->and($cancelResult['ok'])->toBeTrue()
+            ->and(JobOrderWorker::query()->findOrFail($addResult['worker_id'])->case_status)->toBe(WorkerCaseStatus::Cancelled)
+            ->and($this->world->inProgressRecords($person))->toBe(0);
+    }
+
+    expect($record->fresh()->status)->toBe(ClientServiceStatus::Cancel)
+        ->and(jsCancelledServicesHaveNoLiveApplication($person))->toBeTrue()
+        ->and(JobOrderWorker::query()->where('client_service_id', $record->id)->where('case_status', '!=', 'cancelled')->count())->toBe(0);
+})->with([
+    'the cancellation commits first' => ['cancel'],
+    'Add Worker commits first' => ['add'],
 ]);

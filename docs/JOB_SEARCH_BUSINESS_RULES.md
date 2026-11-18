@@ -646,12 +646,15 @@ Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`): Phas
 - **Round 9–10:** Hired → Cancelled (individual only, confirmation, closed orders, refusals for a deleted Person, another In Progress engagement, or a non-Complete record), live Job Order Money on the Job Order page, Unassigned Kept Amount on the dashboard, and the attribution line on Client Detail.
 - **Round 10:** the same Person on the same Job Order again after a terminal application (there is no unique `(job_order_id, client_id)` key any more; a duplicate active application is refused under the order and Person locks).
 
+- **Step 10 (2026-11-18):** the **Complete engagement lock** and **whole-service cancellation**.
+  - The Client page edit form no longer changes the status of a Job Search service at all (the request prohibits it). A Complete Job Search service also has a locked fee and takes no new remark; its dates stay editable. Both are checked again on the locked row, so a form opened before another action cannot write stale data. Other services are unchanged.
+  - Whole-service cancellation of a Job Search service (`CancelJobSearchService`) cancels the service, records the refund and its remark, and cancels every application row of it in one transaction, on closed orders as well (Section 5). It runs on the normal lock timeout and is not retried.
+  - MySQL concurrency tests on `Thai_Visa_Services_Testing` cover Hired → Cancelled, Add Worker, reassignment, the Money snapshot and the whole-service cancellation, with real separate connections.
+
 **Not built yet:**
 
-- **Complete engagement locks (Section 7).** The Client page edit form (`ClientServiceValidationRules`, `UpdateClientServiceRequest`) still lets the admin change a Complete service's fee, remarks and status, including setting a Complete service back to In Progress. That path bypasses Hired → Cancelled and its one-In-Progress guard, so it is a known risk until the lock is built.
-- **Whole-service cancellation** is still the generic `ClientServiceController::cancel`, with no cascade to the applications and no Job Search-only rules.
 - **Job Order detail page.** It still has the older cards (manpower requested, active workers, cancelled workers) plus the new Money card. It is not the four-card design: no Hired Workers card, no `includes people who were deleted` rule beyond the Money card, no Worker-name links to Client Detail, and the manpower warning still compares active workers, not Hired Workers.
 - **Job Search documents.** Upload is still refused (`DocumentPolicy::create`). The portal exclusion is in place.
 - **Person deletion.** It still takes no explicit Person lock; the derived remaining balance of 0 is not in `remaining()` and `canTakePayment()` (Outstanding already excludes deleted Persons); a photo-deletion failure is not reported; the document-upload and Add Service races remain. The file-recovery mechanism is not approved.
-- **Lock protocol.** The detailed protocol is still pending approval, and **no concurrency test has run on MySQL for these workflows**. Everything above is proven on SQLite only, which cannot show locking.
+- **Lock protocol.** The detailed protocol is still pending approval. The workflows named above have MySQL concurrency tests that pass; the status-edit form's lock is proven on SQLite and by reading, and has no MySQL contention test.
 - Application Activity is not built, which matches the rules (excluded from V1).

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\JobSearch\CancelJobSearchService;
 use App\Concerns\HandlesMoney;
 use App\Enums\ClientServiceStatus;
 use App\Enums\PaymentMethod;
@@ -104,6 +105,14 @@ class ClientServiceController extends Controller
             $details = $request->safe()->except('remark');
             $refund = null;
 
+            // The form was built from a row that may have changed since (a whole-service cancel, or a Hired application). Only a
+            // remark can still be added to a cancelled service, so nothing else from a stale form is written to it.
+            if ($locked->isCancelled()) {
+                $details = [];
+            }
+
+            $this->refuseLockedJobSearchEdit($locked, $request->validated('remark'), $details);
+
             if (! $locked->isCancelled()) {
                 $oldFee = $locked->fee;
                 $newFee = $this->money($details['fee']);
@@ -143,6 +152,15 @@ class ClientServiceController extends Controller
         $cancelRefund = $this->money($request->validated('cancel_refund_amount'));
         $userId = $request->user()->id;
 
+        if ($clientService->service()->first()->isJobSearch()) {
+            // Job Search: the cancellation also cancels every application of the service, in the same transaction.
+            app(CancelJobSearchService::class)->handle($clientService, $cancelRefund, $userId);
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Service cancelled.')]);
+
+            return to_route('admin.clients.show', $client);
+        }
+
         // The row is locked so a double click or a payment sent at the same moment cannot slip past the checks.
         DB::transaction(function () use ($clientService, $cancelRefund, $userId): void {
             $locked = ClientService::query()->lockForUpdate()->findOrFail($clientService->id);
@@ -176,6 +194,37 @@ class ClientServiceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Service cancelled.')]);
 
         return to_route('admin.clients.show', $client);
+    }
+
+    /**
+     * A Complete Job Search service is final (business rules, Section 7): its fee is locked and it takes no new remark. Its status
+     * never changes through this form at all (the request prohibits it); the only way back to In Progress is Hired -> Cancelled.
+     * Checked on the locked row, so a service that became Complete since the form was opened is caught. Dates and everything else
+     * that is not listed there stay editable.
+     *
+     * @param  array<string, mixed>  $details  what would be saved, a fee among it unless the service is cancelled
+     *
+     * @throws ValidationException
+     */
+    private function refuseLockedJobSearchEdit(ClientService $locked, ?string $remark, array $details): void
+    {
+        if ($locked->status !== ClientServiceStatus::Complete || ! $locked->service()->first()->isJobSearch()) {
+            return;
+        }
+
+        $errors = [];
+
+        if (isset($details['fee']) && bccomp($this->money($details['fee']), $locked->fee, 2) !== 0) {
+            $errors['fee'] = __('The fee of a Job Search service that is Complete is locked.');
+        }
+
+        if ($remark !== null && trim($remark) !== '') {
+            $errors['remark'] = __('A Job Search service that is Complete takes no new remark.');
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**

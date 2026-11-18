@@ -52,6 +52,13 @@ const isEditing = computed(() => props.clientService !== undefined);
 // A cancelled service is history: only a new remark can be added.
 const isLocked = computed(() => props.clientService?.status === 'cancel');
 
+// A Job Search service changes status only through its applications, never by editing the record. When it is Complete
+// its fee is locked and it takes no new remark; the dates stay editable.
+const isJobSearch = computed(() => props.clientService?.is_job_search === true);
+const isCompleteJobSearch = computed(
+    () => isJobSearch.value && props.clientService?.status === 'complete',
+);
+
 const form = useForm({
     service_id: null as number | null,
     sub_service_id: (props.clientService?.sub_service_id ?? null) as
@@ -204,6 +211,18 @@ const textareaClass =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm';
 
 const submit = () => {
+    // The status of a Job Search service is not part of this form: the server refuses it.
+    form.transform((data) => {
+        if (!isJobSearch.value) {
+            return data;
+        }
+
+        const { status, ...rest } = data;
+        void status;
+
+        return rest;
+    });
+
     const target = props.clientService
         ? update({
               client: props.client.id,
@@ -309,6 +328,17 @@ const submit = () => {
                         status="cancel"
                         class="w-fit"
                     />
+                    <template v-else-if="isJobSearch && clientService">
+                        <StatusBadge
+                            kind="serviceStatus"
+                            :status="serviceStatusKey(clientService.status)"
+                            class="w-fit"
+                            data-test="job-search-status-readonly"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            {{ t('clientServices.form.jobSearchStatusNote') }}
+                        </p>
+                    </template>
                     <Select v-else v-model="form.status">
                         <SelectTrigger
                             id="status"
@@ -338,7 +368,7 @@ const submit = () => {
                     <Label for="fee">{{ t('clientServices.form.fee') }}</Label>
                     <Input
                         id="fee"
-                        :disabled="isLocked"
+                        :disabled="isLocked || isCompleteJobSearch"
                         v-model="form.fee"
                         name="fee"
                         type="number"
@@ -376,6 +406,13 @@ const submit = () => {
                                 refund: formatMoney(refundPreview),
                             })
                         }}
+                    </p>
+                    <p
+                        v-if="isCompleteJobSearch"
+                        class="text-xs text-muted-foreground"
+                        data-test="complete-fee-locked"
+                    >
+                        {{ t('clientServices.form.completeFeeLocked') }}
                     </p>
                     <p v-if="!isEditing" class="text-xs text-muted-foreground">
                         {{ t('clientServices.form.feeHint') }}
@@ -445,11 +482,19 @@ const submit = () => {
                     v-model="form.remark"
                     name="remark"
                     rows="3"
+                    :disabled="isCompleteJobSearch"
                     :class="textareaClass"
                     :placeholder="t('clients.form.remarksPlaceholder')"
                     :aria-invalid="!!form.errors.remark"
                 />
-                <p class="text-xs text-muted-foreground">
+                <p
+                    v-if="isCompleteJobSearch"
+                    class="text-xs text-muted-foreground"
+                    data-test="complete-remark-locked"
+                >
+                    {{ t('clientServices.form.completeRemarkLocked') }}
+                </p>
+                <p v-else class="text-xs text-muted-foreground">
                     {{ t('clientServices.form.remarkHint') }}
                 </p>
                 <InputError :message="form.errors.remark" />

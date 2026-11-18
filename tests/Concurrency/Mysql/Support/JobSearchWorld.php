@@ -10,6 +10,7 @@ use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
 use App\Models\Payment;
 use App\Models\Service;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,6 +25,9 @@ final class JobSearchWorld
 
     /** @var array<int, int> */
     private array $clients = [];
+
+    /** @var array<int, int> */
+    private array $users = [];
 
     private ?int $createdService = null;
 
@@ -47,6 +51,14 @@ final class JobSearchWorld
         $this->orders[] = $order->id;
 
         return $order;
+    }
+
+    public function user(): User
+    {
+        $user = User::factory()->create();
+        $this->users[] = $user->id;
+
+        return $user;
     }
 
     public function person(): Client
@@ -109,13 +121,14 @@ final class JobSearchWorld
         DB::table('client_service_remarks')->whereIn('client_service_id', $records)->delete();
         DB::table('client_services')->whereIn('id', $records)->delete();
         DB::table('clients')->whereIn('id', $this->clients)->delete();
+        DB::table('users')->whereIn('id', $this->users)->delete();
         DB::table('job_orders')->whereIn('id', $this->orders)->delete();
 
         if ($this->createdService !== null) {
             DB::table('services')->where('id', $this->createdService)->delete();
         }
 
-        $this->orders = $this->clients = [];
+        $this->orders = $this->clients = $this->users = [];
         $this->createdService = null;
     }
 }

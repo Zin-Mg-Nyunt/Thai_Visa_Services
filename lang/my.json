@@ -73,5 +73,8 @@
     ":name already has another Job Search service in progress. Resolve that one first (for example complete it, or cancel it from the client page), then cancel this Hired application.": ":name တွင် ဆောင်ရွက်နေဆဲ အခြားအလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု ရှိနေပါသည်။ ဦးစွာ ၎င်းကို ဖြေရှင်းပါ (ဥပမာ ပြီးဆုံးစေပါ သို့မဟုတ် ဖောက်သည်စာမျက်နှာမှ ပယ်ဖျက်ပါ)၊ ထို့နောက် ဤခန့်အပ်ပြီး လျှောက်လွှာကို ပယ်ဖျက်ပါ။",
     "The application of :name is no longer Hired, so it cannot be cancelled. Please review it and try again.": ":name ၏ လျှောက်လွှာသည် ခန့်အပ်ပြီး မဟုတ်တော့သဖြင့် ပယ်ဖျက်၍ မရပါ။ ပြန်လည်စစ်ဆေး၍ ထပ်မံကြိုးစားပါ။",
     "Confirm first: the application becomes Cancelled, the Job Search service goes back to In Progress, the job order's money decreases, and the kept amount becomes Unassigned until another job order is assigned.": "ဦးစွာ အတည်ပြုပါ — လျှောက်လွှာသည် ပယ်ဖျက်ပြီးဖြစ်မည်၊ အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုသည် ဆောင်ရွက်နေဆဲသို့ ပြန်ပြောင်းမည်၊ အလုပ်အော်ဒါ၏ ငွေပမာဏ လျော့ကျမည်၊ အခြားအလုပ်အော်ဒါ မသတ်မှတ်မီအထိ ထိန်းထားငွေသည် မသတ်မှတ်ရသေးသော ပမာဏ ဖြစ်မည်။",
-    "The Hired application was cancelled. The Job Search service is In Progress again.": "ခန့်အပ်ပြီး လျှောက်လွှာကို ပယ်ဖျက်ပြီးပါပြီ။ အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုသည် ဆောင်ရွက်နေဆဲ ဖြစ်ပြန်ပါသည်။"
+    "The Hired application was cancelled. The Job Search service is In Progress again.": "ခန့်အပ်ပြီး လျှောက်လွှာကို ပယ်ဖျက်ပြီးပါပြီ။ အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုသည် ဆောင်ရွက်နေဆဲ ဖြစ်ပြန်ပါသည်။",
+    "The status of a Job Search service changes only through its applications.": "အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု၏ အခြေအနေကို လျှောက်လွှာများမှသာ ပြောင်းလဲနိုင်သည်။",
+    "The fee of a Job Search service that is Complete is locked.": "ပြီးစီးပြီးဖြစ်သော အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှု၏ ဝန်ဆောင်ခကို ပြောင်း၍မရပါ။",
+    "A Job Search service that is Complete takes no new remark.": "ပြီးစီးပြီးဖြစ်သော အလုပ်ရှာဖွေရေး ဝန်ဆောင်မှုတွင် မှတ်ချက်အသစ် ထည့်၍မရပါ။"
 }

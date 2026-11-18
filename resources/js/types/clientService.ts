@@ -68,6 +68,8 @@ export type ClientService = {
     /** Entered when the service is cancelled; never more than kept. */
     cancel_refund_amount: string;
     cancelled_at: string | null;
+    /** True for the Job Search service: its status changes only through its applications. Sent on the edit page. */
+    is_job_search?: boolean;
     /** True for a service that takes documents, such as Work Permit; sent on the client page. */
     accepts_documents?: boolean;
     /** Newest first; sent on the client page. */

@@ -425,6 +425,11 @@ const en = {
                 'The service cannot be changed. To use another service, add a new one.',
             subService: 'Sub-service',
             status: 'Status',
+            jobSearchStatusNote:
+                'The status of a Job Search service changes only through its applications: Hired completes it, and cancelling the Hired application reopens it.',
+            completeFeeLocked: 'The service is Complete, so its fee is locked.',
+            completeRemarkLocked:
+                'The service is Complete, so no new remark can be added.',
             fee: 'Service fee (฿)',
             feeHint:
                 "Filled from the sub-service fee, or the service's default fee. You can change it.",

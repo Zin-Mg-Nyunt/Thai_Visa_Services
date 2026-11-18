@@ -13,9 +13,11 @@
 
 use App\Actions\JobSearch\AddWorker;
 use App\Actions\JobSearch\CancelHiredApplication;
+use App\Actions\JobSearch\CancelJobSearchService;
 use App\Actions\JobSearch\UpdateApplicationStatuses;
 use App\Enums\PaymentMethod;
 use App\Enums\WorkerCaseStatus;
+use App\Models\ClientService;
 use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
 use App\Models\Payment;
@@ -68,6 +70,11 @@ try {
             $worker = app(CancelHiredApplication::class)->handle(JobOrderWorker::query()->findOrFail($a['worker']));
 
             return ['worker_id' => $worker->id];
+        })(),
+        'cancel-service' => (function () use ($a): array {
+            app(CancelJobSearchService::class)->handle(ClientService::query()->findOrFail($a['record']), $a['refund'], $a['user']);
+
+            return ['record_id' => $a['record']];
         })(),
         'hire' => (function () use ($a): array {
             app(UpdateApplicationStatuses::class)->handle(JobOrder::query()->findOrFail($a['order']), [$a['worker'] => WorkerCaseStatus::Hired]);

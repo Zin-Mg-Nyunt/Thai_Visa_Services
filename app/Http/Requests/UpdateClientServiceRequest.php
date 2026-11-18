@@ -34,7 +34,15 @@ class UpdateClientServiceRequest extends FormRequest
             return ['remark' => $this->clientServiceRules($clientService, $clientService->service_id)['remark']];
         }
 
-        return $this->clientServiceRules($clientService, $clientService->service_id);
+        $rules = $this->clientServiceRules($clientService, $clientService->service_id);
+
+        // A Job Search service moves between In Progress, Complete and Cancelled only through its applications (Hired, Hired ->
+        // Cancelled, whole-service cancel), never by editing the record. The form does not send a status for it.
+        if ($clientService->service()->first()->isJobSearch()) {
+            $rules['status'] = ['prohibited'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -42,6 +50,9 @@ class UpdateClientServiceRequest extends FormRequest
      */
     public function messages(): array
     {
-        return $this->clientServiceMessages();
+        return [
+            ...$this->clientServiceMessages(),
+            'status.prohibited' => __('The status of a Job Search service changes only through its applications.'),
+        ];
     }
 }

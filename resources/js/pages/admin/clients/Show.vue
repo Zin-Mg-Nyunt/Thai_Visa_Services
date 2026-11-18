@@ -127,8 +127,9 @@ const baseRows = (service: ClientService) =>
           ];
 
 /**
- * The money rows of a service. A Job Search service also always shows what it keeps and where that money is attributed right
- * now: a job order, or Unassigned. The service keeps its own retained money either way; the attribution is only a label.
+ * The money rows of a service. A Job Search service shows Kept by the same rule as every other service (baseRows: only with a
+ * refund, or once cancelled), and adds where its money is attributed right now: a job order, or Unassigned. The attribution is
+ * only a label; the service keeps its own retained money either way.
  */
 const serviceRows = (service: ClientService) => {
     const rows = baseRows(service);
@@ -138,13 +139,6 @@ const serviceRows = (service: ClientService) => {
     }
 
     const attribution = props.jobSearchAttribution[String(service.id)];
-
-    if (!rows.some((row) => row.label === t('clientServices.kept'))) {
-        rows.push({
-            label: t('clientServices.kept'),
-            value: money(service.kept),
-        });
-    }
 
     rows.push({
         label: t('clientServices.attributedTo'),

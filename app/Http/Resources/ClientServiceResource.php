@@ -37,6 +37,7 @@ class ClientServiceResource extends JsonResource
             'refund_amount' => $this->refund_amount,
             'cancel_refund_amount' => $this->cancel_refund_amount,
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'is_job_search' => $this->whenLoaded('service', fn () => $this->service->isJobSearch()),
             'accepts_documents' => $this->whenLoaded('service', fn () => $this->service->has_documents && ! $this->service->isJobSearch()),
             $this->mergeWhen($this->relationLoaded('documents'), fn () => [
                 'documents' => $this->documents->map(fn (Document $document) => [
