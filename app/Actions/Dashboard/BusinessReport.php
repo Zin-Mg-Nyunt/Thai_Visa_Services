@@ -2,7 +2,6 @@
 
 namespace App\Actions\Dashboard;
 
-use App\Actions\JobSearch\JobOrderMoney;
 use App\Concerns\HandlesMoney;
 use App\Enums\ClientServiceStatus;
 use App\Enums\RemarkKind;
@@ -29,6 +28,8 @@ use Illuminate\Support\Facades\DB;
  * - So a past month never changes because of something that happened later.
  * - Received is net: payments minus refunds. There is no profit figure; costs are not tracked in this version.
  * - Outstanding is the balance still owed today, so it does not depend on the date range.
+ * - Received covers every service, Job Search included. Job Search money that no job order owns yet ("Unassigned") is not a
+ *   separate figure here and is never added again: it is already inside Received, and moving it to a job order changes nothing.
  * - Deleted services and deleted clients stay in the money received. A deleted client's unpaid balance is not outstanding:
  *   they leave the lists, so what they still owed is no longer shown (the same as the Clients list).
  */
@@ -46,7 +47,6 @@ class BusinessReport
      *     received: numeric-string,
      *     refunded: numeric-string,
      *     outstanding: numeric-string,
-     *     unassigned_kept: numeric-string,
      *     active_clients: int,
      *     months: array<int, array{month: string, received: numeric-string, height_percent: int}>,
      *     by_service: array<int, array{service: array{id: int, title: string|null, title_my: string|null, is_inactive: bool}, received: numeric-string, share_percent: int, sub_services: array<int, array{sub_service: array{id: int, title: string|null, title_my: string|null}|null, received: numeric-string}>}>
@@ -131,9 +131,6 @@ class BusinessReport
             'received' => $received,
             'refunded' => $refunded,
             'outstanding' => $this->outstanding(),
-            // Kept Amount of Job Search records that no job order owns right now. It is part of the money received, never added
-            // to it again: Job Search kept = the Money of all orders + this. Like outstanding, it is today's figure, not the range's.
-            'unassigned_kept' => app(JobOrderMoney::class)->totals()['unassigned'],
             'active_clients' => Client::query()
                 ->whereHas('clientServices', fn ($query) => $query->where('status', ClientServiceStatus::InProgress))
                 ->count(),

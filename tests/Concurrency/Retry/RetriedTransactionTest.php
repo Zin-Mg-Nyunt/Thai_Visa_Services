@@ -7,12 +7,18 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\TestingDatabaseGuard;
 
 /**
  * The retry rules, checked with simulated database errors (the real MySQL errors are in tests/Concurrency/Mysql).
  * These tests run outside RefreshDatabase on purpose: Laravel does not retry a nested transaction.
  */
-beforeEach(fn () => app()->setLocale('en'));
+// The guard runs first, before anything is written: this file creates and drops a table, so it must never reach a database that
+// is not a test database, whatever the PHPUnit configuration or the shell says.
+beforeEach(function () {
+    TestingDatabaseGuard::assertSafe();
+    app()->setLocale('en');
+});
 
 function databaseError(string $message): QueryException
 {

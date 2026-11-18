@@ -4,7 +4,7 @@
     Run (the testing user's password is given on the command line, never written in a file):
         read -s -p "Testing DB password: " DB_PASSWORD; echo; export DB_PASSWORD
         DB_USERNAME=zin_visa_test php artisan test -c phpunit.mysql.xml
-    MysqlTestCase refuses any database that is not the testing one.
+    MysqlTestCase, and the retry tests, refuse any database that is not the testing one (Tests\TestingDatabaseGuard).
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
@@ -27,9 +27,17 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="mysql"/>
-        <env name="DB_DATABASE" value="Thai_Visa_Services_Testing"/>
-        <env name="DB_URL" value=""/>
+        <!--
+            A DB_* variable exported in the shell must never win over these, or the suite could reach another database.
+            force="true" alone is not enough: it replaces $_ENV and putenv(), but Laravel reads $_SERVER first, and a shell
+            variable sits there. So the same values are also set as <server> entries, which PHPUnit always applies.
+        -->
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="Thai_Visa_Services_Testing" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <server name="DB_CONNECTION" value="mysql"/>
+        <server name="DB_DATABASE" value="Thai_Visa_Services_Testing"/>
+        <server name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -213,16 +213,6 @@ const toggle = (id: number) => {
             </p>
         </StatCard>
         <StatCard
-            :label="t('dashboard.cards.unassigned')"
-            :value="formatMoney(report.unassigned_kept)"
-            :icon="Hourglass"
-            data-test="card-unassigned"
-        >
-            <p class="text-xs text-muted-foreground">
-                {{ t('dashboard.cards.unassignedHint') }}
-            </p>
-        </StatCard>
-        <StatCard
             :label="t('dashboard.cards.profit')"
             :value="t('dashboard.cards.profitSoon')"
             :icon="TrendingUp"

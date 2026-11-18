@@ -22,8 +22,6 @@ export type BusinessReport = {
     refunded: string;
     /** The balance still owed today; it does not depend on the range. */
     outstanding: string;
-    /** Kept by Job Search services and attributed to no job order. Already part of `received`; today's figure. */
-    unassigned_kept: string;
     active_clients: number;
     months: { month: string; received: string; height_percent: number }[];
     by_service: {

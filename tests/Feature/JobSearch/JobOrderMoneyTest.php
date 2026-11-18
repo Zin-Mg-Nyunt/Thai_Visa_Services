@@ -199,29 +199,29 @@ test('a service that is not Job Search has no attribution entry', function () {
         ->assertInertia(fn ($page) => $page->where('jobSearchAttribution', []));
 });
 
-test('Business Dashboard totals include the Unassigned amount once, and moving attribution never changes them', function () {
+test('Business Dashboard Total Received already includes the Unassigned amount once, and moving attribution never changes it', function () {
     $order = JobOrder::factory()->done()->create();
     $worker = applicationOn($order, S::Hired, ClientServiceStatus::Complete, '10000.00');
     $report = fn () => app(BusinessReport::class)->build(CarbonImmutable::now()->startOfMonth(), CarbonImmutable::now()->endOfMonth());
 
     $before = $report();
 
-    expect($before['received'])->toBe('10000.00')->and($before['unassigned_kept'])->toBe('0.00');
+    expect($before['received'])->toBe('10000.00')->and($this->money->totals()['unassigned'])->toBe('0.00');
 
     // Hired to Cancelled: the money stays received and kept, and now sits Unassigned.
     $this->actingAs($this->admin)->patch(route('admin.job-search.workers.cancel-hired', [$order, $worker]), ['confirm_cancel_hired' => true]);
     $after = $report();
 
     expect($after['received'])->toBe('10000.00')
-        ->and($after['unassigned_kept'])->toBe('10000.00')
+        ->and($this->money->totals()['unassigned'])->toBe('10000.00')
         ->and($after['outstanding'])->toBe($before['outstanding'])
         ->and($this->money->forOrder($order->id)['amount'])->toBe('0.00');
 });
 
-test('the dashboard page sends the Unassigned figure', function () {
+test('the dashboard page sends no separate Unassigned figure: the money is part of Total Received', function () {
     $order = JobOrder::factory()->create();
-    applicationOn($order, S::Cancelled, ClientServiceStatus::InProgress, '1234.00');
+    applicationOn($order, S::Cancelled, ClientServiceStatus::InProgress, '1234.00', ['status' => ClientServiceStatus::InProgress]);
 
     $this->actingAs($this->admin)->get(route('dashboard'))
-        ->assertInertia(fn ($page) => $page->where('report.unassigned_kept', '1234.00'));
+        ->assertInertia(fn ($page) => $page->where('report.received', '1234.00')->missing('report.unassigned_kept'));
 });

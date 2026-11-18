@@ -4,7 +4,6 @@ namespace Tests;
 
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 /**
  * Base for tests that need a real MySQL server: locking, deadlocks and timeouts cannot be proven on SQLite.
@@ -17,7 +16,7 @@ use RuntimeException;
  */
 abstract class MysqlTestCase extends TestCase
 {
-    public const TESTING_DATABASE = 'Thai_Visa_Services_Testing';
+    public const TESTING_DATABASE = TestingDatabaseGuard::MYSQL_DATABASE;
 
     /** @var array<int, string> */
     private array $peerNames = [];
@@ -72,11 +71,7 @@ abstract class MysqlTestCase extends TestCase
 
     protected function guardTestingDatabase(): void
     {
-        $database = (string) DB::connection()->getDatabaseName();
-
-        if ($database !== self::TESTING_DATABASE) {
-            throw new RuntimeException("Refusing to run: the database is [{$database}], not [".self::TESTING_DATABASE.'].');
-        }
+        TestingDatabaseGuard::assertMysqlTestingDatabase();
     }
 
     /**

@@ -114,9 +114,6 @@ const en = {
             refunded: 'Refunded: {amount}',
             outstanding: 'Outstanding',
             outstandingHint: 'Balance still owed today',
-            unassigned: 'Unassigned kept amount',
-            unassignedHint:
-                'Kept by Job Search services, not on any job order. Already part of the money received.',
             profit: 'Profit',
             profitSoon: 'Not available yet',
             comingSoon: 'Coming soon',
