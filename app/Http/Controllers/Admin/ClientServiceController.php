@@ -50,6 +50,10 @@ class ClientServiceController extends Controller
         $received = $this->money($request->validated('received_now'));
 
         DB::transaction(function () use ($request, $client, $received): void {
+            // The Person is locked and re-read first, so a service cannot be added to a Person whose deletion is in progress or
+            // done (a 404 then). Add Worker and the document changes take the same first lock.
+            Client::query()->lockForUpdate()->findOrFail($client->id);
+
             $clientService = $client->clientServices()->create($request->safe()->except(['received_now', 'remark']));
             $this->addRemark($clientService, $request->validated('remark'), $request->user()->id);
 

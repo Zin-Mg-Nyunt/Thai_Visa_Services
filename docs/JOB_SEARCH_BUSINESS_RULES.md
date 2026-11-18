@@ -656,6 +656,6 @@ Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`): Phas
 **Not built yet:**
 
 - **Job Search documents: built (Step 12).** In Progress and Complete take full admin CRUD, Cancelled is read-only (view and download, logged), and they are never shown to the client (the release switch is refused for them). Every change locks and re-checks the Person and the service.
-- **Person deletion.** It still takes no explicit Person lock; the derived remaining balance of 0 is not in `remaining()` and `canTakePayment()` (Outstanding already excludes deleted Persons); a photo-deletion failure is not reported; the Add Service race remains, and the document-upload race is closed only on the upload side until the deletion also locks the Person first. The file-recovery mechanism is not approved.
+- **Person deletion: built (Step 13), except file recovery.** The Person row is locked first; the remaining balance of a deleted Person's services is derived as 0 in `remaining()` and `canTakePayment()`; a photo that cannot be removed is reported; Add Service takes the same first lock. What is **not** built is the file-recovery mechanism (not approved): a document file that cannot be removed is only in the error log.
 - **Lock protocol.** The detailed protocol is still pending approval. The workflows named above have MySQL concurrency tests that pass; the status-edit form's lock is proven on SQLite and by reading, and has no MySQL contention test.
 - Application Activity is not built, which matches the rules (excluded from V1).

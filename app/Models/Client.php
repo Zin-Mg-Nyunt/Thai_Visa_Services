@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -86,13 +87,13 @@ class Client extends Model
         try {
             $this->forceFill(['photo_path' => $newPath])->save();
         } catch (Throwable $exception) {
-            Storage::disk(self::PHOTO_DISK)->delete($newPath);
+            self::removePhotoFile($newPath);
 
             throw $exception;
         }
 
         if ($oldPath !== null) {
-            Storage::disk(self::PHOTO_DISK)->delete($oldPath);
+            self::removePhotoFile($oldPath);
         }
     }
 
@@ -122,7 +123,21 @@ class Client extends Model
 
         $this->forceFill(['photo_path' => null])->saveQuietly();
 
-        DB::afterCommit(fn () => Storage::disk(self::PHOTO_DISK)->delete($path));
+        DB::afterCommit(fn () => self::removePhotoFile($path));
+    }
+
+    /**
+     * Remove a photo file. The disk does not throw, so the result is checked: a file that could not be removed is reported
+     * (with its path, the only record of it once the row has forgotten it) and never blocks what the admin was doing. A file
+     * that is already gone is not a failure.
+     */
+    private static function removePhotoFile(string $path): void
+    {
+        $disk = Storage::disk(self::PHOTO_DISK);
+
+        if ($disk->delete($path) === false || $disk->exists($path)) {
+            report(new RuntimeException("A client photo file could not be removed: [{$path}]."));
+        }
     }
 
     /**
@@ -130,7 +145,8 @@ class Client extends Model
      */
     public function clientServices(): HasMany
     {
-        return $this->hasMany(ClientService::class);
+        // chaperone(): a service loaded through its client already knows it, so remaining() never needs another query for it.
+        return $this->hasMany(ClientService::class)->chaperone();
     }
 
     /**

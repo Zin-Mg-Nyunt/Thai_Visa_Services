@@ -21,10 +21,15 @@ use App\Models\ClientService;
 use App\Models\JobOrder;
 use App\Models\JobOrderWorker;
 use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
 use Tests\MysqlTestCase;
 
 require __DIR__.'/../../../../vendor/autoload.php';
@@ -108,6 +113,18 @@ try {
             }
 
             return ['rounds' => $rounds, 'worker_id' => $worker];
+        })(),
+        // One real admin request through the whole HTTP stack (middleware, policy, controller), as the signed-in user. The private disk
+        // is a fake one in this process, so no real file is written; the number of files left on it is reported.
+        'http' => (function () use ($a, $app): array {
+            Storage::fake('private');
+            $app['auth']->guard('web')->setUser(User::query()->findOrFail($a['user']));
+
+            $files = isset($a['file']) ? ['file' => new UploadedFile($a['file'], 'cv.pdf', null, null, true)] : [];
+            $request = Request::create($a['uri'], $a['method'], $a['params'] ?? [], [], $files, ['HTTP_ACCEPT' => 'application/json']);
+            $response = $app->make(HttpKernel::class)->handle($request);
+
+            return ['status' => $response->getStatusCode(), 'files' => count(Storage::disk('private')->allFiles())];
         })(),
         default => throw new InvalidArgumentException("Unknown command [{$command}]"),
     };

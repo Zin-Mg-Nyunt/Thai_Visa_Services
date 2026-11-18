@@ -283,7 +283,10 @@ class ClientController extends Controller
     {
         // One transaction: the client and their documents go together or not at all. The files are removed only after
         // it commits, so a delete that fails part-way leaves every record and file in place.
-        DB::transaction(fn () => $client->delete());
+        // The Person row is locked and re-read first (Person, then documents), the same first lock as an upload or an Add Service,
+        // so one that is already running either finishes before the delete reads the documents, or waits and then finds the Person
+        // gone. A Person who was deleted in the meantime is a 404.
+        DB::transaction(fn () => Client::query()->lockForUpdate()->findOrFail($client->id)->delete());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Client deleted.')]);
 

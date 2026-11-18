@@ -279,7 +279,8 @@ describe('first payment when adding a service', function () {
 describe('client page', function () {
     test('adds up the loaded payments once and again only when they are reloaded', function () {
         Payment::factory()->create(['client_service_id' => $this->record->id, 'amount' => 1000]);
-        $record = ClientService::with('payments')->find($this->record->id);
+        // The owner is loaded too: remaining() is zero for a deleted Person, and pages load the owner with the services.
+        $record = ClientService::with(['payments', 'client'])->find($this->record->id);
 
         DB::enableQueryLog();
         expect($record->received())->toBe('1000.00')

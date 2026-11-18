@@ -181,7 +181,9 @@ class ClientService extends Model
      */
     public function remaining(): string
     {
-        if ($this->isCancelled()) {
+        // A cancelled service owes nothing (its money is settled by the refund), and neither does a deleted Person's: the balance
+        // is derived as zero, never written (business rules 1.1). Fee, payments, refunds and the status stay as they were.
+        if ($this->isCancelled() || $this->client->trashed()) {
             return '0.00';
         }
 

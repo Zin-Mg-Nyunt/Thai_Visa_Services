@@ -212,7 +212,7 @@ class JobOrderController extends Controller
         return $jobOrder->workers()
             ->operational()
             ->where('case_status', $cancelled ? '=' : '!=', WorkerCaseStatus::Cancelled->value)
-            ->with(['client', 'clientService.payments'])
+            ->with(['client', 'clientService.payments', 'clientService.client'])
             ->latest('id')
             ->get();
     }

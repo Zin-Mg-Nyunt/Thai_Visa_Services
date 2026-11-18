@@ -315,7 +315,7 @@ Already correct:
 - Files are deleted only after the outermost transaction commits. `DB::afterCommit` waits for the outermost commit.
 - A rollback keeps the files.
 
-**10.6 Races found in today's code** (risks; none fixed):
+**10.6 Races found in today's code** (risks; #1 and #2 closed by Steps 12 and 13, §17.20 and §17.21):
 
 1. **Document upload during Person deletion.**
    - `Admin\DocumentController::store` uploads the file and then INSERTs the row, with no transaction or lock.
@@ -855,6 +855,15 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 - **Upload vs Person deletion.** The upload side is closed: it cannot land on a Person who is already deleted. The deletion side still lists the documents with a plain read before it writes the Person, so a document added between those two steps can survive; that is closed by the Person-first lock in Step 13.
 - **UI.** `ClientServiceResource` sends `accepts_documents` (true for every Job Search engagement), `documents_read_only` and `documents_releasable`. `DocumentList.vue` hides upload, edit and delete when read-only, and the release switch when not releasable.
 - **Tests.** SQLite: `JobSearchDocumentsTest` (20), with the older document tests updated. **No MySQL contention test** for upload against cancel or deletion; the stale-state cases are proven on SQLite by changing the row after the request's first check and before the lock.
+
+### 17.21 Step 13: Person deletion fixes (built 2026-11-19)
+
+- **Person first.** `ClientController::destroy` locks and re-reads the Person (`lockForUpdate()->findOrFail`) before the model's `deleting` hook clears the photo and lists and erases the documents. A Person deleted in the meantime is a 404. Because an upload (§17.20) and Add Service take the same first lock, the order for all three is Person, then service, then document. This closes both the document-upload race (§10.6 #1) and the Add Service race (§10.6 #2): an upload or Add Service that is already running either commits before the deletion reads the documents (and its document is erased with the rest), or waits and finds the Person gone (404, and the stored upload file is removed).
+- **Derived balance.** `ClientService::remaining()` returns `0.00` when the service is Cancelled **or its Person is soft-deleted**; `canTakePayment()` follows from it. Nothing is written: fee, payments, refunds, Kept, status, applications, remarks and Job Order Money are unchanged. `Client::clientServices()` uses `chaperone()` and the Job Order page eager-loads `clientService.client`, so no page needs a query per service. `BusinessReport::outstanding` is its own SQL and already excluded deleted Persons.
+- **Photo failures.** `Client::removePhotoFile` checks the result (`delete()` false, or the file still there) and `report()`s it with the path, for the deletion (after commit), the photo remove button and a replaced photo. A file already gone is not a failure. It never blocks the admin's action.
+- **Add Service.** `ClientServiceController::store` locks and re-reads the Person first; a deleted Person is a 404 and no service, payment or remark is written. Landing statistics still refresh once, after commit.
+- **Not done.** The file-recovery mechanism stays unapproved (§15): a document row is hard-deleted in the transaction, so after a failed file removal its key is only in the error log. A payment that is already in flight when the deletion commits is not blocked by a lock; it is refused afterwards because the balance is then 0.
+- **Tests.** SQLite: `PersonDeletionTest` (19). MySQL: `PersonDeletionConcurrencyMysqlTest` (4: upload and Add Service waiting for a deletion; the deletion waiting for each), using a real admin request in a child process (`run-workflow.php http`).
 
 ### 17.17 Verification status (round 10)
 

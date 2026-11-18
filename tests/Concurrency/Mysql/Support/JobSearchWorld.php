@@ -117,6 +117,7 @@ final class JobSearchWorld
         DB::table('job_order_workers')
             ->where(fn ($query) => $query->whereIn('job_order_id', $this->orders)->orWhereIn('client_id', $this->clients))
             ->delete();
+        DB::table('documents')->whereIn('client_service_id', $records)->delete();
         DB::table('payments')->whereIn('client_service_id', $records)->delete();
         DB::table('client_service_remarks')->whereIn('client_service_id', $records)->delete();
         DB::table('client_services')->whereIn('id', $records)->delete();
