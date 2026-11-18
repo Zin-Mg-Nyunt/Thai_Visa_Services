@@ -74,15 +74,6 @@ describe('access', function () {
         expect(Document::count())->toBe(0);
     });
 
-    test('a Job Search record refuses an upload for now', function () {
-        $jobSearch = Service::factory()->create(['key' => Service::JOB_SEARCH_KEY, 'has_documents' => true]);
-        $record = ClientService::factory()->forService($jobSearch)->create();
-
-        uploadTo($this, $record)->assertForbidden();
-
-        expect(Document::count())->toBe(0);
-    });
-
     test('a document is only reachable through its own service and client', function () {
         $document = Document::factory()->create(['client_service_id' => $this->record->id]);
         $other = ClientService::factory()->forService($this->workPermit)->create();
@@ -568,8 +559,9 @@ describe('client page', function () {
                 ->where('clientServices.data.0.documents.0.client_can_download', false));
     });
 
-    test('only services that take documents offer them', function () {
-        $jobSearch = Service::factory()->create(['key' => Service::JOB_SEARCH_KEY, 'has_documents' => true]);
+    test('services that take documents, and every Job Search engagement, offer them', function () {
+        // Job Search always takes documents (Step 12), whatever its own setting says.
+        $jobSearch = Service::factory()->create(['key' => Service::JOB_SEARCH_KEY, 'has_documents' => false]);
         $plain = Service::factory()->create(['has_documents' => false]);
         ClientService::factory()->forService($jobSearch)->create(['client_id' => $this->client->id]);
         ClientService::factory()->forService($plain)->create(['client_id' => $this->client->id]);
@@ -577,6 +569,6 @@ describe('client page', function () {
         $this->actingAs($this->admin)
             ->get(route('admin.clients.show', $this->client))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('clientServices.data', fn ($services) => collect($services)->pluck('accepts_documents')->sort()->values()->all() === [false, false, true]));
+                ->where('clientServices.data', fn ($services) => collect($services)->pluck('accepts_documents')->sort()->values()->all() === [false, true, true]));
     });
 });

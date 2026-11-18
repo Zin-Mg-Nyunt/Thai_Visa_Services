@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ClientService;
 use App\Models\Document;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,9 +22,15 @@ class UpdateDocumentRequest extends FormRequest
      */
     public function rules(): array
     {
+        $clientService = $this->route('clientService');
+        $isJobSearch = $clientService instanceof ClientService && $clientService->service->isJobSearch();
+
         return [
             'title' => ['sometimes', 'required', 'string', 'max:150'],
-            'client_can_download' => ['sometimes', 'required', 'boolean'],
+            // A Job Search document is never shown to the client, so it has nothing to release.
+            'client_can_download' => $isJobSearch
+                ? ['prohibited']
+                : ['sometimes', 'required', 'boolean'],
         ];
     }
 }

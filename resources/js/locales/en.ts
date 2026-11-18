@@ -464,6 +464,8 @@ const en = {
         },
     },
     documents: {
+        readOnly:
+            'The documents of a cancelled engagement can be viewed and downloaded only.',
         title: 'Documents',
         upload: 'Upload',
         empty: 'No documents yet.',

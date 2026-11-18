@@ -113,7 +113,7 @@ test('an access log row keeps the client id after the client is deleted', functi
     expect($log->fresh()->client_id)->toBe($record->client_id);
 });
 
-test('only the signed-in superadmin manages documents, and only on a service that has documents (not Job Search)', function () {
+test('only the signed-in superadmin manages documents, on a service that has documents or on a Job Search engagement that is not Cancelled', function () {
     $admin = User::factory()->create();
     $withDocuments = workPermitRecord();
     $without = ClientService::factory()->create();
@@ -123,7 +123,10 @@ test('only the signed-in superadmin manages documents, and only on a service tha
         Service::factory()->create(['key' => Service::JOB_SEARCH_KEY, 'has_documents' => true]),
     )->create();
 
-    expect(Gate::forUser($admin)->allows('create', [Document::class, $jobSearch]))->toBeFalse()
+    $cancelledJobSearch = ClientService::factory()->cancelled()->forService($jobSearch->service)->create();
+
+    expect(Gate::forUser($admin)->allows('create', [Document::class, $jobSearch]))->toBeTrue()
+        ->and(Gate::forUser($admin)->allows('create', [Document::class, $cancelledJobSearch]))->toBeFalse()
         ->and(Gate::forUser($admin)->allows('create', [Document::class, $withDocuments]))->toBeTrue()
         ->and(Gate::forUser($admin)->allows('create', [Document::class, $without]))->toBeFalse()
         ->and(Gate::allows('create', [Document::class, $withDocuments]))->toBeFalse();

@@ -461,6 +461,8 @@ const details = computed(() => [
                         service.service ? titleOf(service.service) : ''
                     "
                     :documents="service.documents ?? []"
+                    :read-only="service.documents_read_only ?? false"
+                    :releasable="service.documents_releasable ?? true"
                 />
                 <Button
                     v-if="canRecordPayment(service)"

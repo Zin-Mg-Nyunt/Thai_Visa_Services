@@ -13,14 +13,19 @@ use App\Models\User;
 class DocumentPolicy
 {
     /**
-     * Only a service that has documents (for example Work Permit) can take files. Job Search records do not take them
-     * from the client page: their documents belong to the job order work of a later phase and are never shown to clients.
+     * Upload to a service. An ordinary service takes files only when it is set up for documents. A Job Search engagement always
+     * takes them, while it is In Progress or Complete (they are the admin's own papers for the job search work); once it is
+     * Cancelled its documents are read-only. They are never shown to the client either way.
      */
     public function create(User $user, ClientService $clientService): bool
     {
+        if (! $user->isSuperadmin()) {
+            return false;
+        }
+
         $service = $clientService->service;
 
-        return $user->isSuperadmin() && $service->has_documents && ! $service->isJobSearch();
+        return $service->isJobSearch() ? ! $clientService->isCancelled() : $service->has_documents;
     }
 
     public function view(User $user, Document $document): bool
@@ -30,11 +35,22 @@ class DocumentPolicy
 
     public function update(User $user, Document $document): bool
     {
-        return $user->isSuperadmin();
+        return $user->isSuperadmin() && ! $this->isReadOnly($document);
     }
 
     public function delete(User $user, Document $document): bool
     {
-        return $user->isSuperadmin();
+        return $user->isSuperadmin() && ! $this->isReadOnly($document);
+    }
+
+    /**
+     * The documents of a Cancelled Job Search engagement can be viewed and downloaded, but not renamed, replaced or deleted. The
+     * documents of any other service are not locked by its status.
+     */
+    private function isReadOnly(Document $document): bool
+    {
+        $clientService = $document->clientService;
+
+        return $clientService->service->isJobSearch() && $clientService->isCancelled();
     }
 }

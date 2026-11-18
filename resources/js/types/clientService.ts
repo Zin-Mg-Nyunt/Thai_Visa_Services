@@ -72,6 +72,10 @@ export type ClientService = {
     is_job_search?: boolean;
     /** True for a service that takes documents, such as Work Permit; sent on the client page. */
     accepts_documents?: boolean;
+    /** A Cancelled Job Search engagement: its documents can be viewed and downloaded only. */
+    documents_read_only?: boolean;
+    /** False for Job Search documents: they are never shown to the client, so there is nothing to release. */
+    documents_releasable?: boolean;
     /** Newest first; sent on the client page. */
     documents?: ClientDocument[];
     /** Newest first; sent on the client page and the edit page. */

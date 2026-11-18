@@ -38,7 +38,10 @@ class ClientServiceResource extends JsonResource
             'cancel_refund_amount' => $this->cancel_refund_amount,
             'cancelled_at' => $this->cancelled_at?->toIso8601String(),
             'is_job_search' => $this->whenLoaded('service', fn () => $this->service->isJobSearch()),
-            'accepts_documents' => $this->whenLoaded('service', fn () => $this->service->has_documents && ! $this->service->isJobSearch()),
+            // A Job Search engagement always has documents (admin only, never released to the client); once Cancelled they are read-only.
+            'accepts_documents' => $this->whenLoaded('service', fn () => $this->service->isJobSearch() || $this->service->has_documents),
+            'documents_read_only' => $this->whenLoaded('service', fn () => $this->service->isJobSearch() && $this->isCancelled()),
+            'documents_releasable' => $this->whenLoaded('service', fn () => ! $this->service->isJobSearch()),
             $this->mergeWhen($this->relationLoaded('documents'), fn () => [
                 'documents' => $this->documents->map(fn (Document $document) => [
                     'id' => $document->id,

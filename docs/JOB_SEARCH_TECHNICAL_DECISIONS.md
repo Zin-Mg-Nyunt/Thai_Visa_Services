@@ -847,6 +847,15 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 - **UI.** `Show.vue` has four `StatCard`s. Worker names are Inertia links to Client Detail in `JobOrderWorkers.vue` and `CancelledApplications.vue`.
 - **Tests.** SQLite: `JobOrderDetailPageTest`, plus the updated `JobOrderWorkerTest` and `JobOrderControllerTest`.
 
+### 17.20 Step 12: Job Search documents (built 2026-11-18)
+
+- **Policy.** `DocumentPolicy::create`: a Job Search engagement takes documents while it is not whole-service Cancelled, whatever the Job Search service's own `has_documents` says; any other service still needs `has_documents`. `update` and `delete` are refused for the documents of a Cancelled Job Search engagement (`isReadOnly`); other services are not locked by status. `view` (download) is unchanged, and the download is logged as before.
+- **Admin only.** `UpdateDocumentRequest` prohibits `client_can_download` for a Job Search document, so it cannot be released. The portal download already answers 404 for Job Search.
+- **Lock and re-check.** `DocumentController::whileLocked` runs upload, rename, replace and delete in one transaction: lock the Person row (a deleted Person is a 404), then the ClientService row (must belong to that Person), then, for an existing document, the document row; then it re-checks the policy on the locked rows. Order: Person, then service, then document, which matches L2 then L3 of the lock protocol. The new file is stored **before** the transaction (no storage I/O under a lock) and the controller deletes it if the transaction fails or is refused; an old file is removed after the commit, as before. Not retried and no 5-second helper (§6).
+- **Upload vs Person deletion.** The upload side is closed: it cannot land on a Person who is already deleted. The deletion side still lists the documents with a plain read before it writes the Person, so a document added between those two steps can survive; that is closed by the Person-first lock in Step 13.
+- **UI.** `ClientServiceResource` sends `accepts_documents` (true for every Job Search engagement), `documents_read_only` and `documents_releasable`. `DocumentList.vue` hides upload, edit and delete when read-only, and the release switch when not releasable.
+- **Tests.** SQLite: `JobSearchDocumentsTest` (20), with the older document tests updated. **No MySQL contention test** for upload against cancel or deletion; the stale-state cases are proven on SQLite by changing the row after the request's first check and before the lock.
+
 ### 17.17 Verification status (round 10)
 
 Implemented in the working tree, uncommitted. Behaviour is covered by SQLite tests (`CancelHiredTest`, `JobOrderMoneyTest`, `AddWorkerEngagementTest`, and the updated Job Search suite) and by a browser run on an isolated scratch database. **No MySQL concurrency test was run** for Hired → Cancelled, the same-order duplicate check, or the Money query: SQLite ignores `FOR UPDATE`, so the lock sequence of §11.3 and §17.16 is argued from the code, not proven. The tests listed as MySQL in §17.14 (23 and 24, 32) are still to be written and run on `Thai_Visa_Services_Testing`.

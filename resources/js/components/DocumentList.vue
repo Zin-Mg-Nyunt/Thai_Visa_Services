@@ -43,12 +43,19 @@ import { Label } from '@/components/ui/label';
 import { formatDateTime, formatFileSize } from '@/lib/format';
 import type { ClientDocument } from '@/types';
 
-const props = defineProps<{
-    clientId: number;
-    clientServiceId: number;
-    serviceName: string;
-    documents: ClientDocument[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        clientId: number;
+        clientServiceId: number;
+        serviceName: string;
+        documents: ClientDocument[];
+        /** Cancelled Job Search engagement: view and download only. */
+        readOnly?: boolean;
+        /** False for Job Search documents: no release switch, they are never shown to the client. */
+        releasable?: boolean;
+    }>(),
+    { readOnly: false, releasable: true },
+);
 
 const { t } = useI18n();
 
@@ -249,6 +256,7 @@ const toggleLabel = (document: ClientDocument) =>
                 {{ t('documents.title') }}
             </h4>
             <Button
+                v-if="!readOnly"
                 variant="pillOutline"
                 size="sm"
                 data-test="upload-document-button"
@@ -258,6 +266,14 @@ const toggleLabel = (document: ClientDocument) =>
                 {{ t('documents.upload') }}
             </Button>
         </div>
+
+        <p
+            v-if="readOnly"
+            class="mt-1 text-xs text-muted-foreground"
+            data-test="documents-read-only"
+        >
+            {{ t('documents.readOnly') }}
+        </p>
 
         <ul v-if="documents.length" class="mt-3 divide-y">
             <li
@@ -288,6 +304,7 @@ const toggleLabel = (document: ClientDocument) =>
                     <!-- From sm up: icon buttons. Below sm: one kebab menu with the same actions. -->
                     <div class="hidden shrink-0 gap-1 sm:flex">
                         <Button
+                            v-if="!readOnly"
                             variant="ghost"
                             size="icon-sm"
                             :aria-label="t('common.edit')"
@@ -310,6 +327,7 @@ const toggleLabel = (document: ClientDocument) =>
                             </a>
                         </Button>
                         <Button
+                            v-if="!readOnly"
                             variant="ghost"
                             size="icon-sm"
                             class="text-destructive"
@@ -321,6 +339,7 @@ const toggleLabel = (document: ClientDocument) =>
                             <Trash class="size-4" />
                         </Button>
                         <Button
+                            v-if="releasable"
                             type="button"
                             variant="ghost"
                             size="icon-sm"
@@ -359,6 +378,7 @@ const toggleLabel = (document: ClientDocument) =>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="min-w-0">
                             <DropdownMenuItem
+                                v-if="!readOnly"
                                 :aria-label="t('common.edit')"
                                 :title="t('common.edit')"
                                 class="justify-center"
@@ -368,6 +388,7 @@ const toggleLabel = (document: ClientDocument) =>
                                 <Pencil />
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                                v-if="releasable"
                                 :aria-label="toggleLabel(document)"
                                 :title="toggleLabel(document)"
                                 :data-state="
@@ -398,6 +419,7 @@ const toggleLabel = (document: ClientDocument) =>
                                 </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                                v-if="!readOnly"
                                 variant="destructive"
                                 :aria-label="t('common.delete')"
                                 :title="t('common.delete')"

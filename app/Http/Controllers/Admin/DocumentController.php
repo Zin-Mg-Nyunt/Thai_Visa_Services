@@ -14,8 +14,10 @@ use App\Http\Requests\UpdateDocumentRequest;
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Document;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -45,14 +47,18 @@ class DocumentController extends Controller
         }
 
         try {
-            $clientService->documents()->create([
-                'title' => trim($request->validated('title')),
-                'storage_key' => $key,
-                'mime' => $detected['mime'],
-                'size' => $request->file('file')->getSize(),
-                'client_can_download' => false,
-                'uploaded_by' => $request->user()->id,
-            ]);
+            $this->whileLocked($client, $clientService, function (ClientService $locked) use ($request, $key, $detected): void {
+                Gate::authorize('create', [Document::class, $locked]);
+
+                $locked->documents()->create([
+                    'title' => trim($request->validated('title')),
+                    'storage_key' => $key,
+                    'mime' => $detected['mime'],
+                    'size' => $request->file('file')->getSize(),
+                    'client_can_download' => false,
+                    'uploaded_by' => $request->user()->id,
+                ]);
+            });
         } catch (Throwable $exception) {
             $disk->delete($key);
 
@@ -103,7 +109,12 @@ class DocumentController extends Controller
             $data['title'] = trim($data['title']);
         }
 
-        $document->update($data);
+        $this->whileLocked($client, $clientService, function (ClientService $locked) use ($document, $data): void {
+            $this->lockDocument($document, $locked);
+            Gate::authorize('update', $document);
+
+            $document->update($data);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document updated.')]);
 
@@ -127,7 +138,12 @@ class DocumentController extends Controller
         }
 
         try {
-            $document->replaceFile($key, ['mime' => $detected['mime'], 'size' => $request->file('file')->getSize()], $request->user()->id);
+            $this->whileLocked($client, $clientService, function (ClientService $locked) use ($document, $key, $detected, $request): void {
+                $this->lockDocument($document, $locked);
+                Gate::authorize('update', $document);
+
+                $document->replaceFile($key, ['mime' => $detected['mime'], 'size' => $request->file('file')->getSize()], $request->user()->id);
+            });
         } catch (Throwable $exception) {
             $disk->delete($key);
 
@@ -146,10 +162,47 @@ class DocumentController extends Controller
     {
         Gate::authorize('delete', $document);
 
-        $document->erase();
+        $this->whileLocked($client, $clientService, function (ClientService $locked) use ($document): void {
+            $this->lockDocument($document, $locked);
+            Gate::authorize('delete', $document);
+
+            $document->erase();
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Document deleted.')]);
 
         return to_route('admin.clients.show', $client);
+    }
+
+    /**
+     * Run a document change with the Person and the service locked and re-read, in the order Person, then service (then the
+     * document). The request was checked before the lock, but the engagement can change in between: a Cancel that has committed,
+     * or a Person who has been deleted, must stop an upload or an edit that was already on its way, so the work re-checks the
+     * policy on the locked service. A deleted Person is a 404. No file is touched while the locks are held: the new file is
+     * stored before, and removed by the caller if this fails; an old file is removed after the commit.
+     *
+     * @param  Closure(ClientService): void  $work
+     */
+    private function whileLocked(Client $client, ClientService $clientService, Closure $work): void
+    {
+        DB::transaction(function () use ($client, $clientService, $work): void {
+            Client::query()->whereKey($client->id)->lockForUpdate()->firstOrFail();
+
+            $locked = ClientService::query()->whereKey($clientService->id)->where('client_id', $client->id)->lockForUpdate()->firstOrFail();
+            $locked->load('service');
+
+            $work($locked);
+        });
+    }
+
+    /**
+     * Re-read the document under a lock, still the one of this service, and give it the locked service for the policy check.
+     */
+    private function lockDocument(Document $document, ClientService $locked): void
+    {
+        $fresh = Document::query()->whereKey($document->id)->where('client_service_id', $locked->id)->lockForUpdate()->firstOrFail();
+
+        $document->setRawAttributes($fresh->getAttributes(), true);
+        $document->setRelation('clientService', $locked);
     }
 }
