@@ -15,9 +15,10 @@ use App\Http\Controllers\Client\PhotoController;
 use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\SessionController;
 use App\Http\Controllers\Client\TrackingController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', WelcomeController::class)->name('home');
 
 Route::middleware('throttle:60,1')
     ->prefix('track')

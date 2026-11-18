@@ -12,9 +12,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class JobOrderResource extends JsonResource
 {
     /**
-     * The fields of an order as the admin sees them. The worker counts (active, and cancelled apart) and exceeds_manpower
-     * are only there when the workers were counted. Deleted people are not counted. More active workers than the company
-     * asked for is a warning on the page, never a block.
+     * The fields of an order as the admin sees them. The worker counts (applied, hired, and cancelled applications apart) and
+     * exceeds_manpower are only there when the workers were counted. Deleted people are not counted. More Hired workers than the
+     * company asked for is a warning on the page, never a block; Applied and Interview are not capacity.
      *
      * @return array<string, mixed>
      */
@@ -31,9 +31,10 @@ class JobOrderResource extends JsonResource
             'status' => $this->status->value,
             'closed_at' => $this->closed_at?->toIso8601String(),
             'notes' => $this->notes,
-            'active_workers_count' => $this->whenHas('active_workers_count'),
+            'applied_workers_count' => $this->whenHas('applied_workers_count'),
+            'hired_workers_count' => $this->whenHas('hired_workers_count'),
             'cancelled_workers_count' => $this->whenHas('cancelled_workers_count'),
-            'exceeds_manpower' => $this->whenHas('active_workers_count', fn (int $count) => $count > $this->manpower),
+            'exceeds_manpower' => $this->whenHas('hired_workers_count', fn (int $count) => $count > $this->manpower),
             'can_edit' => $request->user()?->can('update', $this->resource) ?? false,
             'created_at' => $this->created_at?->toIso8601String(),
         ];

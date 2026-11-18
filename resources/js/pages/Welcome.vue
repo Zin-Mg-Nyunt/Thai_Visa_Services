@@ -21,12 +21,28 @@ import { Button } from '@/components/ui/button';
 const { t, locale } = useI18n();
 const name = usePage().props.name;
 
-// Mockup data. The real contact details and numbers come from settings in a later phase.
+// The two public numbers are real totals from the database (cached on the server). It is null when there is nothing to show
+// yet, which hides the section. A zero is shown as a zero when the other number is not.
+const props = defineProps<{
+    statistics: { clients_served: number; services_provided: number } | null;
+}>();
+
+// Mockup data. The real contact details come from settings in a later phase.
 const contact = { phone: '+66 2 123 4567', email: 'info@example.com' };
-const stats = [
-    { value: 1240, label: 'landing.stats.clients' },
-    { value: 3860, label: 'landing.stats.services' },
-];
+const stats = computed(() =>
+    props.statistics
+        ? [
+              {
+                  value: props.statistics.clients_served,
+                  label: 'landing.stats.clients',
+              },
+              {
+                  value: props.statistics.services_provided,
+                  label: 'landing.stats.services',
+              },
+          ]
+        : [],
+);
 
 const about = [
     { icon: Award, key: 'experience' },
@@ -172,7 +188,7 @@ const contactLine = computed(() => [
         </div>
     </section>
 
-    <section class="bg-background" data-test="stats-section">
+    <section v-if="statistics" class="bg-background" data-test="stats-section">
         <div class="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14">
             <div
                 class="grid gap-6 rounded-3xl bg-brand-dark px-6 py-8 text-center text-white sm:grid-cols-2 sm:py-10"

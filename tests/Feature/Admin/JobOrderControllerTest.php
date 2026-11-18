@@ -60,21 +60,25 @@ describe('index', function () {
                 ->component('admin/job-search/Index')
                 ->has('jobOrders.data', 10)
                 ->where('jobOrders.data.0.id', $newest->id)
-                ->where('jobOrders.data.0.active_workers_count', 2)
+                ->where('jobOrders.data.0.applied_workers_count', 2)
                 ->where('jobOrders.meta.total', 13));
     });
 
-    test('warns when there are more workers than the company asked for, and only then', function () {
+    test('warns when more workers are Hired than the company asked for, and only then', function () {
         $over = JobOrder::factory()->create(['manpower' => 1]);
         $exact = JobOrder::factory()->create(['manpower' => 2]);
-        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $over->id]);
-        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $exact->id]);
+        $applied = JobOrder::factory()->create(['manpower' => 1]);
+        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $over->id, 'case_status' => 'hired']);
+        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $exact->id, 'case_status' => 'hired']);
+        JobOrderWorker::factory()->count(3)->create(['job_order_id' => $applied->id]);
 
         $this->actingAs(User::factory()->create())
             ->get(route('admin.job-search.index'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('jobOrders.data', fn ($orders) => collect($orders)->firstWhere('id', $over->id)['exceeds_manpower'] === true
-                    && collect($orders)->firstWhere('id', $exact->id)['exceeds_manpower'] === false));
+                    && collect($orders)->firstWhere('id', $exact->id)['exceeds_manpower'] === false
+                    // Applied workers are not capacity, however many there are.
+                    && collect($orders)->firstWhere('id', $applied->id)['exceeds_manpower'] === false));
     });
 
     test('searches by company name, and % and _ search for themselves', function () {
@@ -253,7 +257,7 @@ describe('create and store', function () {
 describe('edit and update', function () {
     test('shows the form for an open order, with the warning data', function () {
         $order = JobOrder::factory()->create(['manpower' => 1]);
-        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $order->id]);
+        JobOrderWorker::factory()->count(2)->create(['job_order_id' => $order->id, 'case_status' => 'hired']);
 
         $this->actingAs(User::factory()->create())
             ->get(route('admin.job-search.edit', $order))
@@ -261,7 +265,7 @@ describe('edit and update', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->component('admin/job-search/Edit')
                 ->where('jobOrder.data.id', $order->id)
-                ->where('jobOrder.data.active_workers_count', 2)
+                ->where('jobOrder.data.hired_workers_count', 2)
                 ->where('jobOrder.data.exceeds_manpower', true));
     });
 

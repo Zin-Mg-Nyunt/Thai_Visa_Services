@@ -212,7 +212,14 @@ describe('adding a worker', function () {
 
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.edit', $order))
-            ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.exceeds_manpower', true)->has('workers.data', 2));
+            ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.exceeds_manpower', false)->where('jobOrder.data.applied_workers_count', 2)->has('workers.data', 2));
+
+        // Applied is not capacity: the reminder starts when more workers are Hired than the company asked for.
+        $order->workers()->update(['case_status' => WorkerCaseStatus::Hired]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.job-search.edit', $order))
+            ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.exceeds_manpower', true)->where('jobOrder.data.hired_workers_count', 2));
     });
 
     test('a closed order takes no new worker and nothing is created', function (string $state) {
@@ -347,37 +354,41 @@ describe('worker counts', function () {
         return ['active' => $active, 'cancelled' => $cancelled, 'deleted' => $deleted];
     }
 
-    test('active workers are not deleted and not cancelled; cancelled ones are counted apart; deleted people are in neither', function () {
+    test('Applied Workers leave out a deleted person and a worker on a whole-service cancelled service; nothing here is a cancelled application or a hire', function () {
         orderWithEveryKindOfWorker($this->order);
 
+        // Rows: Applied (service in progress), Applied (service Complete), Applied (service Cancelled), and a deleted person.
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $this->order))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrder.data.active_workers_count', 2)
-                ->where('jobOrder.data.cancelled_workers_count', 1));
+                ->where('jobOrder.data.applied_workers_count', 2)
+                ->where('jobOrder.data.hired_workers_count', 0)
+                ->where('jobOrder.data.cancelled_workers_count', 0));
 
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.index'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrders.data.0.active_workers_count', 2)
-                ->where('jobOrders.data.0.cancelled_workers_count', 1));
+                ->where('jobOrders.data.0.applied_workers_count', 2)
+                ->where('jobOrders.data.0.hired_workers_count', 0));
     });
 
-    test('the over-manpower warning compares manpower with the active workers only', function (int $manpower, bool $warns) {
+    test('the over-manpower warning compares manpower with the Hired Workers only', function (int $manpower, int $hired, bool $warns) {
         $order = JobOrder::factory()->create(['manpower' => $manpower]);
         orderWithEveryKindOfWorker($order);
+        JobOrderWorker::factory()->count($hired)->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Hired]);
 
-        // 2 active, 1 cancelled, 1 deleted: only the 2 active count.
+        // The four rows above (Applied, Applied, Applied on a cancelled service, deleted) are never capacity.
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $order))
-            ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.exceeds_manpower', $warns));
+            ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.hired_workers_count', $hired)->where('jobOrder.data.exceeds_manpower', $warns));
     })->with([
-        'manpower 1: 2 active exceed it' => [1, true],
-        'manpower 2: cancelled and deleted do not push it over' => [2, false],
-        'manpower 3' => [3, false],
+        'below capacity: 9 of 10' => [10, 9, false],
+        'capacity reached: 10 of 10' => [10, 10, false],
+        'over capacity: 11 of 10' => [10, 11, true],
+        'applied and interview workers do not count: 0 of 1' => [1, 0, false],
     ]);
 
-    test('a rejected worker is not active, even with a service in progress, and is not counted as cancelled', function () {
+    test('a rejected worker is neither applied nor hired, even with a service in progress, and is not a cancelled application', function () {
         $order = JobOrder::factory()->create(['manpower' => 1]);
         JobOrderWorker::factory()->create(['job_order_id' => $order->id]);
         $rejected = JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Rejected]);
@@ -387,7 +398,8 @@ describe('worker counts', function () {
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $order))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrder.data.active_workers_count', 1)
+                ->where('jobOrder.data.applied_workers_count', 1)
+                ->where('jobOrder.data.hired_workers_count', 0)
                 ->where('jobOrder.data.cancelled_workers_count', 0)
                 ->where('jobOrder.data.exceeds_manpower', false)
                 // Still listed: a rejected worker stays part of the order's history.
@@ -396,26 +408,29 @@ describe('worker counts', function () {
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.index'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrders.data.0.active_workers_count', 1)
+                ->where('jobOrders.data.0.applied_workers_count', 1)
                 ->where('jobOrders.data.0.exceeds_manpower', false));
     });
 
-    test('rejecting a worker frees a place: the over-manpower warning goes away', function () {
+    test('cancelling a hired worker frees a place: the over-manpower warning goes away, and the row stays as history', function () {
         $order = JobOrder::factory()->create(['manpower' => 1]);
-        JobOrderWorker::factory()->create(['job_order_id' => $order->id]);
-        $second = JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Interview]);
+        JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Hired]);
+        $second = JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => WorkerCaseStatus::Hired]);
 
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $order))
             ->assertInertia(fn (Assert $page) => $page->where('jobOrder.data.exceeds_manpower', true));
 
-        $second->update(['case_status' => WorkerCaseStatus::Rejected]);
+        $second->update(['case_status' => WorkerCaseStatus::Cancelled]);
 
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $order))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrder.data.active_workers_count', 1)
-                ->where('jobOrder.data.exceeds_manpower', false));
+                ->where('jobOrder.data.hired_workers_count', 1)
+                ->where('jobOrder.data.cancelled_workers_count', 1)
+                ->where('jobOrder.data.exceeds_manpower', false)
+                ->has('workers.data', 1)
+                ->has('cancelledWorkers.data', 1));
     });
 
     test('rejecting a worker keeps their record, payments and worker row', function () {
@@ -431,17 +446,19 @@ describe('worker counts', function () {
             ->and($record->kept())->toBe('1500.25');
     });
 
-    test('every case status but rejected and cancelled counts as active', function (WorkerCaseStatus $status, int $active) {
+    test('each case status lands in exactly one count: applied, hired or cancelled applications; rejected in none', function (WorkerCaseStatus $status, int $applied, int $hired, int $cancelled) {
         $order = JobOrder::factory()->create();
         JobOrderWorker::factory()->create(['job_order_id' => $order->id, 'case_status' => $status]);
 
-        expect(JobOrder::query()->withWorkerCounts()->find($order->id)->active_workers_count)->toBe($active);
+        $counted = JobOrder::query()->withWorkerCounts()->find($order->id);
+
+        expect([$counted->applied_workers_count, $counted->hired_workers_count, $counted->cancelled_workers_count])->toBe([$applied, $hired, $cancelled]);
     })->with([
-        'applied' => [WorkerCaseStatus::Applied, 1],
-        'interview' => [WorkerCaseStatus::Interview, 1],
-        'hired' => [WorkerCaseStatus::Hired, 1],
-        'rejected' => [WorkerCaseStatus::Rejected, 0],
-        'cancelled' => [WorkerCaseStatus::Cancelled, 0],
+        'applied' => [WorkerCaseStatus::Applied, 1, 0, 0],
+        'interview' => [WorkerCaseStatus::Interview, 1, 0, 0],
+        'hired' => [WorkerCaseStatus::Hired, 0, 1, 0],
+        'rejected' => [WorkerCaseStatus::Rejected, 0, 0, 0],
+        'cancelled' => [WorkerCaseStatus::Cancelled, 0, 0, 1],
     ]);
 
     test('a cancelled worker stays on the order and is listed and marked; a deleted person is not listed', function () {
@@ -468,10 +485,10 @@ describe('worker counts', function () {
         expect($record->received())->toBe('1200.50')
             ->and($record->kept())->toBe('1200.50')
             ->and(JobOrderWorker::find($worker->id))->not->toBeNull()
-            ->and(JobOrder::query()->withWorkerCounts()->find($this->order->id)->active_workers_count)->toBe(0);
+            ->and(JobOrder::query()->withWorkerCounts()->find($this->order->id)->applied_workers_count)->toBe(0);
     });
 
-    test('a cancelled worker does not count as active, so it frees a place and the order is not over manpower', function () {
+    test('a worker on a whole-service cancelled service is not an Applied Worker, and is not a cancelled application row either', function () {
         $order = JobOrder::factory()->create(['manpower' => 1]);
         $first = JobOrderWorker::factory()->create(['job_order_id' => $order->id]);
         $first->clientService->update(['status' => ClientServiceStatus::Cancel, 'cancelled_at' => now()]);
@@ -480,8 +497,8 @@ describe('worker counts', function () {
         $this->actingAs($this->admin)
             ->get(route('admin.job-search.show', $order))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('jobOrder.data.active_workers_count', 1)
-                ->where('jobOrder.data.cancelled_workers_count', 1)
+                ->where('jobOrder.data.applied_workers_count', 1)
+                ->where('jobOrder.data.cancelled_workers_count', 0)
                 ->where('jobOrder.data.exceeds_manpower', false));
     });
 });

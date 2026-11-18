@@ -2,13 +2,14 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     Banknote,
+    ClipboardList,
     Pencil,
     TriangleAlert,
     UserCheck,
-    UserX,
     Users,
 } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
+import CancelledApplications from '@/components/CancelledApplications.vue';
 import JobOrderActions from '@/components/JobOrderActions.vue';
 import JobOrderWorkers from '@/components/JobOrderWorkers.vue';
 import StatCard from '@/components/StatCard.vue';
@@ -22,6 +23,7 @@ import type { JobOrder, JobOrderMoney, JobOrderWorker } from '@/types';
 defineProps<{
     jobOrder: { data: JobOrder };
     workers: { data: JobOrderWorker[] };
+    cancelledWorkers: { data: JobOrderWorker[] };
     workerFee: string | null;
     money: JobOrderMoney;
 }>();
@@ -73,7 +75,7 @@ const { t } = useI18n();
         <TriangleAlert class="mt-0.5 size-4 shrink-0" />
         {{
             t('jobOrders.exceeds', {
-                count: jobOrder.data.active_workers_count,
+                count: jobOrder.data.hired_workers_count,
                 manpower: jobOrder.data.manpower,
             })
         }}
@@ -84,6 +86,7 @@ const { t } = useI18n();
             :label="t('jobOrders.show.requested')"
             :value="jobOrder.data.manpower"
             :icon="Users"
+            data-test="manpower-card"
         >
             <p class="text-xs text-muted-foreground">
                 {{ t('jobOrders.columns.male') }}
@@ -93,17 +96,25 @@ const { t } = useI18n();
             </p>
         </StatCard>
         <StatCard
-            :label="t('jobOrders.show.active')"
-            :value="jobOrder.data.active_workers_count ?? 0"
-            :icon="UserCheck"
-            data-test="active-workers-card"
-        />
+            :label="t('jobOrders.show.applied')"
+            :value="jobOrder.data.applied_workers_count ?? 0"
+            :icon="ClipboardList"
+            data-test="applied-workers-card"
+        >
+            <p class="text-xs text-muted-foreground">
+                {{ t('jobOrders.show.appliedHint') }}
+            </p>
+        </StatCard>
         <StatCard
-            :label="t('jobOrders.show.cancelledWorkers')"
-            :value="jobOrder.data.cancelled_workers_count ?? 0"
-            :icon="UserX"
-            data-test="cancelled-workers-card"
-        />
+            :label="t('jobOrders.show.hired')"
+            :value="jobOrder.data.hired_workers_count ?? 0"
+            :icon="UserCheck"
+            data-test="hired-workers-card"
+        >
+            <p class="text-xs text-muted-foreground">
+                {{ t('jobOrders.show.hiredHint') }}
+            </p>
+        </StatCard>
         <StatCard
             :label="t('jobOrders.show.money')"
             :value="formatMoney(money.amount)"
@@ -150,4 +161,6 @@ const { t } = useI18n();
         :workers="workers.data"
         :default-fee="workerFee"
     />
+
+    <CancelledApplications :workers="cancelledWorkers.data" />
 </template>

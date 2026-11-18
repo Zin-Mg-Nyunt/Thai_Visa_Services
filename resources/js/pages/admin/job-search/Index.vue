@@ -54,16 +54,20 @@ const visit = () => {
 };
 
 const workersText = (order: JobOrder) =>
-    order.cancelled_workers_count
-        ? t('jobOrders.workers.withCancelled', {
-              active: order.active_workers_count,
-              cancelled: order.cancelled_workers_count,
-          })
-        : String(order.active_workers_count);
+    t(
+        order.cancelled_workers_count
+            ? 'jobOrders.workers.countsWithCancelled'
+            : 'jobOrders.workers.counts',
+        {
+            hired: order.hired_workers_count ?? 0,
+            applied: order.applied_workers_count ?? 0,
+            cancelled: order.cancelled_workers_count ?? 0,
+        },
+    );
 
 const exceedsText = (order: JobOrder) =>
     t('jobOrders.exceeds', {
-        count: order.active_workers_count,
+        count: order.hired_workers_count,
         manpower: order.manpower,
     });
 

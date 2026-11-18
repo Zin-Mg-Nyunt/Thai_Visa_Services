@@ -84,30 +84,42 @@ class JobOrderWorker extends Model
     }
 
     /**
-     * Operational workers whose Job Search service is not cancelled and whose case is neither rejected nor cancelled: the
-     * ones who count against manpower. A rejected or cancelled application may sit on a service that is still in progress;
-     * the case status alone leaves it out. Nothing is deleted: the record, payments and history stay.
+     * The Applied Workers of an order (business rules, 11.1): applications that are Applied or Interview, whose person is not
+     * deleted and whose Job Search service is not whole-service Cancelled. Hired, Rejected and Cancelled rows are not counted.
      *
      * @param  Builder<JobOrderWorker>  $query
      */
     #[Scope]
-    protected function active(Builder $query): void
+    protected function applied(Builder $query): void
     {
         $query->operational()
-            ->whereNotIn('case_status', [WorkerCaseStatus::Rejected->value, WorkerCaseStatus::Cancelled->value])
+            ->open()
             ->whereHas('clientService', fn ($service) => $service->where('status', '!=', ClientServiceStatus::Cancel->value));
     }
 
     /**
-     * Operational workers whose Job Search service was cancelled. They stay part of the order's history, counted apart
-     * from the active workers and never shown as active.
+     * The Hired Workers of an order (business rules, 11.1): applications whose CURRENT status is Hired and whose person is not
+     * deleted. A Hired application that was cancelled (Hired -> Cancelled) is no longer counted, also on a closed order; its row
+     * stays as history. This is the capacity count the manpower warning compares with.
      *
      * @param  Builder<JobOrderWorker>  $query
      */
     #[Scope]
-    protected function cancelled(Builder $query): void
+    protected function hired(Builder $query): void
     {
-        $query->operational()->whereHas('clientService', fn ($service) => $service->where('status', ClientServiceStatus::Cancel->value));
+        $query->operational()->where('case_status', WorkerCaseStatus::Hired->value);
+    }
+
+    /**
+     * The historical cancelled applications of an order: rows whose status is Cancelled, whoever's person is not deleted. They
+     * stay in the database and are shown apart from the operational counts, which they never inflate.
+     *
+     * @param  Builder<JobOrderWorker>  $query
+     */
+    #[Scope]
+    protected function cancelledApplications(Builder $query): void
+    {
+        $query->operational()->where('case_status', WorkerCaseStatus::Cancelled->value);
     }
 
     /**

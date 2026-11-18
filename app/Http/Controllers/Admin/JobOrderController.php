@@ -6,6 +6,7 @@ use App\Actions\JobSearch\CloseJobOrder;
 use App\Actions\JobSearch\JobOrderChangedException;
 use App\Actions\JobSearch\JobOrderMoney;
 use App\Enums\JobOrderStatus;
+use App\Enums\WorkerCaseStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseJobOrderRequest;
 use App\Http\Requests\StoreJobOrderRequest;
@@ -61,7 +62,8 @@ class JobOrderController extends Controller
 
     /**
      * The order and its workers, read-only. It works for a closed order too, which has no edit page: the workers of a
-     * closed order can still be paid and followed. Cancelled workers are listed and marked; deleted people are not listed.
+     * closed order can still be paid and followed. The operational list holds every application that is not Cancelled; the
+     * cancelled ones are history and come apart, so they never mix with the counts. Deleted people are not listed.
      */
     public function show(JobOrder $jobOrder, JobOrderMoney $money): Response
     {
@@ -70,6 +72,7 @@ class JobOrderController extends Controller
         return Inertia::render('admin/job-search/Show', [
             'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
             'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
+            'cancelledWorkers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder, cancelled: true)),
             'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
             // Live, never stored: the Kept Amount currently attributed to this order, also after it closed.
             'money' => $money->forOrder($jobOrder->id),
@@ -198,15 +201,17 @@ class JobOrderController extends Controller
     }
 
     /**
-     * The workers of an order that are shown: every worker whose person is not deleted, cancelled ones included, newest first.
-     * Loaded with their person, record and payments in three queries.
+     * The workers of an order that are shown, newest first, whose person is not deleted: the operational ones (Applied, Interview,
+     * Hired, Rejected), or with $cancelled the historical cancelled applications. Loaded with their person, record and payments
+     * in three queries.
      *
      * @return Collection<int, JobOrderWorker>
      */
-    private function workersOf(JobOrder $jobOrder): Collection
+    private function workersOf(JobOrder $jobOrder, bool $cancelled = false): Collection
     {
         return $jobOrder->workers()
             ->operational()
+            ->where('case_status', $cancelled ? '=' : '!=', WorkerCaseStatus::Cancelled->value)
             ->with(['client', 'clientService.payments'])
             ->latest('id')
             ->get();

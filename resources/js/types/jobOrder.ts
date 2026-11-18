@@ -12,11 +12,13 @@ export type JobOrder = {
     status: JobOrderStatusValue;
     closed_at: string | null;
     notes: string | null;
-    /** Workers whose person is not deleted and whose Job Search service is not cancelled. Only when counted. */
-    active_workers_count?: number;
-    /** Workers whose Job Search service was cancelled: kept in the order's history, counted apart. Only when counted. */
+    /** Applied + Interview applications of people who are not deleted. Only when counted. */
+    applied_workers_count?: number;
+    /** Applications whose current status is Hired, people not deleted. This is the capacity count. Only when counted. */
+    hired_workers_count?: number;
+    /** Historical Cancelled applications, counted apart from the workers. Only when counted. */
     cancelled_workers_count?: number;
-    /** True when there are more active workers than the company asked for: a warning, never a block. */
+    /** True when more workers are Hired than the company asked for: a warning, never a block. */
     exceeds_manpower?: boolean;
     /** False once the order is closed: a closed order is frozen. */
     can_edit: boolean;

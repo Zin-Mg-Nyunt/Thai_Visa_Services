@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\ClientServiceStatus;
 use App\Enums\PaymentStatus;
+use App\Observers\LandingStatisticsObserver;
 use Database\Factories\ClientServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +46,7 @@ use Illuminate\Support\Collection;
     'cancel_refund_amount',
     'cancelled_at',
 ])]
+#[ObservedBy(LandingStatisticsObserver::class)]
 class ClientService extends Model
 {
     /** @use HasFactory<ClientServiceFactory> */

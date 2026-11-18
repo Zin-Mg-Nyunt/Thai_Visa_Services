@@ -105,16 +105,18 @@ class JobOrder extends Model
     }
 
     /**
-     * The worker counts of an order, for withCount() and loadCount(): active workers and cancelled workers, both without
-     * deleted people. Manpower is compared with the active workers only.
+     * The worker counts of an order, for withCount() and loadCount(), all without deleted people (business rules, 11.1):
+     * Applied Workers (Applied + Interview), Hired Workers (current status Hired) and, apart, the historical Cancelled
+     * applications. Manpower is compared with the Hired Workers only.
      *
      * @return array<string, Closure>
      */
     public static function workerCounts(): array
     {
         return [
-            'workers as active_workers_count' => fn ($workers) => $workers->active(),
-            'workers as cancelled_workers_count' => fn ($workers) => $workers->cancelled(),
+            'workers as applied_workers_count' => fn ($workers) => $workers->applied(),
+            'workers as hired_workers_count' => fn ($workers) => $workers->hired(),
+            'workers as cancelled_workers_count' => fn ($workers) => $workers->cancelledApplications(),
         ];
     }
 

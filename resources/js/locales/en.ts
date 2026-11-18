@@ -79,8 +79,8 @@ const en = {
             jobSearchText: 'Matching workers with hiring companies.',
         },
         stats: {
-            clients: 'Clients served',
-            services: 'Services provided',
+            clients: 'Clients Served',
+            services: 'Services Provided',
         },
         contact: {
             eyebrow: 'Contact',
@@ -142,13 +142,18 @@ const en = {
         searchPlaceholder: 'Search by company',
         empty: 'No job orders found.',
         exceeds:
-            'This order has {count} active workers, more than the {manpower} the company asked for. This is only a reminder; you can keep adding workers.',
+            'This order has {count} hired workers, more than the {manpower} the company asked for. This is only a reminder; you can keep adding workers.',
         show: {
             head: 'Job order',
             back: '← Job orders',
             requested: 'Manpower requested',
-            active: 'Active workers',
-            cancelledWorkers: 'Cancelled workers',
+            applied: 'Applied workers',
+            appliedHint: 'Applied and interview',
+            hired: 'Hired workers',
+            hiredHint: 'Hired now',
+            cancelledHistory: 'Cancelled applications',
+            cancelledHistoryHint:
+                'History only. They are not counted as workers.',
             money: 'Money',
             moneyHint: 'Kept amount attributed to this order now',
             includesDeleted: 'includes people who were deleted',
@@ -212,7 +217,9 @@ const en = {
         },
         workers: {
             title: 'Workers ({count})',
-            withCancelled: '{active} ({cancelled} cancelled)',
+            counts: '{hired} hired · {applied} applied',
+            countsWithCancelled:
+                '{hired} hired · {applied} applied · {cancelled} cancelled',
             cancelled: 'Cancelled',
             add: 'Add worker',
             empty: 'No workers yet.',

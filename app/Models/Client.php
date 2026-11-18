@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\Gender;
+use App\Observers\LandingStatisticsObserver;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +34,7 @@ use Throwable;
  * @property Carbon|null $deleted_at
  */
 #[Fillable(['name', 'phone', 'birthday', 'gender', 'remarks'])]
+#[ObservedBy(LandingStatisticsObserver::class)]
 class Client extends Model
 {
     /** @use HasFactory<ClientFactory> */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import { UserPlus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { formatMoney } from '@/lib/format';
 import { paymentStatusKey } from '@/lib/status';
+import { show as showClient } from '@/routes/admin/clients';
 import type { JobOrder, JobOrderWorker, WorkerCaseStatusValue } from '@/types';
 
 const props = defineProps<{
@@ -270,9 +271,13 @@ const isAddOpen = ref(false);
                         "
                     />
                     <div class="min-w-0 flex-1">
-                        <p class="font-medium wrap-break-word text-brand-dark">
+                        <Link
+                            :href="showClient(worker.client_id)"
+                            class="font-medium wrap-break-word text-brand-dark hover:underline"
+                            data-test="worker-name-link"
+                        >
                             {{ worker.name }}
-                        </p>
+                        </Link>
                         <p class="text-xs text-muted-foreground">
                             {{ worker.phone }} ·
                             {{ t(`clients.gender.${worker.gender}`) }}

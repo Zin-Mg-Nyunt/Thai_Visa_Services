@@ -651,9 +651,10 @@ Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`): Phas
   - Whole-service cancellation of a Job Search service (`CancelJobSearchService`) cancels the service, records the refund and its remark, and cancels every application row of it in one transaction, on closed orders as well (Section 5). It runs on the normal lock timeout and is not retried.
   - MySQL concurrency tests on `Thai_Visa_Services_Testing` cover Hired → Cancelled, Add Worker, reassignment, the Money snapshot and the whole-service cancellation, with real separate connections.
 
+- **Step 11 (2026-11-18):** the **Job Order detail page** of Section 11. Exactly four cards (Manpower Requested, Applied Workers, Hired Workers, Money); the manpower warning compares the **Hired** Workers with the manpower (the Job Orders list and the edit page use the same rule); worker names open Client Detail; the historical Cancelled applications are listed apart and are never counted as workers. The counts are worked out in the database on each request and leave out deleted Persons.
+
 **Not built yet:**
 
-- **Job Order detail page.** It still has the older cards (manpower requested, active workers, cancelled workers) plus the new Money card. It is not the four-card design: no Hired Workers card, no `includes people who were deleted` rule beyond the Money card, no Worker-name links to Client Detail, and the manpower warning still compares active workers, not Hired Workers.
 - **Job Search documents.** Upload is still refused (`DocumentPolicy::create`). The portal exclusion is in place.
 - **Person deletion.** It still takes no explicit Person lock; the derived remaining balance of 0 is not in `remaining()` and `canTakePayment()` (Outstanding already excludes deleted Persons); a photo-deletion failure is not reported; the document-upload and Add Service races remain. The file-recovery mechanism is not approved.
 - **Lock protocol.** The detailed protocol is still pending approval. The workflows named above have MySQL concurrency tests that pass; the status-edit form's lock is proven on SQLite and by reading, and has no MySQL contention test.
