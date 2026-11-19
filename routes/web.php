@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\JobOrderWorkerController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\WebsiteContentController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\PhotoController;
@@ -102,6 +103,8 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::get('settings', [SettingsController::class, 'index'])->name('settings');
         Route::get('settings/appearance', [AppearanceController::class, 'edit'])->name('settings.appearance.edit');
         Route::post('settings/appearance', [AppearanceController::class, 'update'])->name('settings.appearance.update');
+        Route::get('settings/content', [WebsiteContentController::class, 'edit'])->name('settings.content.edit');
+        Route::post('settings/content', [WebsiteContentController::class, 'update'])->name('settings.content.update');
     });
 });
 

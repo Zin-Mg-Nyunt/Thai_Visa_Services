@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -100,6 +101,23 @@ class SiteSetting extends Model
     {
         static::saved(fn () => SiteSettings::forgetAfterCommit());
         static::deleted(fn () => SiteSettings::forgetAfterCommit());
+    }
+
+    /**
+     * Create the one row if it does not exist yet, so a save can lock it. The first admin to save creates it; one who saves at the
+     * same moment finds it already there.
+     */
+    public static function ensureExists(): void
+    {
+        if (self::query()->whereKey(self::ID)->exists()) {
+            return;
+        }
+
+        try {
+            self::query()->forceCreate(['id' => self::ID]);
+        } catch (UniqueConstraintViolationException) {
+            // Another admin created it a moment ago.
+        }
     }
 
     /**

@@ -7,7 +7,6 @@ use App\Actions\Site\SiteSettings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateAppearanceRequest;
 use App\Models\SiteSetting;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -71,7 +70,7 @@ class AppearanceController extends Controller
                 $stored[$column] = $key;
             }
 
-            $this->ensureRowExists();
+            SiteSetting::ensureExists();
             $replaced = DB::transaction(fn (): array => $this->save($request, $stored));
         } catch (Throwable $exception) {
             foreach ($stored as $key) {
@@ -89,22 +88,6 @@ class AppearanceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Appearance saved.')]);
 
         return to_route('admin.settings.appearance.edit');
-    }
-
-    /**
-     * The settings row is created once, by whoever saves first. An admin who saves at the same moment finds it already there.
-     */
-    private function ensureRowExists(): void
-    {
-        if (SiteSetting::query()->whereKey(SiteSetting::ID)->exists()) {
-            return;
-        }
-
-        try {
-            SiteSetting::query()->forceCreate(['id' => SiteSetting::ID]);
-        } catch (UniqueConstraintViolationException) {
-            // Another admin created it a moment ago.
-        }
     }
 
     /**

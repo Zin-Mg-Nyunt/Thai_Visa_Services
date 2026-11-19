@@ -593,6 +593,57 @@ const en = {
                 'The logo, favicon and hero image of the public website, and the hero text.',
         },
     },
+    websiteContent: {
+        head: 'Website content',
+        title: 'Website content',
+        description:
+            'The texts, contact details and links of the public website. Write only facts the agency has confirmed; nothing is filled in for you.',
+        languageHint:
+            'Write both languages. If one is empty, the other is shown. Leave a text empty to hide it.',
+        agency: {
+            title: 'Agency',
+            nameEn: 'Agency name (English)',
+            nameMy: 'Agency name (Burmese)',
+        },
+        about: {
+            title: 'About',
+            hint: 'The introduction and the three cards of the About section.',
+            overviewEn: 'Overview (English)',
+            overviewMy: 'Overview (Burmese)',
+            experienceEn: 'Experience (English)',
+            experienceMy: 'Experience (Burmese)',
+            missionEn: 'Mission (English)',
+            missionMy: 'Mission (Burmese)',
+            howWeHelpEn: 'How we help (English)',
+            howWeHelpMy: 'How we help (Burmese)',
+        },
+        contact: {
+            title: 'Contact',
+            hint: 'Only the details you fill in are shown.',
+            phone: 'Phone number',
+            email: 'Email address',
+            addressEn: 'Address (English)',
+            addressMy: 'Address (Burmese)',
+            messagingLink: 'Messaging link',
+            messagingHint:
+                'A full web address that opens your messaging app, for example a LINE, WhatsApp or Telegram link.',
+        },
+        social: {
+            title: 'Social media',
+        },
+        statistics: {
+            title: 'Statistics',
+            hint: 'Choose which real totals the website may show. The numbers are always worked out from the database; you cannot type them.',
+        },
+        publish: {
+            title: 'Publish',
+            hint: 'Until the website is published, unconfirmed content stays hidden.',
+            label: 'Publish the website',
+            missing: 'To publish, upload: {items}.',
+            logo: 'a logo',
+            favicon: 'a favicon',
+        },
+    },
     appearance: {
         head: 'Website appearance',
         title: 'Website appearance',
