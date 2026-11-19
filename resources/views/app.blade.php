@@ -11,6 +11,11 @@
             }
         </style>
 
+        {{-- A client's tracking and portal pages are private: no search engine may list them. --}}
+        @if (request()->is(\App\Http\Middleware\SecurityHeaders::PRIVATE_CLIENT_PATHS))
+            <meta name="robots" content="noindex">
+        @endif
+
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 

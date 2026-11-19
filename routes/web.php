@@ -18,7 +18,8 @@ use App\Http\Controllers\Client\TrackingController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', WelcomeController::class)->name('home');
+// The public landing page: the same limit as the tracking pages, per visitor address.
+Route::get('/', WelcomeController::class)->middleware('throttle:60,1')->name('home');
 
 Route::middleware('throttle:60,1')
     ->prefix('track')

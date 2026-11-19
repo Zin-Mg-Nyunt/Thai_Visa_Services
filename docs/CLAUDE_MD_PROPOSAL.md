@@ -17,7 +17,8 @@ Every instruction is labelled:
 
 ### Model selection
 
-- **[Confirmed that a rule exists; content unknown]** The user's original `CLAUDE.md` had a model-selection requirement to follow before any code change. Its wording was not recovered. **Placeholder, user to fill:** `<which model or effort to use for which kind of task>`.
+- **[Confirmed that a rule exists; content unknown]** The user's original `CLAUDE.md` had a model-selection requirement to follow before any code change. Its wording was not recovered.
+- **[Confirmed, 2026-11-19]** Use **Opus 5.5** (`claude-opus-5-5`) for all work: planning, coding, reviews and audits alike. Confirm the session runs on it before any code change. If another model is in use, say so and ask before changing code.
 
 ### Sources of truth
 

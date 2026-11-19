@@ -24,6 +24,12 @@ Status: **v0.9 (reconstructed), approved by the user on 2026-11-17. Round 9 and 
 >   - Unassigned Kept Amount is money retained by a Job Search engagement and not attributed to any Job Order; the dashboard shows it.
 >   - The same person may be added to the same order again after their earlier application on it is terminal. The unique `(job_order_id, client_id)` key is removed, with no replacement index.
 >   - The implementation was started in the working tree (uncommitted). The implementation-gap lists were refreshed.
+> - **Phase 5 review (2026-11-19): decisions confirmed by the user, applied to this document.** Every change is marked *Phase 5* or sits in a paragraph that says so. Changed sections: 3.2, 3.3, 4.10, 4.11, 4.12, 12 (new 12.1–12.4: Phase 5 status, the 5a and 5d audit findings, the implementation plan (12.2: one sequential implementation table) and the questions that may arise during implementation; **planning only, pending user approval, not approval to implement**) and 13.1.
+>   - **D1 Services Provided:** the implemented definition (every service record) is the approved one and replaces "number of available main services".
+>   - **D2 Logos:** PNG, JPG/JPEG and WebP only; SVG is not allowed in V1, and no SVG sanitiser is used.
+>   - **D3 Audit logs:** audit logs for settings and appearance changes are not required in V1 (Step 5e deferred).
+>   - **D4 Before publishing:** the landing page keeps its structure, and unconfirmed or unavailable sections and content are hidden; mockup information is never shown as verified agency facts.
+>   - **D5 Landing content:** mockup data may be used temporarily; the final system lets administrators manage agency content through CRUD; agency facts are never invented.
 > - **HLD v1.0 was reviewed and is not approved.** Its correction items (U1–U4) are applied here.
 > - **For Job Search,** the two `docs/` files are authoritative. Where this HLD and those files disagree, the files win.
 > - **Everything not related to Job Search, Person deletion or concurrency is carried over from v0.8 unchanged.**
@@ -103,7 +109,7 @@ Option B (short-lived signed URL) was selected; option A is kept for reference.
 
 | File | Accepted formats | Size limit | Notes |
 | --- | --- | --- | --- |
-| Website logo | PNG, JPG, WebP, SVG | 2 MB | Public bucket; required; SVG is sanitized |
+| Website logo | PNG, JPG, WebP | 2 MB | Public bucket; required; *Phase 5 (D2):* SVG is not allowed in V1 |
 | Favicon | PNG, ICO | 2 MB | Public bucket; required |
 | Hero image | JPG, PNG, WebP | 2 MB | Public bucket; optional, the area is left blank if absent |
 | Profile photo | JPG only | 2 MB | Private bucket; a user icon is shown if absent |
@@ -112,7 +118,7 @@ Option B (short-lived signed URL) was selected; option A is kept for reference.
 
 - All photo and image files must not exceed 2 MB. The browser reduces images before upload (Section 3.3).
 - File type and size are validated in the browser and again on the server; the server check always applies.
-- SVG files are sanitized (scripts and external references removed) before they are stored and before they are displayed.
+- *Phase 5 (D2):* SVG files are not accepted anywhere in V1, so no SVG sanitiser is used. (Superseded: "SVG files are sanitized before they are stored and displayed.")
 - Public website assets live in a separate public bucket. Client profile photos and private documents stay in private storage, apart from the public assets.
 - The database stores object keys, never the uploaded image files.
 
@@ -123,7 +129,7 @@ Images are reduced in the browser before they are uploaded, so large photos from
 | File | Processing in the browser |
 | --- | --- |
 | Profile photo | Resized and re-encoded as JPG (the only accepted format) to 2 MB or less |
-| Logo (PNG, JPG, WebP) | Resized if very large; PNG and WebP keep transparency. SVG is not processed in the browser; it is sanitized on the server |
+| Logo (PNG, JPG, WebP) | Resized if very large; PNG and WebP keep transparency. *Phase 5 (D2):* SVG is not accepted |
 | Hero image and other advertising images | Resized and re-encoded (JPG or WebP) to 2 MB or less |
 | Favicon (PNG, ICO) | Not changed; only validated |
 | PDF documents | Not changed; limited to 5 MB |
@@ -582,13 +588,13 @@ A public home page at `/` lets anyone learn about the agency without logging in.
 | Hero | Hero image, hero heading and description (editable, Section 4.11), a clear summary of what the agency does, and buttons to Services and Contact | Site settings |
 | Agency overview | Experience, mission, and how the agency helps its clients | Site settings |
 | Services | One card per main service marked show on website, with title and short description (for example employment services, work permit assistance). Sub-services are never shown as separate cards | Services table |
-| Agency statistics | Verified aggregate numbers only: Clients Served (unique people with at least one service record, including cancelled and deleted ones) and Services Provided (number of available main services, not sub-services and not individual service records) | Calculated from the database |
+| Agency statistics | Verified aggregate numbers only. *Phase 5 (D1), matches the implementation:* **Clients Served** = distinct Person records with at least one service record (any status, Job Search and sub-services included, soft-deleted Persons included; two Person records are two clients). **Services Provided** = the number of service records (`client_services`), lifetime: In Progress, Complete and Cancelled all count, Job Search and sub-services included, soft-deleted Persons' records included; cancelling never lowers it; payments, refunds, Job Order applications and catalogue entries are not counted. (Superseded: "number of available main services".) | Calculated from the database |
 | Contact | Owner or business phone, email, address and social media links, with tap-to-call, email and messaging links; only fields that are filled in are shown | Site settings |
 
 **Rules**
 
 - **Real statistics only:** numbers are calculated from the database and never hard-coded or typed in. The admin chooses in Settings which statistics are approved for display. Only totals are shown: no names, photos, phone numbers, documents, payments, profit or per-person data. A number that cannot be calculated is hidden, not replaced by a placeholder.
-- **Caching:** statistics are cached for a short time (for example 10 minutes) so public traffic does not query the database on every visit.
+- **Caching:** statistics are cached for a short time (for example 10 minutes) so public traffic does not query the database on every visit. *Phase 5 (D1), as implemented:* the cache lasts 10 minutes and is refreshed once after the outermost transaction that creates a Person or a service record commits (never after a rollback); a failed refresh never fails the admin's action.
 - **Editable content:** the admin edits the agency name, hero heading and description, overview, mission, contact details and social links in Settings (logo, favicon and hero image: Section 4.11), with separate English and Burmese values; if one language is missing, the other is shown. The developer drafts the text and does not invent business facts.
 - **Separation from admin features:** public routes use their own controller, return only the fields listed above, and sit outside the login middleware. The Admin Login button is only a link; access still requires admin sign-in (Section 6).
 - **Protection:** basic rate limiting and standard security headers on public pages.
@@ -596,13 +602,15 @@ A public home page at `/` lets anyone learn about the agency without logging in.
 
 **Content drafting and review.** The developer drafts professional English and Burmese text for the hero heading, hero description, agency overview, mission, services introduction and contact section. Nothing is invented: no agency name, years of experience, licences, qualifications, client counts, success rates, contact details or other unverified business information. Anything the client has not provided stays empty. The draft stays unpublished (`is_published` is off on the site settings) until the client reviews and approves it. After publishing, saved changes appear immediately (Section 4.11). Contact details and statistics stay hidden until they are provided or can be verified.
 
+*Phase 5 (D4, D5):* before publishing, the landing page keeps its structure and hides every unconfirmed or unavailable section and piece of content; mockup information is never presented as verified agency facts. Mockup data may be used temporarily during development. The final system lets administrators manage the agency content (agency name, overview, mission, contact details, social links and other approved public content) through CRUD in Settings.
+
 ### 4.11 Website Appearance Settings
 
 An admin screen at `/admin/settings/appearance` (Settings tab) controls how the public landing page (Section 4.10) looks.
 
 | Setting | Behaviour |
 | --- | --- |
-| Website logo | Required; upload and replace; shown in the navigation bar. Accepted: PNG, JPG, WebP, or SVG after sanitization |
+| Website logo | Required; upload and replace; shown in the navigation bar. Accepted: PNG, JPG, WebP (*Phase 5 (D2):* no SVG in V1) |
 | Favicon | Required; upload and replace; shown in the browser tab. Accepted: PNG or ICO |
 | Hero image | Optional; upload and replace the image in the homepage hero section. If none is uploaded, the hero image area stays blank. Accepted: JPG, PNG, WebP |
 | Hero heading | Editable text, in English and Burmese |
@@ -613,11 +621,11 @@ An admin screen at `/admin/settings/appearance` (Settings tab) controls how the 
 - **Authorization:** only authorized admins can view or change these settings. Every route and action is protected by a Laravel policy (for example `manage-site-settings`). In v1 every admin has it; when roles are added in version 2 it can be granted per role. Clients and public visitors cannot reach the screen, and refused attempts return 403 and are logged.
 - **Storage:** images are stored in DigitalOcean Spaces and only their **storage keys** are saved in the database (`logo_key`, `favicon_key`, `hero_image_key`), never the files or fixed URLs. Keys are random, not the original file names, so a replacement gets a new key.
 - **Public bucket:** a public landing page cannot use short-lived signed URLs, so these three images go in a **separate public Spaces bucket** used only for website images. The private bucket for documents and photos stays private (Section 3.1). The public image address is built from a configured base URL plus the storage key.
-- **Upload checks:** file type is verified from the file content, not only the extension; every image is limited to 2 MB (Section 3.2) and is reduced in the browser before upload (Section 3.3); the checks run in the browser and again on the server, and the server decides; SVG is accepted only for the logo and is sanitized before it is stored or displayed.
+- **Upload checks:** file type is verified from the file content, not only the extension; every image is limited to 2 MB (Section 3.2) and is reduced in the browser before upload (Section 3.3); the checks run in the browser and again on the server, and the server decides. *Phase 5 (D2):* SVG is not accepted in V1.
 - **Save and publish:** validate, upload the new file to Spaces, then save the new key and text in one database transaction and clear the cached site settings. If any step fails, the previous logo, favicon, hero image and text stay unchanged and the admin sees an error. The old file is deleted from Spaces only after the new settings are saved.
 - **Changes appear after saving:** the public site reads settings that are refreshed on every successful save, and image addresses carry a version value (from `updated_at`) so browsers fetch the new image straight away. Some browsers keep favicons cached longer than other images.
 - **Required and optional images:** the logo and favicon are required, so the landing page cannot be published without them; the hero image is optional and its area is left blank when there is none; empty hero text is hidden.
-- **Audit:** each change records who made it and when (`updated_by`, `updated_at`, plus an audit log entry).
+- **Audit:** *Phase 5 (D3):* audit logs for settings and appearance changes are **not required in V1** (Step 5e deferred); no audit table and no settings audit logging. (Superseded: "plus an audit log entry".)
 
 ### 4.12 Cancel, Close and Delete Rules
 
@@ -764,7 +772,7 @@ sequenceDiagram
 - The admin can delete a service. It disappears from the UI and from the landing page, and **cannot be chosen for new clients**.
 - Clients already using the service continue without any problem, and their service records stay.
 - The profit records of the service stay. The Business dashboard still shows its profit, with status **inactive**.
-- Delete is a soft delete: nothing is removed from the database. Services Provided on the landing page counts only available (not deleted) main services.
+- Delete is a soft delete: nothing is removed from the database. *Phase 5 (D1):* Services Provided on the landing page counts service records (`client_services`), not catalogue services, so deleting or deactivating a catalogue service does not change it. (Superseded: "counts only available (not deleted) main services".)
 
 #### Sub-service delete and deactivation
 
@@ -1049,8 +1057,157 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
 4. **Job Search:** job orders table, detail pages, worker linking, profit.
    - *Verified status (2026-11-17):* steps 1–4 were built at commit `b7730dd`. Steps 5–9 (engagement model, retry helper, Add Worker reuse, status updates, resolve-and-close) followed, with Hired → Cancelled, live Money and the same-order reapplication added in rounds 9–10. Still to build: the Complete-engagement locks, whole-service cancellation, the four-card page, Job Search documents and the Person-deletion fixes (Section 13.3).
 5. **Business dashboard, public landing page, appearance settings and hardening:** reports, audit logs, security review.
+   - *Phase 5 (2026-11-19):* split into steps 5a–5i. Status, audit findings and the step-by-step implementation plan are in Sections 12.1–12.4 (planning, pending user approval). Settings audit logs (5e) are deferred out of V1 (D3).
 
 Possible later additions: LINE/SMS notifications with the tracking link, staff roles, invoices/receipts as PDF, Thai UI language.
+
+### 12.1 Phase 5 status and audit findings (*Phase 5*, 2026-11-19; planning, **pending user approval**)
+
+Audited against the code at commit `5d273b0`. The audit changed no code. The confirmed decisions D1–D5 are in the header note and in Section 13.1. The questions that may come up during implementation are in Section 12.3.
+
+| Step | Scope | Status |
+| --- | --- | --- |
+| 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Plan step 5a.2 adds the missing tests; 5a.3 is optional; the Active Clients definition is asked if it becomes necessary. |
+| 5b | Admin Settings tab extras | **Not built.** `/admin/settings` is a "Coming soon" page. Plan steps 5b.1–5b.2; the scope question (D8) is asked when they are reached. |
+| 5c | Website appearance and the `site_settings` foundation | **Not built.** There is no `site_settings` table. Plan steps 5c.1–5c.5; the migration is reviewed and run by the user. |
+| 5d | Public landing page | **Built with mockup content.** The statistics are real (D1). The services are hard-coded, the agency facts are mockups, and there is no publish switch. Corrections are plan steps 5d.1–5d.7. |
+| 5e | Settings and appearance audit logs | **Deferred (D3).** No work in V1. |
+| 5f | Hardening and security review | **Not started.** Plan steps 5f.1–5f.3; 5f.3 needs testing-database and server access ("Step 6", unclarified). |
+| 5g | Security headers | **Not built.** Plan steps 5g.1–5g.2; the CSP and HSTS choice (D6) is asked when 5g.2 is reached. |
+| 5h | Browser tests and CI | **Not built.** Plan step 5h.1; the tool choice (D7) is asked when it is reached. |
+| 5i | Documentation and `CLAUDE.md` | Partly done. Plan steps 5i.1–5i.2; `CLAUDE.md` waits for approval of the proposal. |
+
+**Step 5a audit (Business dashboard: `app/Actions/Dashboard/BusinessReport.php`, `app/Http/Requests/DashboardRangeRequest.php`, `resources/js/pages/Dashboard.vue`)**
+
+| Item | Result | Implemented behaviour (verified code) |
+| --- | --- | --- |
+| Total Received | PASS | **Date basis:** payments by `paid_at` (a date); fee-change refunds by the refund remark's `created_at`, converted to Asia/Bangkok; cancel refunds by `cancelled_at`, converted to Asia/Bangkok (`BusinessReport.php:101-128`).<br>**Includes:** every service, including Job Search (both attributed and Unassigned money), deleted services and deleted Persons.<br>**Not shown:** no Unassigned figure. |
+| Outstanding | PASS | **Calculation:** the balance owed today, so it does not depend on the date range. Only services that are not Cancelled and belong to a Person who is not deleted. Each service owes max(0, fee − payments), in satang (`:253-269`).<br>**Matches:** `ClientService::remaining()`. |
+| Active Clients | NEEDS ATTENTION | **Code:** Persons who are not deleted and have at least one **In Progress** service, as of today, not the date range (`:134-136`); this is tested.<br>**Gap:** Section 4.2 says only "clients who are not deleted", so the In Progress condition is undocumented (N1). |
+| Profit | PASS | Shown as "coming soon"; no figure is sent (tested). The design PDF shows a number, but this HLD supersedes it. |
+| Monthly chart | PASS | Covers 12 months ending with the range's end month, net of refunds. Negative months still get a bar. It does not follow the range start; that is intended. |
+| Main- and sub-service breakdown | PASS | **Content:** money only, so there are no record counts and no catalogue entries. Sub-service rows add up to their main service. Deleted or inactive services are flagged. Services that received nothing in the range are left out. |
+| Date range | PASS | **Presets:** built in Asia/Bangkok.<br>**Custom range:** inclusive of both ends, needs `to ≥ from`, and is checked with `date_format:Y-m-d`.<br>**Invalid input:** falls back to this month and shows the error.<br>**Default:** this month. |
+| Timezone boundaries | NEEDS ATTENTION (tests) | **Code:** the conversion to Bangkok time is correct.<br>**Gap:** every test runs at 10:00 Bangkok, so no test covers a moment just after Bangkok midnight. |
+| Query efficiency | NEEDS ATTENTION (scaling) | **Per load:** about 7 queries, none repeated.<br>**Concern:** `feeRefundMovements` reads every refund remark ever recorded, plus an `IN` list of all their service ids (`:178-214`). |
+| Authorization and privacy | PASS | The route is superadmin-only (tested). The page receives only totals and service titles. |
+
+**Step 5d audit (landing page: `WelcomeController`, `app/Actions/Landing/LandingStatistics.php`, `resources/js/pages/Welcome.vue`, `layouts/PublicLayout.vue`)**
+
+| Item | Result | Finding |
+| --- | --- | --- |
+| Statistics (D1) | PASS | Matches D1; covered by 20 tests in `LandingStatisticsTest` plus the freshness and lifecycle suites. |
+| Services section | FAIL | **Problem:** six cards are hard-coded (`Welcome.vue:53-60`, with text in the translation files). Admin changes have no effect on the page.<br>**Already available:** the catalogue has everything needed: `show_on_website`, both titles and both public descriptions, all edited in `ServiceForm.vue`. Sub-services are forced to `show_on_website = false` (`Service.php:78-84`). |
+| Agency facts | FAIL (D4) | **Shown as real but invented or mockup:** "10+ years" (an invented fact), the phone `+66 2 123 4567`, `info@example.com` and "Bangkok, Thailand" (`Welcome.vue:30-31`, translation files). |
+| Publish switch | FAIL (D4) | Not built. |
+| Error handling | NEEDS ATTENTION | A failure in the statistics cache or count query returns an error for the whole public page; `LandingStatistics::counts()` has no fallback. |
+| SEO | NEEDS ATTENTION | **Rendering:** no server-side rendering (`INERTIA_SSR_ENABLED` is false).<br>**Metadata:** no meta description and no social-preview tags.<br>**Title:** probably shown twice ("PaingThu - PaingThu"). This is read from the code, not seen rendered. |
+| Navigation, language, accessibility | PASS | **Navigation:** logo, name, language switcher and Admin Login are present. Section links (Section 4.10) are missing.<br>**Language:** both languages are complete, and the page `lang` follows the switch.<br>**Accessibility:** semantic sections and a correct heading order. |
+| Responsive | NOT VERIFIED | **Code:** the breakpoints look sound.<br>**Not done:** no rendered check, because no browser tool was available. That check belongs to 5h. |
+| Privacy | PASS | **Sent to guests:** only `name`, `locale`, `auth.user = null`, `sidebarOpen` and the two totals.<br>**Missing:** `/` has no rate limit (plan 5g.1). |
+
+**Agency content today:**
+
+| Content | Source today |
+| --- | --- |
+| Statistics | Database |
+| Services' public titles and descriptions | Admin-managed in the catalogue, but not used by the page |
+| Hero text, the three About cards, services text, address | Hard-coded in the translation files |
+| Phone and email | Mockup |
+| Agency name | `APP_NAME` configuration |
+| Overview, mission, social links, messaging link, publish switch | **Missing** |
+
+**UI design PDF** (`Project Resource/Thai Visa Management – UI Design.pdf`, pages 1–2):
+
+- **Section order:** navigation, hero, Who we are (3 cards), What we do for you (service cards, 4 per row), dark statistics band, Talk to us, dark footer.
+- **Colours and font:** brand dark `#023842`, green `#00d47f`, mint `#e3f6ee`, Inter with Noto Sans Myanmar. **These match.**
+- **Deviations:**
+  - The contact details are in three lines with icons, not one line (phone · email · address).
+  - "Message us" opens email.
+  - The name is "PaingThu", without a space.
+  - The labels read "Clients Served", not "Clients served".
+  - The services are not from the catalogue.
+
+### 12.2 Phase 5 implementation plan (*Phase 5*, 2026-11-19; planning, **pending user approval**)
+
+Implement the steps from top to bottom, one at a time. A step starts when the steps in its **Blocked by** column are done and the user has approved it. The audit findings, files and tests behind each step are in Section 12.1.
+
+| Step | Scope | Blocked by |
+| --- | --- | --- |
+| 5d.1 | Landing page services come from the services catalogue: main services that are active and marked "show on website", with their English/Burmese titles and public descriptions; no sub-services and no internal fields; the section is hidden when there are none. This replaces the hard-coded list in `Welcome.vue`. | — |
+| 5d.2 | Hide the invented and mockup facts on the landing page (D4): the Contact section (mockup phone, email and address) and the "10+ years" Experience card. Admin Login stays visible. | — |
+| 5d.3 | The public page keeps working when the statistics fail: the statistics section is hidden and the error is reported. | — |
+| 5a.2 | Dashboard tests for the Asia/Bangkok midnight boundary (fee-change refunds, cancel refunds, the range end day). Tests only, no code change. | — |
+| 5g.1 | Public protections already approved in Sections 4.10 and 6: a rate limit on `/`; `noindex` and `Referrer-Policy: no-referrer` on `/track` and `/client` pages; `X-Content-Type-Options: nosniff` everywhere. | — |
+| 5c.3 | Browser image reduction for the logo and hero image (keeping PNG and WebP transparency), without changing the existing profile photo behaviour. | — |
+| 5c.1 | The `site_settings` foundation: the migration (one row: bilingual agency texts, image keys, contact fields, approved statistics, publish switch, `updated_by`), the model, a cached reader cleared after each save, and the `manage-site-settings` permission. | — |
+| 5c.2 | Website image upload validation: logo PNG/JPG/WebP (no SVG, D2), favicon PNG/ICO, hero image JPG/PNG/WebP; type checked from the file content; at most 2 MB; random storage keys. | 5c.1 |
+| 5c.4 | The Website appearance screen (`/admin/settings/appearance`): logo, favicon, hero image and English/Burmese hero text. New files are stored before the save; old files are deleted only after the commit; a failed save leaves the previous settings and removes the new files; image URLs are versioned. | 5c.1, 5c.2, 5c.3 |
+| 5c.5 | The public pages use the appearance settings: logo and agency name in the header, the favicon, and the hero image, with the current assets as fallback. | 5c.4 |
+| 5d.4 | The Website content screen (D5): agency name, overview, mission and About texts in English/Burmese; contact details and social links; which statistics are shown; the publish switch (requires logo and favicon). | 5c.1 |
+| 5d.5 | The landing page is driven by the settings: only public fields are sent; sections without content are hidden; contact links only from filled fields; unpublished behaviour per D4; Admin Login always present. All mockup content is removed. | 5d.1, 5d.4 |
+| 5d.6 | Design polish to match the UI design PDF: contact details on one line, "Message us" uses the messaging link, statistic label case, section links in the navigation bar. | 5d.5 |
+| 5d.7 | SEO: meta description and social-preview tags from the website settings; fix the repeated page title. | 5d.5 |
+| 5b.1 | The Settings hub page that replaces "Coming soon": links to admin account, Website appearance and Website content; read-only Google sign-in state and currency (THB). | 5c.4, 5d.4 |
+| 5b.2 | The "documents locked by default" setting for non-Job-Search document uploads; Job Search documents stay unreleasable. Needs a `site_settings` column. | 5c.1 |
+| 5g.2 | The remaining security headers (Content Security Policy, HSTS, frame protection), tested so the app's scripts and fonts still load. | 5g.1 |
+| 5f.1 | Tests that the public pages and the client portal expose no private data. | 5d.5 |
+| 5h.1 | Browser tests: admin login, the Add worker 429 message, the appearance upload with image reduction, the landing page at 375, 768 and 1280 px, and the client PIN and portal flow. | 5c.4, 5d.5 |
+| 5f.2 | Security and PDPA review of the whole app (read-only report). | 5f.1, 5g.1, 5g.2, 5h.1 and every other implementation step above |
+| 5f.3 | MySQL checks: the deferred testing-database integrity audit, the full MySQL suite, and the production isolation level and message language. | **Steps:** 5c.1 and 5b.2 (migrations written and run), 5c.4 and 5d.4 (the transactional saves) and every other implementation step above. **External:** testing-database access; a production or staging server ("Step 6", unclarified). |
+| 5i.1 | Documentation: after each step is completed and verified, update its status in Section 12.1. After all Phase 5 work is done, do the final refresh of Section 13.3. | Each step, for its status update; all steps above, for the final Section 13.3 refresh |
+| 5i.2 | Activate `CLAUDE.md` from the approved proposal. | User approval of `docs/CLAUDE_MD_PROPOSAL.md` |
+
+**Deferred or out of scope**
+
+- **5e**, settings and appearance audit logs: deferred by D3; not in V1.
+- **5a.3**, the optional dashboard refund-scan optimisation: only if the user asks for it.
+- **5h.2**, an optional MySQL job in CI: only if the user asks for it.
+- **5f.4**, app-wide masking of query values in logs: not approved.
+- Also out of scope: a profit figure, FULLTEXT company search, the `(created_at, id)` job orders index, and every V1 exclusion in Section 14.
+
+**Prerequisites that are not implementation steps**
+
+- **Model rule.** The only recorded rule (`docs/CLAUDE_MD_PROPOSAL.md`) says "Opus 5.5 for all work". Confirm it before handing these steps to Sonnet 5.5.
+- **Migrations** (5c.1, and the column for 5b.2): the implementation agent may write them, but the user reviews and runs them.
+- **MySQL tests** need the testing-database password, provided by the user.
+- **Publishing** needs the real agency content and verified facts from the client (D5).
+- **Questions during implementation.** When a step reaches a business or design choice that the HLD does not settle, the agent stops, asks the user, and continues after the answer. The known open questions are listed in Section 12.3.
+
+### 12.3 Open Phase 5 decisions (*Phase 5*, 2026-11-19; none of these is decided)
+
+These are questions that may come up during implementation. They are not steps in Section 12.2: when a step reaches one, the implementation agent stops and asks the user, briefly stating the options and their consequences, and continues after the answer.
+
+| # | Decision needed | Steps waiting | Context or recommendation (**a recommendation is not a decision**) |
+| --- | --- | --- | --- |
+| D6 | How strict the Content Security Policy should be; HSTS in production only? | 5g.2 | Recommendation: HSTS in production only. A CSP that allows the app's own scripts and fonts, tested in report-only mode first. |
+| D7 | Laravel Dusk or Playwright for browser tests | 5h.1 | Either one is a new dependency. |
+| D8 | Are the Settings tab extras (admin account, Google link, currency, documents-locked default) in Phase 5? | 5b.1, 5b.2 | Profile and security pages already exist under `/settings`. |
+| D9 | Who writes and who runs migrations | 5c.1 (and everything after it), 5b.2 | Recommendation: the implementation agent writes them, and the user reviews and runs them. |
+| D10 | When to do the deferred Phase 4 items: the testing-database integrity audit, app-wide log masking, and the 429 browser check | 5f.3, 5f.4, 5h.1 | — |
+| "Step 6" | What 5f is "blocked by" | 5f.3 | "Step 6" appears in no project document. It may mean deployment, because the production MySQL checks need a server. |
+| N1 | Active Clients definition | None (asked if it becomes necessary) | Implemented: not deleted and with at least one In Progress service, as of today. |
+| N2 | Fields for the three About cards (Experience, Mission, How we help) | 5c.1, 5d.4 | Section 5 lists only `overview` and `mission`, but the design PDF has three cards. |
+| N3 | Should the public services list be cached? | 5d.1 | Recommendation: no cache; it is one indexed query, and nothing can go stale. |
+| N4 | Order of the public services | 5d.1 | There is no sort column. Recommendation: by `id` for now; a sort column would need a migration. |
+| N5 | Hero and About copy before real content exists; what shows when no hero image is set | 5c.5, 5d.2 | Section 4.11 says the hero area stays blank. Today an illustration with a "Sample photo" tag is shown. |
+| N6 | Exact unpublished behaviour (D4): what `is_published = false` hides beyond the sections that are already empty | 5d.5 | D4 keeps the page structure and hides unconfirmed content. |
+| N7 | Should statistics wait for the admin's approval (Section 4.10, `approved_statistics`)? | 5d.4, 5d.5 | Today they are always shown when not zero. |
+| N8 | Server-side rendering for SEO | 5d.7 | It adds a Node process in production. |
+| N9 | Model for implementation | 5i.2, every implementation step | The only recorded rule (`docs/CLAUDE_MD_PROPOSAL.md`, 2026-11-19) says "Opus 5.5 for all work", but this plan is handed to a Sonnet 5.5 implementation agent. The user must confirm which applies. |
+
+### 12.4 Rules for the implementation agent (*Phase 5*)
+
+1. Follow the Section 12.2 table **from top to bottom**, **one approved step at a time**, and only on that step's scope. Start a step when the steps in its **Blocked by** column are done and the user has approved it.
+   - Use the HLD, the existing code and the approved rules as the basis.
+   - When a step reaches a business or design choice they do not settle (Section 12.3 lists the known ones), stop, ask the user with the options and their consequences, and continue only after the answer. Never decide it on the user's behalf.
+   - Never start a deferred or out-of-scope item.
+2. Before each step, report the branch, HEAD, and the staged, unstaged and untracked files. Preserve all existing work: never reset, stash, clean or overwrite.
+3. Follow `CLAUDE.md` once it is active, and the model rule (N9).
+4. Follow every approved rule in this HLD and in `docs/JOB_SEARCH_*.md`. The code is not a source of rules.
+5. Never write or run a migration without the D9 decision. Never connect to a database other than the in-memory SQLite test database or `Thai_Visa_Services_Testing`.
+6. Run the relevant tests, Pint, PHPStan (compare with the 19 errors that already exist), `vue-tsc`, the format check (compare with the 5 files that already fail) and the build. Report the results, then **stop** for review.
+7. Never commit or push without the user's explicit approval.
 
 ## 13. Open Questions
 
@@ -1093,10 +1250,14 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 | Website appearance | Authorized admins upload and replace the logo, favicon and hero image and edit the hero heading and description; images in DigitalOcean Spaces with keys in the database; changes show on the public site after a successful save |
 | Bilingual services | Title and public description each have an English and a Burmese field, all nullable; at least one language is required for each; enforced on frontend and backend |
 | Landing page content | Developer drafts English and Burmese text without inventing business facts; editable by the admin; the client reviews it before publishing; contact details and statistics hidden until provided or verified |
-| Statistic definitions | Clients Served = unique people with at least one service record; Services Provided = number of available main services (not sub-services); only verified statistics are shown |
+| Landing page before publishing (*Phase 5, D4*) | Keep the current page structure; hide unconfirmed or unavailable sections and content; never present mockup information as verified agency facts |
+| Landing content management (*Phase 5, D5*) | Mockup data may be used temporarily; the final system lets administrators manage agency content (name, overview, mission, contact details, social links, other approved public content) through CRUD; agency facts are never invented |
+| SVG logos (*Phase 5, D2*) | Not allowed in V1: PNG, JPG/JPEG and WebP only; no SVG sanitiser dependency |
+| Settings and appearance audit logs (*Phase 5, D3*) | Not required in V1; Step 5e deferred; no audit table and no settings audit logging |
+| Statistic definitions | *Phase 5 (D1):* Clients Served = distinct Person records with at least one service record (soft-deleted included); Services Provided = number of service records, lifetime (In Progress, Complete and Cancelled; Job Search and sub-services included; soft-deleted Persons included; not payments, refunds, applications or catalogue entries); cached 10 minutes and refreshed after commit; only verified statistics are shown |
 | Budget | Approximate THB 1,000 per month for hosting and storage accepted by the client; domain billed annually; expected costs and limitations documented in the contract; sizing and prices confirmed before implementation |
 | Public website images | Separate public Spaces bucket for logo, favicon and hero image; profile photos and private documents stay private; object keys stored in the database |
-| Upload rules | Images up to 2 MB; logo PNG/JPG/WebP/SVG, favicon PNG/ICO, hero JPG/PNG/WebP, profile photo JPG only; PDFs up to 5 MB; SVG sanitized; checked on frontend and backend (Section 3.2) |
+| Upload rules | Images up to 2 MB; logo PNG/JPG/WebP (*Phase 5 (D2):* no SVG in V1), favicon PNG/ICO, hero JPG/PNG/WebP, profile photo JPG only; PDFs up to 5 MB; checked on frontend and backend (Section 3.2) |
 | Job order closing | (*Round 9:* the order's Money stays live, and Hired → Cancelled is the one status exception on a closed order.) Done and Cancel are the same closing action. Soft-deleted Persons' Applied/Interview applications are auto-cancelled. Non-deleted Persons' Applied/Interview applications must be resolved by the admin to Hired, Rejected or Cancelled (individually or in bulk, all-or-nothing). Nothing else changes automatically, and nothing is auto-rejected. Automatic cancellations, resolutions, Hired consequences and the close are one atomic transaction. A closed order is frozen (Sections 4.7.5 and 4.12) |
 | Worker or client cancel | Deposit-only payer's remaining balance becomes 0; a refund field appears and the refund is deducted from the service's total fees; the record stays in the database and in the UI with Cancel status. For Job Search: whole-service cancellation, In Progress only, from Client Detail, cascading to every application (no activity records in V1) |
 | Worker or client delete | **Corrected in rounds 5–7.** Permanent, no restore. Soft-delete the person; delete their documents, PDF files and profile photo after the database commit; their remaining balance is derived as 0 (Option A, with no write-off or adjustment entry). Change **no** service or application status, Job Order Money attribution, fee, payment, refund or remark. Left out of admin lists, worker lists, operational counts and Outstanding; the ledger, kept money and the landing page Clients Served count stay. The rounds 3–4 cancellation cascade is revoked |
@@ -1114,7 +1275,7 @@ Possible later additions: LINE/SMS notifications with the tracking link, staff r
 | Sub-service fees, payments and profit | A sub-service may have its own default fee; the fee falls back to the main service default fee; payments and profit stay on the client-service record; profit is grouped by main service with an optional sub-service breakdown; existing records and financial history are preserved when a sub-service is deactivated or soft-deleted |
 | Client portal service title | The optional sub-service title is shown next to the main service title, for example “Passport – Bath”; with no sub-service, only “Passport” is shown |
 | Job Search service | Remains a main service and cannot have sub-services; fixed system key job\_search; excluded from the normal “Add Service to Client” form; its workflow and profit rules are unchanged and its profit is included in overall service profit and dashboard reports |
-| Landing page services | Main services only; sub-services never appear as separate cards; Services Provided counts available main services only |
+| Landing page services | Main services only; sub-services never appear as separate cards. *Phase 5 (D1):* Services Provided counts service records, not catalogue services (see Statistic definitions) |
 | Client PIN lock and token | 5 consecutive incorrect PIN attempts lock the client for 15 minutes, counted per client across all IP addresses; fixed in code, not configurable in Settings; the admin can unlock manually from the client detail page; the token is created once with the client record and cannot be regenerated by the admin in the current application (Section 6) |
 
 ### 13.2 Remaining Items
