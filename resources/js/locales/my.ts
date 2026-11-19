@@ -67,21 +67,6 @@ const my: MessageSchema = {
         services: {
             eyebrow: "ဝန်ဆောင်မှုများ",
             title: "သင့်အတွက် ကျွန်ုပ်တို့ လုပ်ပေးသည့်အရာ",
-            workPermitTitle: "အလုပ်လုပ်ခွင့် (Work Permit)",
-            workPermitText:
-                "အလုပ်လုပ်ခွင့် လျှောက်ထားမှုနှင့် စာရွက်စာတမ်း ပို့ဆောင်ခြင်း။",
-            passportTitle: "ပတ်စပို့",
-            passportText: "Bath နှင့် MOU အပါအဝင် ပတ်စပို့ ဝန်ဆောင်မှုများ။",
-            pinkCardTitle: "Pink Card",
-            pinkCardText: "Pink Card လျှောက်ထားမှု ကူညီပံ့ပိုးခြင်း။",
-            reportTitle: "၉၀ ရက် အစီရင်ခံခြင်း",
-            reportText:
-                "၉၀ ရက်တစ်ကြိမ် အစီရင်ခံခြင်းကို ကျွန်ုပ်တို့ လုပ်ပေးသည်။",
-            ciTitle: "CI",
-            ciText: "မှတ်ပုံတင်လက်မှတ် (CI) ဝန်ဆောင်မှုများ။",
-            jobSearchTitle: "အလုပ်ရှာဖွေရေး",
-            jobSearchText:
-                "လုပ်သားများကို ခန့်ထားလိုသော ကုမ္ပဏီများနှင့် ချိတ်ဆက်ပေးခြင်း။",
         },
         stats: {
             clients: "ဝန်ဆောင်မှုပေးခဲ့သော ဖောက်သည်",

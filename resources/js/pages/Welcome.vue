@@ -2,21 +2,18 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import {
     Award,
-    BookUser,
     BriefcaseBusiness,
-    CalendarCheck,
-    FileBadge,
     HeartHandshake,
     Mail,
     MapPin,
     Phone,
-    Search,
     Target,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
 import { Button } from '@/components/ui/button';
+import { localized } from '@/composables/useLocale';
 
 const { t, locale } = useI18n();
 const name = usePage().props.name;
@@ -25,6 +22,13 @@ const name = usePage().props.name;
 // yet, which hides the section. A zero is shown as a zero when the other number is not.
 const props = defineProps<{
     statistics: { clients_served: number; services_provided: number } | null;
+    services: {
+        id: number;
+        title: string | null;
+        title_my: string | null;
+        public_description: string | null;
+        public_description_my: string | null;
+    }[];
 }>();
 
 // Mockup data. The real contact details come from settings in a later phase.
@@ -50,14 +54,20 @@ const about = [
     { icon: HeartHandshake, key: 'help' },
 ];
 
-const services = [
-    { icon: BriefcaseBusiness, key: 'workPermit' },
-    { icon: BookUser, key: 'passport' },
-    { icon: FileBadge, key: 'pinkCard' },
-    { icon: CalendarCheck, key: 'report' },
-    { icon: FileBadge, key: 'ci' },
-    { icon: Search, key: 'jobSearch' },
-];
+// The services come from the catalogue (main services shown on the website), in both languages. One that has no title in either
+// language is left out rather than shown as an empty card.
+const serviceCards = computed(() =>
+    props.services
+        .map((service) => ({
+            id: service.id,
+            title: localized(service.title, service.title_my),
+            description: localized(
+                service.public_description,
+                service.public_description_my,
+            ),
+        }))
+        .filter((service) => service.title !== ''),
+);
 
 const formatNumber = (value: number) =>
     value.toLocaleString(locale.value === 'my' ? 'my-MM' : 'en-US');
@@ -150,6 +160,7 @@ const contactLine = computed(() => [
     </section>
 
     <section
+        v-if="serviceCards.length > 0"
         id="services"
         class="scroll-mt-36 bg-mint/40 md:scroll-mt-20"
         data-test="services-section"
@@ -165,23 +176,26 @@ const contactLine = computed(() => [
             </h2>
             <div class="mt-6 grid gap-4 min-[520px]:grid-cols-2 lg:grid-cols-4">
                 <article
-                    v-for="item in services"
-                    :key="item.key"
+                    v-for="service in serviceCards"
+                    :key="service.id"
                     class="rounded-2xl border bg-card p-5"
                     data-test="service-card"
                 >
                     <div
                         class="flex size-10 items-center justify-center rounded-xl bg-mint text-brand-dark"
                     >
-                        <component :is="item.icon" class="size-5" />
+                        <BriefcaseBusiness class="size-5" />
                     </div>
-                    <h3 class="mt-4 text-sm font-bold text-brand-dark">
-                        {{ t(`landing.services.${item.key}Title`) }}
+                    <h3
+                        class="mt-4 text-sm font-bold wrap-break-word text-brand-dark"
+                    >
+                        {{ service.title }}
                     </h3>
                     <p
-                        class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        v-if="service.description !== ''"
+                        class="mt-2 text-sm leading-relaxed wrap-break-word text-muted-foreground"
                     >
-                        {{ t(`landing.services.${item.key}Text`) }}
+                        {{ service.description }}
                     </p>
                 </article>
             </div>

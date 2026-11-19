@@ -65,18 +65,6 @@ const en = {
         services: {
             eyebrow: 'Services',
             title: 'What we do for you',
-            workPermitTitle: 'Work Permit',
-            workPermitText: 'Work permit applications and document delivery.',
-            passportTitle: 'Passport',
-            passportText: 'Passport services including Bath and MOU.',
-            pinkCardTitle: 'Pink Card',
-            pinkCardText: 'Pink card application support.',
-            reportTitle: '90 Days Report',
-            reportText: 'Reporting every 90 days, handled for you.',
-            ciTitle: 'CI',
-            ciText: 'Certificate of identity services.',
-            jobSearchTitle: 'Job Search',
-            jobSearchText: 'Matching workers with hiring companies.',
         },
         stats: {
             clients: 'Clients Served',
