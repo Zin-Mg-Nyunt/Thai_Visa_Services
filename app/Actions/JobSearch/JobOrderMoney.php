@@ -35,29 +35,27 @@ class JobOrderMoney
     /**
      * The Money of one order, and whether part of it comes from people who were deleted.
      *
+     * One statement, so the amount and the deleted-people flag always come from the same snapshot (a single SELECT reads one
+     * consistent snapshot on InnoDB). Only the records that have an application on this order are aggregated: a record with no
+     * application here can never be attributed here. For those records every application is still looked at, on any order, so
+     * "the newest qualifying application owns the money" is decided exactly as before.
+     *
      * @return array{amount: numeric-string, includes_deleted: bool}
      */
     public function forOrder(int $jobOrderId): array
     {
-        // One transaction, so both reads see the same snapshot (InnoDB's default REPEATABLE READ fixes it at the first read).
-        return DB::transaction(fn () => $this->orderMoney($jobOrderId));
-    }
+        $onThisOrder = DB::table('job_order_workers')->where('job_order_id', $jobOrderId)->select('client_service_id');
 
-    /**
-     * @return array{amount: numeric-string, includes_deleted: bool}
-     */
-    private function orderMoney(int $jobOrderId): array
-    {
-        $amount = $this->attributed()->where('a.job_order_id', $jobOrderId)->value('satang');
-
-        // count(), not exists(): the base query is an aggregate, which always yields one row, even when nothing matched.
-        $deleted = $this->attributed()
+        $row = $this->attributed($onThisOrder)
             ->join('clients', 'clients.id', '=', 'a.client_id')
-            ->whereNotNull('clients.deleted_at')
             ->where('a.job_order_id', $jobOrderId)
-            ->count() > 0;
+            ->selectRaw('SUM(CASE WHEN clients.deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_rows')
+            ->first();
 
-        return ['amount' => $this->fromSatang($amount), 'includes_deleted' => $deleted];
+        return [
+            'amount' => $this->fromSatang($row?->satang),
+            'includes_deleted' => (int) ($row->deleted_rows ?? 0) > 0,
+        ];
     }
 
     /**
@@ -112,8 +110,9 @@ class JobOrderMoney
             return [];
         }
 
+        // Only these records are grouped: the newest qualifying application of each is found among its own applications.
         return DB::table('job_order_workers as a')
-            ->joinSub($this->qualifying(), 'q', 'q.application_id', '=', 'a.id')
+            ->joinSub($this->qualifying($clientServiceIds), 'q', 'q.application_id', '=', 'a.id')
             ->whereIn('a.client_service_id', $clientServiceIds)
             ->pluck('a.job_order_id', 'a.client_service_id')
             ->map(fn ($id) => (int) $id)
@@ -122,24 +121,32 @@ class JobOrderMoney
 
     /**
      * The attributed applications joined to their record and payments, one row per attributed record, as a base query on which
-     * satang can be summed (alias "a" is job_order_workers).
+     * satang can be summed (alias "a" is job_order_workers). With $records only those Job Search records are aggregated (in the
+     * qualifying applications and in the payments); null aggregates them all.
+     *
+     * @param  Builder|array<int, int>|null  $records  a subquery that selects client service ids, or the ids themselves
      */
-    private function attributed(): Builder
+    private function attributed(Builder|array|null $records = null): Builder
     {
         return DB::table('job_order_workers as a')
-            ->joinSub($this->qualifying(), 'q', 'q.application_id', '=', 'a.id')
+            ->joinSub($this->qualifying($records), 'q', 'q.application_id', '=', 'a.id')
             ->join('client_services as cs', 'cs.id', '=', 'a.client_service_id')
-            ->leftJoinSub($this->paid(), 'paid', 'paid.client_service_id', '=', 'cs.id')
+            ->leftJoinSub($this->paid($records), 'paid', 'paid.client_service_id', '=', 'cs.id')
             ->selectRaw('SUM(COALESCE(paid.satang, 0) - ROUND(cs.refund_amount * 100) - ROUND(cs.cancel_refund_amount * 100)) as satang');
     }
 
     /**
-     * For each record, the one application that owns its Kept Amount (the newest if, abnormally, there are several).
+     * For each record, the one application that owns its Kept Amount (the newest if, abnormally, there are several). Limiting
+     * it to some records is safe because the grouping is per record: a record's answer depends only on its own applications,
+     * and all of them are kept, whichever order they are on.
+     *
+     * @param  Builder|array<int, int>|null  $records
      */
-    private function qualifying(): Builder
+    private function qualifying(Builder|array|null $records = null): Builder
     {
         return DB::table('job_order_workers as w')
             ->join('client_services as c', 'c.id', '=', 'w.client_service_id')
+            ->when($records !== null, fn ($query) => $query->whereIn('w.client_service_id', $records))
             ->where(function ($query): void {
                 $query->where(fn ($open) => $open
                     ->where('c.status', ClientServiceStatus::InProgress->value)
@@ -152,10 +159,17 @@ class JobOrderMoney
             ->selectRaw('MAX(w.id) as application_id');
     }
 
-    private function paid(): Builder
+    /**
+     * The payments of each record in whole satang. With $records only those records' payments are added up, never the whole
+     * payments table; the sum for each record is the same either way.
+     *
+     * @param  Builder|array<int, int>|null  $records
+     */
+    private function paid(Builder|array|null $records = null): Builder
     {
         return Payment::query()
             ->toBase()
+            ->when($records !== null, fn ($query) => $query->whereIn('client_service_id', $records))
             ->groupBy('client_service_id')
             ->selectRaw('client_service_id, SUM(ROUND(amount * 100)) as satang');
     }

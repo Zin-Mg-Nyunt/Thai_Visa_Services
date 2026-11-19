@@ -69,10 +69,14 @@ class JobOrderController extends Controller
     {
         Gate::authorize('view', $jobOrder);
 
+        // Both lists come from one load, split by status: each keeps the newest-first order.
+        [$cancelled, $workers] = $this->workersOf($jobOrder)
+            ->partition(fn (JobOrderWorker $worker) => $worker->case_status === WorkerCaseStatus::Cancelled);
+
         return Inertia::render('admin/job-search/Show', [
             'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
-            'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
-            'cancelledWorkers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder, cancelled: true)),
+            'workers' => JobOrderWorkerResource::collection($workers->values()),
+            'cancelledWorkers' => JobOrderWorkerResource::collection($cancelled->values()),
             'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
             // Live, never stored: the Kept Amount currently attributed to this order, also after it closed.
             'money' => $money->forOrder($jobOrder->id),
@@ -107,7 +111,7 @@ class JobOrderController extends Controller
 
         return Inertia::render('admin/job-search/Edit', [
             'jobOrder' => JobOrderResource::make($jobOrder->loadCount(JobOrder::workerCounts())),
-            'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder)),
+            'workers' => JobOrderWorkerResource::collection($this->workersOf($jobOrder, cancelled: false)),
             // The Job Search default fee prefills the Add worker dialog. It may be empty: the admin then types the fee.
             'workerFee' => Service::query()->where('key', Service::JOB_SEARCH_KEY)->value('default_fee'),
         ]);
@@ -201,20 +205,32 @@ class JobOrderController extends Controller
     }
 
     /**
-     * The workers of an order that are shown, newest first, whose person is not deleted: the operational ones (Applied, Interview,
-     * Hired, Rejected), or with $cancelled the historical cancelled applications. Loaded with their person, record and payments
-     * in three queries.
+     * The workers of an order that are shown, newest first, whose person is not deleted: with $cancelled false the operational
+     * ones (Applied, Interview, Hired, Rejected), with true the historical cancelled applications, and with null both. Loaded
+     * with their person, record and payments in three more queries. Only the payment columns the money needs are read.
+     *
+     * The record's person is the worker's own person (JobOrderWorker checks it on every save), so the person already loaded is
+     * handed to the record instead of being read a second time; remaining() needs it. Should the two ever differ, the record
+     * reads its own person as before.
      *
      * @return Collection<int, JobOrderWorker>
      */
-    private function workersOf(JobOrder $jobOrder, bool $cancelled = false): Collection
+    private function workersOf(JobOrder $jobOrder, ?bool $cancelled = null): Collection
     {
-        return $jobOrder->workers()
+        $workers = $jobOrder->workers()
             ->operational()
-            ->where('case_status', $cancelled ? '=' : '!=', WorkerCaseStatus::Cancelled->value)
-            ->with(['client', 'clientService.payments', 'clientService.client'])
+            ->when($cancelled !== null, fn ($query) => $query->where('case_status', $cancelled ? '=' : '!=', WorkerCaseStatus::Cancelled->value))
+            ->with(['client', 'clientService.payments:id,client_service_id,amount'])
             ->latest('id')
             ->get();
+
+        foreach ($workers as $worker) {
+            if ($worker->clientService->client_id === $worker->client_id) {
+                $worker->clientService->setRelation('client', $worker->client);
+            }
+        }
+
+        return $workers;
     }
 
     /**

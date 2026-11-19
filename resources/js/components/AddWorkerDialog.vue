@@ -76,7 +76,17 @@ const find = async () => {
     search.clearErrors();
 
     try {
-        const response = await search.post(lookupRoute.url(props.jobOrderId));
+        const response = await search.post(lookupRoute.url(props.jobOrderId), {
+            // Too many lookups in a minute (the server's rate limit): say so under the field instead of failing silently.
+            onHttpException: (failed) => {
+                if (failed.status === 429) {
+                    search.setError(
+                        'phone',
+                        t('jobOrders.workers.tooManyLookups'),
+                    );
+                }
+            },
+        });
 
         result.value = response;
         form.phone = response.phone;
@@ -88,7 +98,7 @@ const find = async () => {
                 : (props.defaultFee ?? '');
         form.clearErrors();
     } catch {
-        // A phone number that is not valid shows as an error under the field.
+        // A phone number that is not valid, or too many lookups, shows as an error under the field.
     }
 };
 

@@ -39,9 +39,19 @@ class AppServiceProvider extends ServiceProvider
      * Document downloads: 10 a minute for each client and IP address. A client opening a few documents never gets near it,
      * and a person or script hammering the route is stopped at 10 access-history rows a minute. A blocked request gets
      * 429 before the app writes anything, so the history cannot be flooded.
+     *
+     * Worker phone lookups (Add worker dialog): 30 a minute for each signed-in admin. A lookup answers with a person's name,
+     * birthday and gender, so a stolen session or a script must not be able to walk through phone numbers. An admin adding
+     * workers looks up one number every several seconds at the most, far below the limit. A guest is sent to the login page
+     * before the limit is reached. Every signed-in user is counted on a budget of their own, so another user's requests (which
+     * are refused anyway) never use up an admin's lookups. A blocked lookup gets 429 and no data.
      */
     protected function configureRateLimiting(): void
     {
+        RateLimiter::for('worker-lookups', function (Request $request): Limit {
+            return Limit::perMinute(30)->by('worker-lookups|'.($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         RateLimiter::for('document-downloads', function (Request $request): Limit {
             $client = $request->route('client');
             $clientKey = $client instanceof Client ? $client->getKey() : (string) $client;

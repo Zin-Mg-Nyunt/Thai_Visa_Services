@@ -19,7 +19,8 @@ use Throwable;
  * - On MySQL the session's innodb_lock_wait_timeout is set to 5 seconds. The value it had is read first and put back on
  *   every way out: success, an exception, and used-up attempts.
  * - When the attempts are used up, the admin gets a TryAgainException (a friendly message). The original database error is
- *   reported to the log and kept as the previous exception.
+ *   kept as its previous exception. The log gets a ConcurrencyFailureReport: the workflow, the attempts, the error class and
+ *   codes and the SQL with placeholders, never the query's values (they can be a person's name or phone number).
  *
  * The callback may run up to three times, so it must be repeatable. It must not touch files, write success logs or reports,
  * flash messages, or change variables outside itself. Do that after run() returns.
@@ -56,7 +57,8 @@ class RetriedTransaction
             return $db->transaction($callback, self::ATTEMPTS);
         } catch (Throwable $exception) {
             if ((new ConcurrencyErrorDetector)->causedByConcurrencyError($exception)) {
-                report($exception);
+                // Never the database error itself: its message carries the query's values (names, phone numbers).
+                report(ConcurrencyFailureReport::from($exception, self::ATTEMPTS, self::caller()));
 
                 throw new TryAgainException($exception);
             }
@@ -65,6 +67,21 @@ class RetriedTransaction
         } finally {
             self::restoreTimeout($db, $original);
         }
+    }
+
+    /**
+     * The workflow that called run(), for the log (for example App\Actions\JobSearch\AddWorker::handle). Only read when a
+     * workflow has given up, so it costs nothing on the normal path.
+     */
+    private static function caller(): ?string
+    {
+        $frame = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2] ?? null;
+
+        if ($frame === null) {
+            return null;
+        }
+
+        return isset($frame['class']) ? $frame['class'].'::'.$frame['function'] : $frame['function'];
     }
 
     /**

@@ -85,7 +85,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
             ->scopeBindings()
             ->name('clients.services.documents.destroy');
         Route::resource('services', ServiceController::class);
-        Route::post('job-search/{jobOrder}/workers/lookup', [JobOrderWorkerController::class, 'lookup'])->name('job-search.workers.lookup');
+        Route::post('job-search/{jobOrder}/workers/lookup', [JobOrderWorkerController::class, 'lookup'])
+            ->middleware('throttle:worker-lookups')
+            ->name('job-search.workers.lookup');
         Route::post('job-search/{jobOrder}/workers', [JobOrderWorkerController::class, 'store'])->name('job-search.workers.store');
         Route::patch('job-search/{jobOrder}/workers/status', [JobOrderWorkerController::class, 'updateStatus'])->name('job-search.workers.status');
         Route::patch('job-search/{jobOrder}/workers/{worker}/cancel-hired', [JobOrderWorkerController::class, 'cancelHired'])->name('job-search.workers.cancel-hired');

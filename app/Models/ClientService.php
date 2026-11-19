@@ -203,6 +203,17 @@ class ClientService extends Model
     }
 
     /**
+     * Whether the client portal lists this service's documents: only a service that takes documents, never Job Search (its
+     * documents are for the admin only, whatever its status), and never a cancelled service (the client sees its status only).
+     * The portal loads documents only for these services, so a Job Search document is never even read for the portal. The
+     * service must be loaded.
+     */
+    public function showsDocumentsToClient(): bool
+    {
+        return ! $this->isCancelled() && $this->service->has_documents && ! $this->service->isJobSearch();
+    }
+
+    /**
      * Whether the documents of this service unlock by payment: only once it is Fully Paid, and never on a cancelled service
      * (its money is settled by the refund). The admin's per-document release is separate.
      */

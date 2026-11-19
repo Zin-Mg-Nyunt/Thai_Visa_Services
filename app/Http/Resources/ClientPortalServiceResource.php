@@ -50,14 +50,12 @@ class ClientPortalServiceResource extends JsonResource
 
     /**
      * Only a service that takes documents lists them, never Job Search (its documents are for the admin only), and never
-     * a cancelled service (the client sees its status only).
+     * a cancelled service (the client sees its status only). ClientService::showsDocumentsToClient() holds the rule; the
+     * profile loads documents only for those services, and this checks it again.
      */
     private function listsDocuments(): bool
     {
-        return $this->relationLoaded('documents')
-            && ! $this->isCancelled()
-            && $this->service->has_documents
-            && ! $this->service->isJobSearch();
+        return $this->relationLoaded('documents') && $this->showsDocumentsToClient();
     }
 
     /**

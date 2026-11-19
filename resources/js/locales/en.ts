@@ -224,6 +224,8 @@ const en = {
             add: 'Add worker',
             empty: 'No workers yet.',
             searchFirst: 'Search the phone number first.',
+            tooManyLookups:
+                'Too many searches in a short time. Wait a minute, then try again.',
             phone: 'Phone number',
             fee: 'Fee (฿)',
             received: 'Received',
