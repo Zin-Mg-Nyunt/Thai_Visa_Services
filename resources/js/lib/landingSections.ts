@@ -1,6 +1,16 @@
 import { localized } from '@/composables/useLocale';
 import type { PublicSite } from '@/types/site';
 
+/**
+ * The agency name the visitor sees: the name from the website settings in their language (or the other language), else the app name.
+ */
+export function agencyName(
+    site: PublicSite | undefined,
+    appName: string,
+): string {
+    return localized(site?.agency_name, site?.agency_name_my) || appName;
+}
+
 export type LandingService = {
     id: number;
     title: string | null;

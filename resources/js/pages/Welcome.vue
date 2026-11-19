@@ -15,13 +15,15 @@ import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
 import { Button } from '@/components/ui/button';
 import { localized } from '@/composables/useLocale';
-import { hasContactDetails, serviceCardsOf } from '@/lib/landingSections';
+import {
+    agencyName,
+    hasContactDetails,
+    serviceCardsOf,
+} from '@/lib/landingSections';
 import type { LandingService } from '@/lib/landingSections';
 import type { PublicSite } from '@/types/site';
 
 const { t, locale } = useI18n();
-const name = usePage().props.name;
-
 // The two public numbers are real totals from the database (cached on the server). It is null when there is nothing to show
 // yet, which hides the section. A zero is shown as a zero when the other number is not.
 const props = defineProps<{
@@ -31,6 +33,10 @@ const props = defineProps<{
     site: PublicSite;
     services: LandingService[];
 }>();
+
+// The tab title is the agency name (the app name when there is none); documentTitle() adds the app name only if it is not already in it.
+const page = usePage();
+const name = computed(() => agencyName(props.site, page.props.name as string));
 
 // Only the statistics the admin approved reach the page (see WelcomeController); each one that is sent is shown.
 const stats = computed(() =>

@@ -117,6 +117,7 @@ test('the layout draws the logo and the name from the settings and keeps the bui
     $welcome = file_get_contents(resource_path('js/pages/Welcome.vue'));
 
     expect($layout)->toContain('v-if="site?.logo_url"')->toContain(':src="site.logo_url"')->toContain('v-else')
-        ->toContain('AppLogoIcon')->toContain('localized(site.value?.agency_name, site.value?.agency_name_my)')
+        ->toContain('AppLogoIcon')->toContain('agencyName(site.value')
+        ->and(file_get_contents(resource_path('js/lib/landingSections.ts')))->toContain('localized(site?.agency_name, site?.agency_name_my) || appName')
         ->and($welcome)->toContain('v-if="site.hero_image_url"')->toContain(':src="site.hero_image_url"')->toContain('<HeroIllustration v-else />');
 });

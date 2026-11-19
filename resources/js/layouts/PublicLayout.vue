@@ -5,8 +5,7 @@ import { useI18n } from 'vue-i18n';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { Button } from '@/components/ui/button';
-import { localized } from '@/composables/useLocale';
-import { navSections } from '@/lib/landingSections';
+import { agencyName, navSections } from '@/lib/landingSections';
 import type { LandingService } from '@/lib/landingSections';
 import { home, login } from '@/routes';
 import type { PublicSite } from '@/types/site';
@@ -16,11 +15,7 @@ const page = usePage();
 
 // The logo and the agency name the admin set in the website settings; without them, the built-in logo and the app name.
 const site = computed(() => page.props.site as PublicSite | undefined);
-const name = computed(
-    () =>
-        localized(site.value?.agency_name, site.value?.agency_name_my) ||
-        (page.props.name as string),
-);
+const name = computed(() => agencyName(site.value, page.props.name as string));
 
 // The links to the page sections that are on the page.
 const sections = computed(() =>
