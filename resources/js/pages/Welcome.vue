@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
 import { Button } from '@/components/ui/button';
 import { localized } from '@/composables/useLocale';
+import type { PublicSite } from '@/types/site';
 
 const { t, locale } = useI18n();
 const name = usePage().props.name;
@@ -14,6 +15,7 @@ const name = usePage().props.name;
 // yet, which hides the section. A zero is shown as a zero when the other number is not.
 const props = defineProps<{
     statistics: { clients_served: number; services_provided: number } | null;
+    site: PublicSite;
     services: {
         id: number;
         title: string | null;
@@ -67,7 +69,12 @@ const formatNumber = (value: number) =>
 
     <section class="bg-brand-dark text-white">
         <div
-            class="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:gap-8 md:px-8 md:py-20"
+            :class="
+                site.hero_image_url
+                    ? 'md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]'
+                    : 'md:grid-cols-2'
+            "
+            class="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:gap-8 md:px-8 md:py-20"
         >
             <div class="min-w-0">
                 <p
@@ -97,7 +104,14 @@ const formatNumber = (value: number) =>
                 </div>
             </div>
 
-            <HeroIllustration />
+            <img
+                v-if="site.hero_image_url"
+                :src="site.hero_image_url"
+                alt=""
+                class="mx-auto h-80 w-full max-w-xl rounded-3xl object-cover sm:h-100 md:h-104 lg:h-120"
+                data-test="hero-image"
+            />
+            <HeroIllustration v-else />
         </div>
     </section>
 

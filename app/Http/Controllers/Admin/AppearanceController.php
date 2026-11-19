@@ -39,9 +39,9 @@ class AppearanceController extends Controller
 
         return Inertia::render('admin/settings/Appearance', [
             'appearance' => [
-                'logo_url' => $this->imageUrl($setting, $setting->logo_key),
-                'favicon_url' => $this->imageUrl($setting, $setting->favicon_key),
-                'hero_image_url' => $this->imageUrl($setting, $setting->hero_image_key),
+                'logo_url' => $setting->imageUrl($setting->logo_key),
+                'favicon_url' => $setting->imageUrl($setting->favicon_key),
+                'hero_image_url' => $setting->imageUrl($setting->hero_image_key),
                 'hero_heading' => $setting->hero_heading ?? '',
                 'hero_heading_my' => $setting->hero_heading_my ?? '',
                 'hero_description' => $setting->hero_description ?? '',
@@ -159,20 +159,5 @@ class AppearanceController extends Controller
         } catch (Throwable $exception) {
             report($exception);
         }
-    }
-
-    /**
-     * The public address of an image: the disk's address plus the key, with the time of the last save so a browser fetches
-     * a replaced image at once. Only this address is sent to the page, never the key or a path on the disk.
-     */
-    private function imageUrl(SiteSetting $setting, ?string $key): ?string
-    {
-        if ($key === null) {
-            return null;
-        }
-
-        $url = Storage::disk(SiteSetting::DISK)->url($key);
-
-        return $setting->updated_at === null ? $url : $url.'?v='.$setting->updated_at->getTimestamp();
     }
 }

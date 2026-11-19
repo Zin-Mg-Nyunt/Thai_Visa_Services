@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * The public website's settings: agency texts in English and Burmese, contact details, the three image keys, the numbers
@@ -119,6 +120,22 @@ class SiteSetting extends Model
         }
 
         return null;
+    }
+
+    /**
+     * The public address of one of the three images, or null when there is none: the disk's address plus the key, with the time of
+     * the last save so a browser fetches a replaced image at once. Only this address ever leaves the server, never the key or a
+     * path on the disk.
+     */
+    public function imageUrl(?string $key): ?string
+    {
+        if ($key === null) {
+            return null;
+        }
+
+        $url = Storage::disk(self::DISK)->url($key);
+
+        return $this->updated_at === null ? $url : $url.'?v='.$this->updated_at->getTimestamp();
     }
 
     /**

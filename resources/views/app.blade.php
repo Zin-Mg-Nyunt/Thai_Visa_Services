@@ -16,7 +16,13 @@
             <meta name="robots" content="noindex">
         @endif
 
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        {{-- The favicon the admin uploaded in the website settings, or the built-in one. --}}
+        @php($faviconUrl = app(\App\Actions\Site\SiteSettings::class)->forPage()['favicon_url'])
+        @if ($faviconUrl)
+            <link rel="icon" href="{{ $faviconUrl }}" type="{{ str_contains(parse_url($faviconUrl, PHP_URL_PATH) ?? '', '.ico') ? 'image/x-icon' : 'image/png' }}">
+        @else
+            <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        @endif
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
