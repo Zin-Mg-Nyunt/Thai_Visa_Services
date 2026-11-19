@@ -1072,7 +1072,7 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 | 5c | Website appearance and the `site_settings` foundation | **Not built.** There is no `site_settings` table. Plan steps 5c.1–5c.5; the migration is reviewed and run by the user. |
 | 5d | Public landing page | **Built with mockup content.** The statistics are real (D1). The services are hard-coded, the agency facts are mockups, and there is no publish switch. Corrections are plan steps 5d.1–5d.7. |
 | 5e | Settings and appearance audit logs | **Deferred (D3).** No work in V1. |
-| 5f | Hardening and security review | **Not started.** Plan steps 5f.1–5f.3; 5f.3 needs testing-database and server access ("Step 6", unclarified). |
+| 5f | Hardening and security review | **In progress.** 5f.1 (public data exposure tests) and 5f.2 (security and PDPA review, `docs/reports/PHASE_5_SECURITY_PDPA_REVIEW.md`) are committed. 5f.3 (MySQL checks) is built and the testing-database checks passed (integrity audit, full MySQL suite, audit again with an identical fingerprint); the production server check (`db:check-server`) has not run because there is no server yet (see `docs/reports/PHASE_5_MYSQL_CHECKS.md`). |
 | 5g | Security headers | **Not built.** Plan steps 5g.1–5g.2; the CSP and HSTS choice (D6) is asked when 5g.2 is reached. |
 | 5h | Browser tests and CI | **Not built.** Plan step 5h.1; the tool choice (D7) is asked when it is reached. |
 | 5i | Documentation and `CLAUDE.md` | Partly done. Plan steps 5i.1–5i.2; `CLAUDE.md` waits for approval of the proposal. |
