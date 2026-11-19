@@ -43,3 +43,10 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+
+# Browser tests (Playwright): their own database, storage, website images and reports
+/storage/browser
+/public/browser-assets
+/test-results
+/playwright-report
+/public/hot.moved-by-browser-tests

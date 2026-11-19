@@ -74,7 +74,7 @@ return [
 
         'public_assets' => [
             'driver' => env('STORAGE_DRIVER', 'local'),
-            'root' => storage_path('app/public'),
+            'root' => env('PUBLIC_ASSETS_ROOT') ?: storage_path('app/public'),
             // An empty PUBLIC_ASSETS_URL counts as not set (`?:`, not the env() default), so a blank line in .env cannot leave the
             // base address empty and break every website image address. In production it is the public Spaces bucket's address.
             'url' => env('PUBLIC_ASSETS_URL') ?: rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage',

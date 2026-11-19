@@ -328,7 +328,7 @@ const formatNumber = (value: number) =>
         data-test="contact-section"
     >
         <div
-            class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-8 md:py-16"
+            class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 md:px-8 md:py-16 lg:flex-row lg:items-center lg:justify-between"
         >
             <div class="min-w-0">
                 <p
