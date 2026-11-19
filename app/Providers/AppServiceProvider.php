@@ -66,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
     protected function configureGates(): void
     {
         Gate::define('viewDashboard', fn (User $user): bool => $user->isSuperadmin());
+        // The website settings: appearance and content (Sections 4.10 and 4.11). In v1 every admin has it; a role can be given it in v2.
+        Gate::define('manage-site-settings', fn (User $user): bool => $user->isSuperadmin());
     }
 
     /**
