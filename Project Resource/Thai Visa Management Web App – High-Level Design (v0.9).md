@@ -1067,15 +1067,15 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 
 | Step | Scope | Status |
 | --- | --- | --- |
-| 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Plan step 5a.2 adds the missing tests; 5a.3 is optional; the Active Clients definition is asked if it becomes necessary. |
-| 5b | Admin Settings tab extras | **Not built.** `/admin/settings` is a "Coming soon" page. Plan steps 5b.1–5b.2; the scope question (D8) is asked when they are reached. *Since step 5b.1:* `/admin/settings` is the Settings hub, reached from the Settings item in the admin navigation. It links to the admin account (profile and security), Website appearance (`/admin/settings/appearance`) and Website content (`/admin/settings/content`), and shows two read-only facts: whether the admin's Google sign-in is linked, and the currency (THB, fixed in V1). Step 5b.2 (documents locked by default) is not built. |
-| 5c | Website appearance and the `site_settings` foundation | **Not built.** There is no `site_settings` table. Plan steps 5c.1–5c.5; the migration is reviewed and run by the user. |
-| 5d | Public landing page | **Built with mockup content.** The statistics are real (D1). The services are hard-coded, the agency facts are mockups, and there is no publish switch. Corrections are plan steps 5d.1–5d.7. |
+| 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Step 5a.2 (Asia/Bangkok midnight boundary tests) is committed; 5a.3 is optional; the Active Clients definition is asked if it becomes necessary. |
+| 5b | Admin Settings tab extras | **Step 5b.1 committed.** *Since step 5b.1:* `/admin/settings` is the Settings hub, reached from the Settings item in the admin navigation. It links to the admin account (profile and security), Website appearance (`/admin/settings/appearance`) and Website content (`/admin/settings/content`), and shows two read-only facts: whether the admin's Google sign-in is linked, and the currency (THB, fixed in V1). Step 5b.2 (documents locked by default) was intentionally skipped by the user's decision: no migration, no change. |
+| 5c | Website appearance and the `site_settings` foundation | **Built and committed** (5c.1–5c.5): the `site_settings` table, the cached reader, image upload validation, browser image reduction, the Website appearance screen, and the public pages using the settings. The migration was run by the user, and on the MySQL testing database with approval. |
+| 5d | Public landing page | **Built and committed** (5d.1–5d.7): real statistics (D1), services from the catalogue, admin-written content (Website content screen), a Publish/Unpublish button with a confirmation, and SEO tags. Before publishing, admin-written content is hidden and the built-in copy is the fallback. |
 | 5e | Settings and appearance audit logs | **Deferred (D3).** No work in V1. |
 | 5f | Hardening and security review | **In progress.** 5f.1 (public data exposure tests) and 5f.2 (security and PDPA review, `docs/reports/PHASE_5_SECURITY_PDPA_REVIEW.md`) are committed. 5f.3 (MySQL checks) is built and the testing-database checks passed (integrity audit, full MySQL suite, audit again with an identical fingerprint); the production server check (`db:check-server`) has not run because there is no server yet (see `docs/reports/PHASE_5_MYSQL_CHECKS.md`). |
-| 5g | Security headers | **Not built.** Plan steps 5g.1–5g.2; the CSP and HSTS choice (D6) is asked when 5g.2 is reached. |
-| 5h | Browser tests and CI | **Not built.** Plan step 5h.1; the tool choice (D7) is asked when it is reached. |
-| 5i | Documentation and `CLAUDE.md` | Partly done. Plan steps 5i.1–5i.2; `CLAUDE.md` waits for approval of the proposal. |
+| 5g | Security headers | **Built and committed** (5g.1–5g.2): public protections, `X-Frame-Options`, HSTS (production over https only, 6 months), and a Content Security Policy in Report-Only mode (enforcing is a later decision). |
+| 5h | Browser tests and CI | **Built and committed** (5h.1): Playwright browser tests (31) and a CI job. |
+| 5i | Documentation and `CLAUDE.md` | Partly done. 5i.1 (these status rows) is done; the final Section 13.3 refresh waits until all Phase 5 work is finished. 5i.2 (`CLAUDE.md`) waits for approval of the proposal. |
 
 **Step 5a audit (Business dashboard: `app/Actions/Dashboard/BusinessReport.php`, `app/Http/Requests/DashboardRangeRequest.php`, `resources/js/pages/Dashboard.vue`)**
 
