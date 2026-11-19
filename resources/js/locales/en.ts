@@ -586,7 +586,33 @@ const en = {
         },
     },
     siteSettings: {
-        description: 'Manage the public website.',
+        description: 'Your account, the public website and system information.',
+        account: {
+            title: 'Admin account',
+            profile: 'Profile',
+            profileHint: 'Your name and email address.',
+            security: 'Security',
+            securityHint: 'Your password and two-factor sign-in.',
+        },
+        website: {
+            title: 'Public website',
+        },
+        content: {
+            title: 'Website content',
+            description:
+                'The texts, contact details, links and statistics of the public website, and publishing.',
+        },
+        system: {
+            title: 'System',
+            google: 'Google sign-in',
+            googleHint:
+                'Whether your account is linked to Google. Shown only; it is not changed here.',
+            linked: 'Linked',
+            notLinked: 'Not linked',
+            currency: 'Currency',
+            currencyHint:
+                'Every amount is in Thai baht. It is fixed in this version.',
+        },
         appearance: {
             title: 'Website appearance',
             description:
