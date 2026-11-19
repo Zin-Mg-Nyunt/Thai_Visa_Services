@@ -45,11 +45,21 @@ class LandingStatistics
     private bool $refreshPending = false;
 
     /**
-     * @return array{clients_served: int, services_provided: int}|null null when both are zero: the page then hides the section
+     * The numbers for the public page, or null when the section should be hidden: when both are zero, or when they cannot be
+     * read at all (the cache or the database failed). A failure is reported, never shown to the visitor, so the rest of the
+     * public page keeps working.
+     *
+     * @return array{clients_served: int, services_provided: int}|null
      */
     public function forPage(): ?array
     {
-        $counts = $this->counts();
+        try {
+            $counts = $this->counts();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
 
         return $counts['clients_served'] === 0 && $counts['services_provided'] === 0 ? null : $counts;
     }

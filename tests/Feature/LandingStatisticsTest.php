@@ -8,8 +8,12 @@ use App\Models\JobOrderWorker;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -271,5 +275,57 @@ describe('the cache', function () {
         expect($queries)->toHaveCount(2)
             ->and($queries[0])->toContain('count(distinct')
             ->and($queries[1])->toContain('count(*)');
+    });
+});
+
+describe('when the statistics fail', function () {
+    test('a database failure gives a normal page without the statistics section, and the error is reported', function () {
+        Exceptions::fake();
+        Cache::forget(LandingStatistics::CACHE_KEY);
+        Service::factory()->create(['title' => 'Work Permit']);
+        Schema::drop('client_services');
+
+        $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Welcome')
+            ->where('statistics', null)
+            ->has('services', 1));
+
+        Exceptions::assertReportedCount(1);
+    });
+
+    test('a cache failure gives a normal page without the statistics section, and the error is reported', function () {
+        Exceptions::fake();
+        Cache::extend('broken', fn () => new Repository(new class extends ArrayStore
+        {
+            public function get($key)
+            {
+                throw new RuntimeException('cache is down');
+            }
+        }));
+        config(['cache.stores.broken' => ['driver' => 'broken'], 'cache.default' => 'broken']);
+        serviceFor(Client::factory()->create());
+
+        $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Welcome')->where('statistics', null));
+
+        Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'cache is down');
+    });
+
+    test('a failure in counts() itself is caught only on the page path; counts() still throws for its other callers', function () {
+        Exceptions::fake();
+        $statistics = Mockery::mock(LandingStatistics::class)->makePartial();
+        $statistics->shouldReceive('counts')->andThrow(new RuntimeException('boom'));
+
+        expect($statistics->forPage())->toBeNull()
+            ->and(fn () => $statistics->counts())->toThrow(RuntimeException::class);
+        Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'boom');
+    });
+
+    test('when nothing fails the section still shows and nothing is reported', function () {
+        Exceptions::fake();
+        serviceFor(Client::factory()->create());
+
+        $this->get(route('home'))->assertInertia(fn (Assert $page) => $page->where('statistics', ['clients_served' => 1, 'services_provided' => 1]));
+
+        Exceptions::assertNothingReported();
     });
 });
