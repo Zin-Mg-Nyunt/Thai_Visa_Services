@@ -38,6 +38,12 @@ const en = {
         cancelled: 'Cancelled',
     },
     landing: {
+        nav: {
+            label: 'Page sections',
+            about: 'About',
+            services: 'Services',
+            contact: 'Contact',
+        },
         ourServices: 'Our Services',
         contactUs: 'Contact Us',
         rights: '© {name}. All rights reserved.',
@@ -65,8 +71,8 @@ const en = {
             title: 'What we do for you',
         },
         stats: {
-            clients: 'Clients Served',
-            services: 'Services Provided',
+            clients: 'Clients served',
+            services: 'Services provided',
         },
         contact: {
             eyebrow: 'Contact',

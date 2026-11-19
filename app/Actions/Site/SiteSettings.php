@@ -44,7 +44,7 @@ class SiteSettings
         'hero_heading' => null, 'hero_heading_my' => null, 'hero_description' => null, 'hero_description_my' => null,
         'overview' => null, 'overview_my' => null, 'experience' => null, 'experience_my' => null, 'mission' => null, 'mission_my' => null,
         'how_we_help' => null, 'how_we_help_my' => null, 'address' => null, 'address_my' => null,
-        'phone' => null, 'phone_tel' => null, 'email' => null, 'social_links' => [],
+        'phone' => null, 'phone_tel' => null, 'email' => null, 'messaging_link' => null, 'social_links' => [],
     ];
 
     /**
@@ -54,11 +54,11 @@ class SiteSettings
      * - Always: the agency name in both languages and the public addresses of the logo, the favicon and the hero image. They are
      *   the look of the website, not claims about the agency.
      * - Only when the website is published: the texts the admin wrote (hero heading and description, overview, the three About
-     *   cards, address), the phone number, the email address and the social links. Until then they are all empty, so the page falls
+     *   cards, address), the phone number, the email address, the messaging link and the social links. Until then they are all empty, so the page falls
      *   back to its built-in texts and hides the contact section. A text that is empty stays null, and a section with nothing in it
      *   is hidden by the page.
      * - `phone_tel` is the phone number cut down to digits and a leading plus, ready for a `tel:` link; `email` is sent only when
-     *   it is a valid address, and a social link only when it is an http or https address, so a link can never be a script.
+     *   it is a valid address, and the messaging link and a social link only when they are http or https addresses, so a link can never be a script.
      *
      * It never throws: if the settings cannot be read (the cache or the database failed) the error is reported and every value is
      * empty, so the public pages keep working with the built-in logo, favicon, name and texts.
@@ -91,8 +91,9 @@ class SiteSettings
             $page['phone'] = $this->filled($setting->phone);
             $page['phone_tel'] = $this->telephone($setting->phone);
             $page['email'] = filter_var($setting->email, FILTER_VALIDATE_EMAIL) !== false ? $setting->email : null;
+            $page['messaging_link'] = $this->webAddress($setting->messaging_link);
             $page['social_links'] = collect($setting->social_links ?? [])
-                ->filter(fn ($link): bool => is_string($link) && preg_match('#^https?://#i', $link) === 1)
+                ->filter(fn ($link): bool => $this->webAddress($link) !== null)
                 ->all();
 
             return $page;
@@ -118,6 +119,12 @@ class SiteSettings
 
             return [];
         }
+    }
+
+    /** The address when it is a full http or https address, otherwise null: a link can never be a script or another kind of address. */
+    private function webAddress(mixed $link): ?string
+    {
+        return is_string($link) && preg_match('#^https?://#i', $link) === 1 ? $link : null;
     }
 
     /** A phone number cut down to digits and a leading plus for a `tel:` link, or null when it has no digit. */

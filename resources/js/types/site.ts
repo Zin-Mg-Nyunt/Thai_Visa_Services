@@ -26,6 +26,8 @@ export type PublicSite = {
     /** The phone number cut down to digits and a leading plus, for a `tel:` link. */
     phone_tel: string | null;
     email: string | null;
+    /** A full http or https address that opens the agency's messaging app. */
+    messaging_link: string | null;
     /** Only http or https addresses, by network name. */
     social_links: Record<string, string>;
 };

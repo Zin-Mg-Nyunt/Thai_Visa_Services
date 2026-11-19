@@ -30,7 +30,7 @@ function contentSettings(array $state = [], bool $published = true): SiteSetting
         'agency_name' => 'PaingThu', 'hero_heading' => 'Real heading', 'hero_heading_my' => 'ခေါင်းစဉ်', 'hero_description' => 'Real description',
         'overview' => 'Overview text', 'experience' => 'Experience text', 'mission' => 'Mission text', 'mission_my' => 'ရည်မှန်းချက်',
         'how_we_help' => 'Help text', 'address' => '1 Road, Bangkok', 'address_my' => 'လိပ်စာ', 'phone' => '+66 2 123 4567',
-        'email' => 'hello@example.test', 'social_links' => ['facebook' => 'https://facebook.com/x'],
+        'email' => 'hello@example.test', 'messaging_link' => 'https://line.me/ti/p/abc', 'social_links' => ['facebook' => 'https://facebook.com/x'],
         'is_published' => $published, ...$state,
     ]);
 }
@@ -49,7 +49,7 @@ describe('before the website is published', function () {
 
         expect($site['agency_name'])->toBe('PaingThu')->and($site['logo_url'])->toContain('site/logo.png')->and($site['hero_image_url'])->toContain('site/hero.jpg');
 
-        foreach (['hero_heading', 'hero_heading_my', 'hero_description', 'overview', 'experience', 'mission', 'mission_my', 'how_we_help', 'address', 'address_my', 'phone', 'phone_tel', 'email'] as $field) {
+        foreach (['hero_heading', 'hero_heading_my', 'hero_description', 'overview', 'experience', 'mission', 'mission_my', 'how_we_help', 'address', 'address_my', 'phone', 'phone_tel', 'email', 'messaging_link'] as $field) {
             expect($site[$field])->toBeNull();
         }
 
@@ -76,7 +76,7 @@ describe('once it is published', function () {
             'hero_heading' => 'Real heading', 'hero_heading_my' => 'ခေါင်းစဉ်', 'hero_description' => 'Real description', 'hero_description_my' => null,
             'overview' => 'Overview text', 'experience' => 'Experience text', 'mission' => 'Mission text', 'mission_my' => 'ရည်မှန်းချက်',
             'how_we_help' => 'Help text', 'how_we_help_my' => null, 'address' => '1 Road, Bangkok', 'address_my' => 'လိပ်စာ',
-            'phone' => '+66 2 123 4567', 'phone_tel' => '+6621234567', 'email' => 'hello@example.test',
+            'phone' => '+66 2 123 4567', 'phone_tel' => '+6621234567', 'email' => 'hello@example.test', 'messaging_link' => 'https://line.me/ti/p/abc',
             'social_links' => ['facebook' => 'https://facebook.com/x'],
         ]);
     });
@@ -90,6 +90,17 @@ describe('once it is published', function () {
             ->and($site['email'])->toBeNull()->and($site['address'])->toBeNull()->and($site['social_links'])->toBe([]);
     });
 
+    test('the messaging link is sent only when it is a full http or https address', function (?string $link, ?string $expected) {
+        contentSettings(['messaging_link' => $link]);
+
+        expect(landingSite()['messaging_link'])->toBe($expected);
+    })->with([
+        'https' => ['https://line.me/ti/p/abc', 'https://line.me/ti/p/abc'],
+        'javascript' => ['javascript:alert(1)', null],
+        'no scheme' => ['line.me/abc', null],
+        'empty' => [null, null],
+    ]);
+
     test('a phone number is cut down to digits and a leading plus for the tel link', function (string $phone, ?string $tel) {
         contentSettings(['phone' => $phone]);
 
@@ -101,11 +112,11 @@ describe('once it is published', function () {
     ]);
 
     test('even if bad data is in the database, an invalid email and a link that is not http or https are never sent', function () {
-        contentSettings(['email' => 'not an email', 'social_links' => ['facebook' => 'https://facebook.com/x', 'instagram' => 'javascript:alert(1)', 'tiktok' => 'data:text/html,x', 'youtube' => '//evil.test']]);
+        contentSettings(['email' => 'not an email', 'messaging_link' => 'javascript:alert(1)', 'social_links' => ['facebook' => 'https://facebook.com/x', 'instagram' => 'javascript:alert(1)', 'tiktok' => 'data:text/html,x', 'youtube' => '//evil.test']]);
 
         $site = landingSite();
 
-        expect($site['email'])->toBeNull()->and($site['social_links'])->toBe(['facebook' => 'https://facebook.com/x']);
+        expect($site['email'])->toBeNull()->and($site['messaging_link'])->toBeNull()->and($site['social_links'])->toBe(['facebook' => 'https://facebook.com/x']);
     });
 
     test('publishing on the Website content screen shows the texts on the very next visit', function () {
@@ -184,14 +195,49 @@ describe('when the settings cannot be read', function () {
 });
 
 describe('the page', function () {
-    test('every contact link is built from a filled field only, and a social link opens safely', function () {
+    test('every contact link is built from a filled field only, and an outside link opens safely', function () {
         $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
 
         expect($page)->toContain('v-if="hasContact"')->toContain('v-if="site.phone_tel"')->toContain('`tel:${site.phone_tel}`')
-            ->toContain('v-if="site.email"')->toContain('`mailto:${site.email}`')
+            ->toContain('props.site.email')->toContain('`mailto:${props.site.email}`')
+            ->toContain('v-if="site.messaging_link"')->toContain(':href="site.messaging_link"')
             ->toContain('target="_blank"')->toContain('rel="noopener noreferrer"')
             ->toContain('v-if="serviceCards.length > 0"')
             ->not->toContain('v-html')->not->toContain('+66 2 123 4567')->not->toContain('info@example.com');
+    });
+
+    test('"Message us" uses the messaging link, not the email, and is hidden when there is no link', function () {
+        $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
+        $messageUs = substr($page, strpos($page, 'v-if="site.messaging_link"'), 420);
+
+        expect($messageUs)->toContain('data-test="message-us"')->not->toContain('mailto:');
+    });
+
+    test('the contact details are in one line from the medium screens up, with the phone and the email as links', function () {
+        $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
+
+        expect($page)->toContain('md:flex-row')->toContain('data-test="contact-details"')->toContain('aria-hidden="true"')
+            ->toContain("key: 'phone'")->toContain("key: 'email'")->toContain("key: 'address'");
+    });
+
+    test('the statistic labels are in sentence case', function () {
+        $english = file_get_contents(resource_path('js/locales/en.ts'));
+
+        expect($english)->toContain("clients: 'Clients served'")->toContain("services: 'Services provided'")
+            ->not->toContain('Clients Served')->not->toContain('Services Provided');
+    });
+
+    test('the navigation bar links to the sections that are on the page, on large screens and as a row on small ones', function () {
+        $layout = file_get_contents(resource_path('js/layouts/PublicLayout.vue'));
+        $lib = file_get_contents(resource_path('js/lib/landingSections.ts'));
+        $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
+
+        expect($layout)->toContain('data-test="site-nav"')->toContain('data-test="site-nav-mobile"')->toContain('navSections(')
+            ->toContain('`#${section.id}`')->toContain("t('common.adminLogin')")
+            ->and($lib)->toContain("id: 'about'")->toContain("id: 'services'")->toContain("id: 'contact'")
+            ->toContain('shown: serviceCardsOf(services).length > 0')->toContain('shown: hasContactDetails(site)')
+            // Every link points at an id that is on the page.
+            ->and($page)->toContain('id="about"')->toContain('id="services"')->toContain('id="contact"');
     });
 
     test('where the admin wrote nothing the built-in text is the fallback, except for Experience', function () {

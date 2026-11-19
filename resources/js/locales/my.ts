@@ -40,6 +40,12 @@ const my: MessageSchema = {
         cancelled: "ပယ်ဖျက်ပြီး",
     },
     landing: {
+        nav: {
+            label: "စာမျက်နှာ အပိုင်းများ",
+            about: "အကြောင်း",
+            services: "ဝန်ဆောင်မှုများ",
+            contact: "ဆက်သွယ်ရန်",
+        },
         ourServices: "ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများ",
         contactUs: "ဆက်သွယ်ရန်",
         rights: "© {name}။ မူပိုင်ခွင့်အားလုံး ရယူပြီးဖြစ်သည်။",

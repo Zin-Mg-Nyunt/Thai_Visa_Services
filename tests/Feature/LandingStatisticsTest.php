@@ -220,7 +220,7 @@ describe('the landing page', function () {
             ->toContain("key: 'services_provided'")
             ->toContain('props.statistics?.[stat.key]')
             ->not->toContain('1240')->not->toContain('3860')
-            ->and($english)->toContain("clients: 'Clients Served'")->toContain("services: 'Services Provided'");
+            ->and($english)->toContain("clients: 'Clients served'")->toContain("services: 'Services provided'");
     });
 });
 

@@ -6,6 +6,8 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { Button } from '@/components/ui/button';
 import { localized } from '@/composables/useLocale';
+import { navSections } from '@/lib/landingSections';
+import type { LandingService } from '@/lib/landingSections';
 import { home, login } from '@/routes';
 import type { PublicSite } from '@/types/site';
 
@@ -18,6 +20,16 @@ const name = computed(
     () =>
         localized(site.value?.agency_name, site.value?.agency_name_my) ||
         (page.props.name as string),
+);
+
+// The links to the page sections that are on the page.
+const sections = computed(() =>
+    site.value
+        ? navSections(
+              (page.props.services as LandingService[] | undefined) ?? [],
+              site.value,
+          )
+        : [],
 );
 </script>
 
@@ -46,6 +58,20 @@ const name = computed(
                         >{{ name }}</span
                     >
                 </Link>
+                <nav
+                    v-if="sections.length > 0"
+                    class="hidden items-center gap-6 text-sm font-semibold md:flex"
+                    :aria-label="t('landing.nav.label')"
+                    data-test="site-nav"
+                >
+                    <a
+                        v-for="section in sections"
+                        :key="section.id"
+                        :href="`#${section.id}`"
+                        class="text-white/80 transition-colors hover:text-brand"
+                        >{{ t(section.labelKey) }}</a
+                    >
+                </nav>
                 <div
                     class="flex shrink-0 flex-col-reverse items-end gap-2 sm:flex-row sm:items-center sm:gap-3"
                 >
@@ -57,6 +83,24 @@ const name = computed(
                     </Button>
                 </div>
             </div>
+            <nav
+                v-if="sections.length > 0"
+                class="border-t border-white/10 md:hidden"
+                :aria-label="t('landing.nav.label')"
+                data-test="site-nav-mobile"
+            >
+                <div
+                    class="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-4 py-2 text-sm font-semibold"
+                >
+                    <a
+                        v-for="section in sections"
+                        :key="section.id"
+                        :href="`#${section.id}`"
+                        class="shrink-0 text-white/80 transition-colors hover:text-brand"
+                        >{{ t(section.labelKey) }}</a
+                    >
+                </div>
+            </nav>
         </header>
 
         <main class="flex-1">

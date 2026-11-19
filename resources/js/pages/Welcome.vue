@@ -6,6 +6,7 @@ import {
     HeartHandshake,
     Mail,
     MapPin,
+    MessageCircle,
     Phone,
     Target,
 } from '@lucide/vue';
@@ -14,6 +15,8 @@ import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
 import { Button } from '@/components/ui/button';
 import { localized } from '@/composables/useLocale';
+import { hasContactDetails, serviceCardsOf } from '@/lib/landingSections';
+import type { LandingService } from '@/lib/landingSections';
 import type { PublicSite } from '@/types/site';
 
 const { t, locale } = useI18n();
@@ -26,13 +29,7 @@ const props = defineProps<{
         Record<'clients_served' | 'services_provided', number>
     > | null;
     site: PublicSite;
-    services: {
-        id: number;
-        title: string | null;
-        title_my: string | null;
-        public_description: string | null;
-        public_description_my: string | null;
-    }[];
+    services: LandingService[];
 }>();
 
 // Only the statistics the admin approved reach the page (see WelcomeController); each one that is sent is shown.
@@ -109,28 +106,36 @@ const socialLinks = computed(() =>
         label: socialNames[key] ?? key,
     })),
 );
-const hasContact = computed(
-    () =>
-        props.site.phone_tel !== null ||
-        props.site.email !== null ||
-        address.value !== '' ||
-        socialLinks.value.length > 0,
+const hasContact = computed(() => hasContactDetails(props.site));
+
+// The contact details in one line from the medium screens up: phone, email, address. Phone and email are links, built from the filled
+// fields only.
+const contactItems = computed(() =>
+    [
+        props.site.phone && props.site.phone_tel
+            ? {
+                  key: 'phone',
+                  icon: Phone,
+                  text: props.site.phone,
+                  href: `tel:${props.site.phone_tel}`,
+              }
+            : null,
+        props.site.email
+            ? {
+                  key: 'email',
+                  icon: Mail,
+                  text: props.site.email,
+                  href: `mailto:${props.site.email}`,
+              }
+            : null,
+        address.value
+            ? { key: 'address', icon: MapPin, text: address.value, href: null }
+            : null,
+    ].filter((item) => item !== null),
 );
 
-// The services come from the catalogue (main services shown on the website), in both languages. One that has no title in either
-// language is left out rather than shown as an empty card.
-const serviceCards = computed(() =>
-    props.services
-        .map((service) => ({
-            id: service.id,
-            title: localized(service.title, service.title_my),
-            description: localized(
-                service.public_description,
-                service.public_description_my,
-            ),
-        }))
-        .filter((service) => service.title !== ''),
-);
+// The services come from the catalogue (main services shown on the website), in both languages; see serviceCardsOf().
+const serviceCards = computed(() => serviceCardsOf(props.services));
 
 const formatNumber = (value: number) =>
     value.toLocaleString(locale.value === 'my' ? 'my-MM' : 'en-US');
@@ -328,24 +333,37 @@ const formatNumber = (value: number) =>
                 <h2 class="mt-1 text-2xl font-bold text-brand-dark sm:text-3xl">
                     {{ t('landing.contact.title') }}
                 </h2>
-                <ul class="mt-3 grid gap-1.5 text-sm text-muted-foreground">
+                <ul
+                    class="mt-3 flex flex-col gap-1.5 text-sm text-muted-foreground md:flex-row md:flex-wrap md:items-center md:gap-x-0 md:gap-y-1"
+                    data-test="contact-details"
+                >
                     <li
-                        v-if="site.phone"
-                        class="flex items-center gap-2 break-all"
+                        v-for="(item, index) in contactItems"
+                        :key="item.key"
+                        class="flex items-center"
                     >
-                        <Phone class="size-4 shrink-0" />
-                        {{ site.phone }}
-                    </li>
-                    <li
-                        v-if="site.email"
-                        class="flex items-center gap-2 break-all"
-                    >
-                        <Mail class="size-4 shrink-0" />
-                        {{ site.email }}
-                    </li>
-                    <li v-if="address" class="flex items-center gap-2">
-                        <MapPin class="size-4 shrink-0" />
-                        {{ address }}
+                        <span
+                            v-if="index > 0"
+                            class="mx-3 hidden md:inline"
+                            aria-hidden="true"
+                            >·</span
+                        >
+                        <component
+                            :is="item.href ? 'a' : 'span'"
+                            :href="item.href ?? undefined"
+                            class="flex items-center gap-2 break-all"
+                            :class="
+                                item.href
+                                    ? 'underline-offset-4 hover:text-brand-dark hover:underline'
+                                    : ''
+                            "
+                        >
+                            <component
+                                :is="item.icon"
+                                class="size-4 shrink-0"
+                            />
+                            {{ item.text }}
+                        </component>
                     </li>
                 </ul>
                 <ul
@@ -371,9 +389,14 @@ const formatNumber = (value: number) =>
                         {{ t('landing.contact.callNow') }}
                     </a>
                 </Button>
-                <Button v-if="site.email" as-child variant="pillDark">
-                    <a :href="`mailto:${site.email}`" data-test="message-us">
-                        <Mail class="size-4" />
+                <Button v-if="site.messaging_link" as-child variant="pillDark">
+                    <a
+                        :href="site.messaging_link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-test="message-us"
+                    >
+                        <MessageCircle class="size-4" />
                         {{ t('landing.contact.message') }}
                     </a>
                 </Button>

@@ -103,8 +103,10 @@ test('no hard-coded service is left in the page or the translations, and the lan
     $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
 
     expect($page)->not->toContain('workPermit')->not->toContain('pinkCard')->not->toContain('jobSearch')
-        ->toContain('localized(service.title, service.title_my)')
-        ->toContain('localized(')->toContain('service.public_description_my');
+        ->toContain('serviceCardsOf(props.services)')
+        ->toContain('localized(');
+
+    expect(file_get_contents(resource_path('js/lib/landingSections.ts')))->toContain('localized(service.title, service.title_my)')->toContain('service.public_description_my');
 
     foreach (['en', 'my'] as $language) {
         $translations = file_get_contents(resource_path("js/locales/{$language}.ts"));
