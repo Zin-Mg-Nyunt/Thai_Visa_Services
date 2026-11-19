@@ -405,3 +405,60 @@ test('the database sums are exact to the satang', function () {
         ->where('report.by_service.1.sub_services.0.received', '0.30')
         ->where('report.outstanding', '9999.70'));
 });
+
+/**
+ * Just after Bangkok midnight it is still the evening before in UTC, where the database keeps timestamps. Money must count on
+ * the Bangkok day, so these moments sit between the two clocks (00:30 in Bangkok is 17:30 UTC the day before).
+ */
+describe('the Asia/Bangkok midnight boundary', function () {
+    test('a fee-change refund at 00:30 Bangkok on the 1st counts in the new Bangkok month, not the old one', function () {
+        $record = takenService($this->passport, null, [['2026-11-20', '5000.00']], ['fee' => '5000.00']);
+        changeFeeAt($this, '2026-12-01 00:30:00', $record, '3000');
+        Carbon::setTestNow(Carbon::parse('2026-12-10 12:00:00', 'Asia/Bangkok'));
+
+        expect(receivedIn($this, '2026-11-01', '2026-11-30'))->toBe(['received' => '5000.00', 'refunded' => '0.00'])
+            ->and(receivedIn($this, '2026-12-01', '2026-12-31'))->toBe(['received' => '-2000.00', 'refunded' => '2000.00']);
+
+        visitDashboard($this)->assertInertia(fn (Assert $page) => $page
+            ->where('report.months.10.month', '2026-11')
+            ->where('report.months.10.received', '5000.00')
+            ->where('report.months.11.month', '2026-12')
+            ->where('report.months.11.received', '-2000.00'));
+    });
+
+    test('a cancel refund at 00:30 Bangkok on the 1st counts in the new Bangkok month, not the old one', function () {
+        $record = takenService($this->passport, null, [['2026-11-20', '5000.00']], ['fee' => '5000.00']);
+        cancelAt($this, '2026-12-01 00:30:00', $record, '1000');
+        Carbon::setTestNow(Carbon::parse('2026-12-10 12:00:00', 'Asia/Bangkok'));
+
+        expect(receivedIn($this, '2026-11-01', '2026-11-30'))->toBe(['received' => '5000.00', 'refunded' => '0.00'])
+            ->and(receivedIn($this, '2026-12-01', '2026-12-31'))->toBe(['received' => '-1000.00', 'refunded' => '1000.00']);
+
+        visitDashboard($this)->assertInertia(fn (Assert $page) => $page
+            ->where('report.months.10.received', '5000.00')
+            ->where('report.months.11.received', '-1000.00'));
+    });
+
+    test('a range ending today includes 23:59 Bangkok, and leaves out 00:30 Bangkok the next day', function () {
+        $record = takenService($this->passport, null, [['2026-11-05', '5000.00']], ['fee' => '5000.00']);
+        changeFeeAt($this, '2026-11-15 23:59:30', $record, '4000');
+        changeFeeAt($this, '2026-11-16 00:30:00', $record, '3000');
+        Carbon::setTestNow(Carbon::parse('2026-11-16 12:00:00', 'Asia/Bangkok'));
+
+        expect(receivedIn($this, '2026-11-01', '2026-11-15'))->toBe(['received' => '4000.00', 'refunded' => '1000.00'])
+            ->and(receivedIn($this, '2026-11-16', '2026-11-16'))->toBe(['received' => '-1000.00', 'refunded' => '1000.00']);
+    });
+
+    test('the "this month" range ends on the Bangkok date, even when it is still the day before in UTC', function () {
+        $record = takenService($this->passport, null, [['2026-11-05', '5000.00']], ['fee' => '5000.00']);
+        changeFeeAt($this, '2026-11-16 00:30:00', $record, '4000');
+
+        // Now is 00:30 on 16 November in Bangkok, 17:30 on 15 November in UTC.
+        visitDashboard($this)->assertInertia(fn (Assert $page) => $page
+            ->where('range.key', 'this_month')
+            ->where('range.from', '2026-11-01')
+            ->where('range.to', '2026-11-16')
+            ->where('report.received', '4000.00')
+            ->where('report.refunded', '1000.00'));
+    });
+});
