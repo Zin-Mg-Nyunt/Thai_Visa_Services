@@ -37,6 +37,8 @@ return [
             'url' => env('DB_URL'),
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
+            // Error messages show "?" instead of the values a failed query was given (a name, a phone number): see 5f.2 finding 5.
+            'mask_bindings_in_exception_messages' => true,
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,
             'journal_mode' => null,
@@ -56,6 +58,8 @@ return [
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
+            // Error messages show "?" instead of the values a failed query was given (a name, a phone number): see 5f.2 finding 5.
+            'mask_bindings_in_exception_messages' => true,
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
@@ -76,6 +80,8 @@ return [
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
+            // Error messages show "?" instead of the values a failed query was given (a name, a phone number): see 5f.2 finding 5.
+            'mask_bindings_in_exception_messages' => true,
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
@@ -94,6 +100,8 @@ return [
             'password' => env('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
+            // Error messages show "?" instead of the values a failed query was given (a name, a phone number): see 5f.2 finding 5.
+            'mask_bindings_in_exception_messages' => true,
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
@@ -109,6 +117,8 @@ return [
             'password' => env('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
+            // Error messages show "?" instead of the values a failed query was given (a name, a phone number): see 5f.2 finding 5.
+            'mask_bindings_in_exception_messages' => true,
             'prefix_indexes' => true,
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),

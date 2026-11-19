@@ -615,7 +615,7 @@ const my: MessageSchema = {
             profile: "ပရိုဖိုင်",
             profileHint: "သင့်အမည်နှင့် အီးမေးလ်လိပ်စာ။",
             security: "လုံခြုံရေး",
-            securityHint: "သင့်စကားဝှက်နှင့် နှစ်ဆင့်ခံ လော့ဂ်အင်။",
+            securityHint: "သင့်စကားဝှက်။",
         },
         website: {
             title: "အများပြည်သူ ဝက်ဘ်ဆိုက်",

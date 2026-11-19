@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Support\TrustedHosts;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(
             at: ['127.0.0.1', '::1']
         );
+
+        // Only the APP_URL host (plus TRUSTED_HOSTS) is answered; not applied in local development or tests (see App\Support\TrustedHosts).
+        $middleware->trustHosts(at: TrustedHosts::patterns(...), subdomains: false);
 
         // On every response, including errors and the health check (see the class note).
         $middleware->append(SecurityHeaders::class);

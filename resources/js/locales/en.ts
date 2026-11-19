@@ -606,7 +606,7 @@ const en = {
             profile: 'Profile',
             profileHint: 'Your name and email address.',
             security: 'Security',
-            securityHint: 'Your password and two-factor sign-in.',
+            securityHint: 'Your password.',
         },
         website: {
             title: 'Public website',
