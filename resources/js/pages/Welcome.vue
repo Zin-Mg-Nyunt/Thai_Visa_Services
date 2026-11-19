@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import { BriefcaseBusiness, HeartHandshake, Target } from '@lucide/vue';
+import {
+    Award,
+    BriefcaseBusiness,
+    HeartHandshake,
+    Mail,
+    MapPin,
+    Phone,
+    Target,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
@@ -14,7 +22,9 @@ const name = usePage().props.name;
 // The two public numbers are real totals from the database (cached on the server). It is null when there is nothing to show
 // yet, which hides the section. A zero is shown as a zero when the other number is not.
 const props = defineProps<{
-    statistics: { clients_served: number; services_provided: number } | null;
+    statistics: Partial<
+        Record<'clients_served' | 'services_provided', number>
+    > | null;
     site: PublicSite;
     services: {
         id: number;
@@ -25,25 +35,87 @@ const props = defineProps<{
     }[];
 }>();
 
+// Only the statistics the admin approved reach the page (see WelcomeController); each one that is sent is shown.
 const stats = computed(() =>
-    props.statistics
-        ? [
-              {
-                  value: props.statistics.clients_served,
-                  label: 'landing.stats.clients',
-              },
-              {
-                  value: props.statistics.services_provided,
-                  label: 'landing.stats.services',
-              },
-          ]
-        : [],
+    (
+        [
+            { key: 'clients_served', label: 'landing.stats.clients' },
+            { key: 'services_provided', label: 'landing.stats.services' },
+        ] as const
+    )
+        .filter((stat) => props.statistics?.[stat.key] !== undefined)
+        .map((stat) => ({
+            value: props.statistics?.[stat.key] ?? 0,
+            label: stat.label,
+        })),
 );
 
-const about = [
-    { icon: Target, key: 'mission' },
-    { icon: HeartHandshake, key: 'help' },
-];
+// The texts the admin wrote in Website content (shown once the website is published). Where one is empty the built-in text is the
+// fallback, except for Experience, which has none: an empty card is hidden.
+const heroHeading = computed(() =>
+    localized(props.site.hero_heading, props.site.hero_heading_my),
+);
+const heroDescription = computed(
+    () =>
+        localized(
+            props.site.hero_description,
+            props.site.hero_description_my,
+        ) || t('landing.hero.description'),
+);
+const overview = computed(() =>
+    localized(props.site.overview, props.site.overview_my),
+);
+const aboutCards = computed(() =>
+    [
+        {
+            key: 'experience',
+            icon: Award,
+            title: t('landing.about.experienceTitle'),
+            text: localized(props.site.experience, props.site.experience_my),
+        },
+        {
+            key: 'mission',
+            icon: Target,
+            title: t('landing.about.missionTitle'),
+            text:
+                localized(props.site.mission, props.site.mission_my) ||
+                t('landing.about.missionText'),
+        },
+        {
+            key: 'help',
+            icon: HeartHandshake,
+            title: t('landing.about.helpTitle'),
+            text:
+                localized(props.site.how_we_help, props.site.how_we_help_my) ||
+                t('landing.about.helpText'),
+        },
+    ].filter((card) => card.text !== ''),
+);
+
+// Contact details come only from the settings, and only the filled ones are shown. A link is built only from a filled field.
+const address = computed(() =>
+    localized(props.site.address, props.site.address_my),
+);
+const socialNames: Record<string, string> = {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    tiktok: 'TikTok',
+    youtube: 'YouTube',
+};
+const socialLinks = computed(() =>
+    Object.entries(props.site.social_links).map(([key, url]) => ({
+        key,
+        url,
+        label: socialNames[key] ?? key,
+    })),
+);
+const hasContact = computed(
+    () =>
+        props.site.phone_tel !== null ||
+        props.site.email !== null ||
+        address.value !== '' ||
+        socialLinks.value.length > 0,
+);
 
 // The services come from the catalogue (main services shown on the website), in both languages. One that has no title in either
 // language is left out rather than shown as an empty card.
@@ -87,19 +159,34 @@ const formatNumber = (value: number) =>
                     :class="locale === 'my' ? 'leading-[1.6]' : 'leading-tight'"
                     data-test="hero-title"
                 >
-                    {{ t('landing.hero.titleStart') }}
-                    <span class="text-brand">{{
-                        t('landing.hero.titleHighlight')
-                    }}</span>
+                    <template v-if="heroHeading">{{ heroHeading }}</template>
+                    <template v-else>
+                        {{ t('landing.hero.titleStart') }}
+                        <span class="text-brand">{{
+                            t('landing.hero.titleHighlight')
+                        }}</span>
+                    </template>
                 </h1>
                 <p
                     class="mt-4 max-w-md text-sm leading-relaxed text-white/80 sm:text-base"
                 >
-                    {{ t('landing.hero.description') }}
+                    {{ heroDescription }}
                 </p>
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <Button as-child variant="pill">
+                    <Button
+                        v-if="serviceCards.length > 0"
+                        as-child
+                        variant="pill"
+                    >
                         <a href="#services">{{ t('landing.ourServices') }}</a>
+                    </Button>
+                    <Button
+                        v-if="hasContact"
+                        as-child
+                        variant="outline"
+                        class="rounded-full border-white bg-transparent px-6 font-semibold text-white hover:bg-white/10 hover:text-white"
+                    >
+                        <a href="#contact">{{ t('landing.contactUs') }}</a>
                     </Button>
                 </div>
             </div>
@@ -125,9 +212,23 @@ const formatNumber = (value: number) =>
             <h2 class="mt-1 text-2xl font-bold text-brand-dark sm:text-3xl">
                 {{ t('landing.about.title') }}
             </h2>
-            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <p
+                v-if="overview"
+                class="mt-3 max-w-3xl text-sm leading-relaxed whitespace-pre-line text-muted-foreground sm:text-base"
+                data-test="about-overview"
+            >
+                {{ overview }}
+            </p>
+            <div
+                class="mt-6 grid gap-4"
+                :class="
+                    aboutCards.length === 3
+                        ? 'sm:grid-cols-3'
+                        : 'sm:grid-cols-2'
+                "
+            >
                 <article
-                    v-for="item in about"
+                    v-for="item in aboutCards"
                     :key="item.key"
                     class="rounded-2xl border bg-card p-5"
                 >
@@ -137,12 +238,12 @@ const formatNumber = (value: number) =>
                         <component :is="item.icon" class="size-5" />
                     </div>
                     <h3 class="mt-4 text-sm font-bold text-brand-dark">
-                        {{ t(`landing.about.${item.key}Title`) }}
+                        {{ item.title }}
                     </h3>
                     <p
-                        class="mt-2 text-sm leading-relaxed text-muted-foreground"
+                        class="mt-2 text-sm leading-relaxed whitespace-pre-line text-muted-foreground"
                     >
-                        {{ t(`landing.about.${item.key}Text`) }}
+                        {{ item.text }}
                     </p>
                 </article>
             </div>
@@ -205,6 +306,77 @@ const formatNumber = (value: number) =>
                         {{ t(stat.label) }}
                     </p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section
+        v-if="hasContact"
+        id="contact"
+        class="scroll-mt-36 bg-mint/40 md:scroll-mt-20"
+        data-test="contact-section"
+    >
+        <div
+            class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-8 md:py-16"
+        >
+            <div class="min-w-0">
+                <p
+                    class="text-xs font-bold tracking-wider text-brand-dark/70 uppercase"
+                >
+                    {{ t('landing.contact.eyebrow') }}
+                </p>
+                <h2 class="mt-1 text-2xl font-bold text-brand-dark sm:text-3xl">
+                    {{ t('landing.contact.title') }}
+                </h2>
+                <ul class="mt-3 grid gap-1.5 text-sm text-muted-foreground">
+                    <li
+                        v-if="site.phone"
+                        class="flex items-center gap-2 break-all"
+                    >
+                        <Phone class="size-4 shrink-0" />
+                        {{ site.phone }}
+                    </li>
+                    <li
+                        v-if="site.email"
+                        class="flex items-center gap-2 break-all"
+                    >
+                        <Mail class="size-4 shrink-0" />
+                        {{ site.email }}
+                    </li>
+                    <li v-if="address" class="flex items-center gap-2">
+                        <MapPin class="size-4 shrink-0" />
+                        {{ address }}
+                    </li>
+                </ul>
+                <ul
+                    v-if="socialLinks.length > 0"
+                    class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm"
+                    data-test="social-links"
+                >
+                    <li v-for="link in socialLinks" :key="link.key">
+                        <a
+                            :href="link.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-semibold text-brand-dark underline-offset-4 hover:underline"
+                            >{{ link.label }}</a
+                        >
+                    </li>
+                </ul>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <Button v-if="site.phone_tel" as-child variant="pill">
+                    <a :href="`tel:${site.phone_tel}`" data-test="call-now">
+                        <Phone class="size-4" />
+                        {{ t('landing.contact.callNow') }}
+                    </a>
+                </Button>
+                <Button v-if="site.email" as-child variant="pillDark">
+                    <a :href="`mailto:${site.email}`" data-test="message-us">
+                        <Mail class="size-4" />
+                        {{ t('landing.contact.message') }}
+                    </a>
+                </Button>
             </div>
         </div>
     </section>

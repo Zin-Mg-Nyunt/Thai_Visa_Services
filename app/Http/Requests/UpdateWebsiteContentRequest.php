@@ -8,8 +8,10 @@ use Illuminate\Validation\Rule;
 
 /**
  * The Website content form (Section 4.10): the agency name, the About texts, the contact details, the social links, which statistics
- * may be shown and the publish switch. Every text has an English and a Burmese version. Everything is optional, so a save changes
+ * may be shown. Every text has an English and a Burmese version. Everything is optional, so a save changes
  * only what it sends; an empty text is stored as empty and hidden on the website.
+ *
+ * Publishing is a separate action ({@see PublishWebsiteRequest}), so saving the content never changes whether the website is published.
  *
  * Every link must be a full http or https address, so a link can never be a script or another kind of address.
  */
@@ -69,7 +71,6 @@ class UpdateWebsiteContentRequest extends FormRequest
             'social_links.*' => ['nullable', 'string', 'url:http,https', 'max:'.self::LINK_MAX],
             'approved_statistics' => ['sometimes', 'nullable', 'array'],
             'approved_statistics.*' => ['string', Rule::in(self::STATISTICS)],
-            'is_published' => ['sometimes', 'boolean'],
         ];
     }
 

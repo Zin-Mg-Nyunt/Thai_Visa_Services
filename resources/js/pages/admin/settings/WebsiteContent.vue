@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { Save } from '@lucide/vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { update } from '@/actions/App/Http/Controllers/Admin/WebsiteContentController';
+import {
+    publish,
+    update,
+} from '@/actions/App/Http/Controllers/Admin/WebsiteContentController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import InputError from '@/components/InputError.vue';
 import LinkField from '@/components/LinkField.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -56,8 +62,11 @@ const form = useForm({
     messaging_link: props.content.messaging_link,
     social_links: { ...props.content.social_links },
     approved_statistics: [...props.content.approved_statistics],
-    is_published: props.content.is_published,
 });
+
+// Publishing is its own action, separate from Save: it acts at once and publishes what is saved.
+const publishForm = useForm({ published: false });
+const confirmOpen = ref(false);
 
 const socialPlatforms = [
     { key: 'facebook', label: 'Facebook' },
@@ -79,6 +88,14 @@ const aboutTexts = [
 ] as const;
 
 const canPublish = props.has_logo && props.has_favicon;
+
+const togglePublish = () => {
+    publishForm.published = !props.content.is_published;
+    publishForm.post(publish().url, {
+        preserveScroll: true,
+        onFinish: () => (confirmOpen.value = false),
+    });
+};
 
 const textareaClass =
     'min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm';
@@ -325,50 +342,6 @@ const submit = () => {
             <InputError :message="form.errors.approved_statistics" />
         </section>
 
-        <section
-            class="space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
-        >
-            <div>
-                <h2 class="text-lg font-semibold text-brand-dark">
-                    {{ t('websiteContent.publish.title') }}
-                </h2>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{ t('websiteContent.publish.hint') }}
-                </p>
-            </div>
-            <Label for="is_published" class="flex items-center gap-3">
-                <Checkbox
-                    id="is_published"
-                    :model-value="form.is_published"
-                    :disabled="!canPublish && !form.is_published"
-                    data-test="publish-switch"
-                    @update:model-value="
-                        (value) => (form.is_published = value === true)
-                    "
-                />
-                <span>{{ t('websiteContent.publish.label') }}</span>
-            </Label>
-            <p
-                v-if="!canPublish"
-                class="text-sm text-destructive"
-                data-test="publish-blocked"
-            >
-                {{
-                    t('websiteContent.publish.missing', {
-                        items: [
-                            !has_logo ? t('websiteContent.publish.logo') : null,
-                            !has_favicon
-                                ? t('websiteContent.publish.favicon')
-                                : null,
-                        ]
-                            .filter(Boolean)
-                            .join(', '),
-                    })
-                }}
-            </p>
-            <InputError :message="form.errors.is_published" />
-        </section>
-
         <div class="flex justify-end">
             <Button
                 type="submit"
@@ -381,4 +354,104 @@ const submit = () => {
             </Button>
         </div>
     </form>
+
+    <section
+        class="mt-6 max-w-3xl space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
+        data-test="publish-section"
+    >
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-brand-dark">
+                {{ t('websiteContent.publish.title') }}
+            </h2>
+            <Badge
+                variant="outline"
+                :class="
+                    content.is_published
+                        ? 'border-brand/40 bg-mint text-brand-dark'
+                        : 'text-muted-foreground'
+                "
+                data-test="publish-state"
+            >
+                {{
+                    content.is_published
+                        ? t('websiteContent.publish.statePublished')
+                        : t('websiteContent.publish.stateDraft')
+                }}
+            </Badge>
+        </div>
+        <p class="text-sm text-muted-foreground">
+            {{
+                content.is_published
+                    ? t('websiteContent.publish.hintPublished')
+                    : t('websiteContent.publish.hint')
+            }}
+        </p>
+
+        <p
+            v-if="!content.is_published && !canPublish"
+            class="text-sm text-destructive"
+            data-test="publish-blocked"
+        >
+            {{
+                t('websiteContent.publish.missing', {
+                    items: [
+                        !has_logo ? t('websiteContent.publish.logo') : null,
+                        !has_favicon
+                            ? t('websiteContent.publish.favicon')
+                            : null,
+                    ]
+                        .filter(Boolean)
+                        .join(', '),
+                })
+            }}
+        </p>
+        <p
+            v-if="form.isDirty"
+            class="text-sm text-muted-foreground"
+            data-test="publish-save-first"
+        >
+            {{ t('websiteContent.publish.saveFirst') }}
+        </p>
+        <InputError :message="publishForm.errors.published" />
+
+        <Button
+            type="button"
+            :variant="content.is_published ? 'pillOutline' : 'pill'"
+            :disabled="
+                form.isDirty ||
+                publishForm.processing ||
+                (!content.is_published && !canPublish)
+            "
+            data-test="publish-button"
+            @click="confirmOpen = true"
+        >
+            {{
+                content.is_published
+                    ? t('websiteContent.publish.unpublishButton')
+                    : t('websiteContent.publish.publishButton')
+            }}
+        </Button>
+    </section>
+
+    <ConfirmDialog
+        v-model:open="confirmOpen"
+        :title="
+            content.is_published
+                ? t('websiteContent.publish.unpublishTitle')
+                : t('websiteContent.publish.publishTitle')
+        "
+        :description="
+            content.is_published
+                ? t('websiteContent.publish.unpublishDescription')
+                : t('websiteContent.publish.publishDescription')
+        "
+        :confirm-label="
+            content.is_published
+                ? t('websiteContent.publish.unpublishButton')
+                : t('websiteContent.publish.publishButton')
+        "
+        :tone="content.is_published ? 'destructive' : 'default'"
+        :processing="publishForm.processing"
+        @confirm="togglePublish"
+    />
 </template>

@@ -173,13 +173,29 @@ describe('validation', function () {
     });
 });
 
+/** @param  array<string, mixed>  $data */
+function publishWebsite(mixed $test, array $data = [], ?User $as = null): TestResponse
+{
+    return $test->actingAs($as ?? $test->admin)->postJson(route('admin.settings.content.publish'), $data);
+}
+
 describe('publishing', function () {
-    test('the website cannot be published without a logo and a favicon, and nothing else of that save is kept', function (array $keys) {
+    test('it is its own action: guests are redirected and a user without the superadmin role gets 403', function () {
+        $this->postJson(route('admin.settings.content.publish'), ['published' => true])->assertUnauthorized();
+
+        $user = User::factory()->create();
+        DB::table('users')->where('id', $user->id)->update(['role' => 'staff']);
+        publishWebsite($this, ['published' => true], $user->fresh())->assertForbidden();
+
+        expect(SiteSetting::query()->count())->toBe(0);
+    });
+
+    test('the website cannot be published without a logo and a favicon, and nothing is changed', function (array $keys) {
         $setting = SiteSetting::factory()->create(['agency_name' => 'Old']);
         $setting->forceFill($keys)->save();
 
-        saveContent($this, ['is_published' => true, 'agency_name' => 'New'])
-            ->assertUnprocessable()->assertJsonValidationErrors(['is_published' => 'Upload a logo and a favicon before publishing the website.']);
+        publishWebsite($this, ['published' => true])
+            ->assertUnprocessable()->assertJsonValidationErrors(['published' => 'Upload a logo and a favicon before publishing the website.']);
 
         expect($setting->fresh()->is_published)->toBeFalse()->and($setting->fresh()->agency_name)->toBe('Old');
     })->with([
@@ -188,32 +204,62 @@ describe('publishing', function () {
         'only a favicon' => [['favicon_key' => 'site/fav.png']],
     ]);
 
-    test('with a logo and a favicon it can be published and unpublished', function () {
-        $setting = publishableSettings();
+    test('with a logo and a favicon it can be published and unpublished, who did it is saved, and the content is left alone', function () {
+        $setting = publishableSettings(['agency_name' => 'Keep', 'mission' => 'Keep mission']);
 
-        saveContent($this, ['is_published' => true])->assertRedirect();
-        expect($setting->fresh()->is_published)->toBeTrue();
+        publishWebsite($this, ['published' => true])->assertRedirect(route('admin.settings.content.edit'));
+        expect($setting->fresh()->is_published)->toBeTrue()->and($setting->fresh()->updated_by)->toBe($this->admin->id);
 
-        saveContent($this, ['is_published' => false])->assertRedirect();
+        publishWebsite($this, ['published' => false])->assertRedirect(route('admin.settings.content.edit'));
+        expect($setting->fresh()->is_published)->toBeFalse()->and($setting->fresh()->agency_name)->toBe('Keep')->and($setting->fresh()->mission)->toBe('Keep mission');
+    });
+
+    test('unpublishing needs no logo or favicon', function () {
+        $setting = SiteSetting::factory()->create(['is_published' => true]);
+
+        publishWebsite($this, ['published' => false])->assertRedirect();
+
         expect($setting->fresh()->is_published)->toBeFalse();
     });
 
-    test('a save that does not mention the switch leaves it as it was', function () {
-        $setting = publishableSettings(['is_published' => true]);
+    test('the answer must be true or false', function () {
+        publishableSettings();
 
-        saveContent($this, ['agency_name' => 'x'])->assertRedirect();
-
-        expect($setting->fresh()->is_published)->toBeTrue();
+        publishWebsite($this, [])->assertUnprocessable()->assertJsonValidationErrors('published');
+        publishWebsite($this, ['published' => 'maybe'])->assertUnprocessable()->assertJsonValidationErrors('published');
     });
 
-    test('the unpublished-attempt is decided on the locked row: a failed save keeps the old content and the cache', function () {
-        $setting = SiteSetting::factory()->create(['agency_name' => 'Old']);
-        app(SiteSettings::class)->get();
+    test('publishing clears the cached settings, and a refused attempt keeps them', function () {
+        $setting = publishableSettings();
+        expect(app(SiteSettings::class)->get()->is_published)->toBeFalse();
 
-        saveContent($this, ['is_published' => true, 'agency_name' => 'New'])->assertUnprocessable();
+        publishWebsite($this, ['published' => true])->assertRedirect();
+        expect(app(SiteSettings::class)->get()->is_published)->toBeTrue();
 
-        expect(Cache::has(SiteSettings::CACHE_KEY))->toBeTrue()->and(app(SiteSettings::class)->get()->agency_name)->toBe('Old')
-            ->and($setting->fresh()->agency_name)->toBe('Old');
+        $setting->fresh()->forceFill(['logo_key' => null, 'is_published' => false])->save();
+        expect(app(SiteSettings::class)->get()->is_published)->toBeFalse();
+
+        publishWebsite($this, ['published' => true])->assertUnprocessable();
+        expect(Cache::has(SiteSettings::CACHE_KEY))->toBeTrue()->and(app(SiteSettings::class)->get()->is_published)->toBeFalse();
+    });
+
+    test('saving the content never changes whether the website is published, even if the switch is sent', function () {
+        $setting = publishableSettings(['is_published' => true]);
+
+        saveContent($this, ['agency_name' => 'x', 'is_published' => false])->assertRedirect();
+        expect($setting->fresh()->is_published)->toBeTrue();
+
+        $setting->forceFill(['is_published' => false])->save();
+        saveContent($this, ['agency_name' => 'y', 'is_published' => true])->assertRedirect();
+        expect($setting->fresh()->is_published)->toBeFalse();
+    });
+
+    test('the page has a Publish button with a confirmation, and no tick box', function () {
+        $page = file_get_contents(resource_path('js/pages/admin/settings/WebsiteContent.vue'));
+
+        expect($page)->toContain('data-test="publish-button"')->toContain('<ConfirmDialog')->toContain('publish().url')
+            ->toContain('form.isDirty')->toContain('data-test="publish-state"')
+            ->not->toContain('publish-switch')->not->toContain('is_published"');
     });
 });
 

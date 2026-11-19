@@ -22,6 +22,10 @@ const props = defineProps<{
     requiredText?: string;
     requiredTextLabel?: string;
     error?: string;
+    /** The text of the confirm button; "Confirm" when not set. */
+    confirmLabel?: string;
+    /** The look of the confirm button: red (default) for a destructive action, or the normal one. */
+    tone?: 'destructive' | 'default';
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
@@ -77,13 +81,13 @@ watch(open, () => {
                 </Button>
                 <Button
                     type="button"
-                    variant="destructive"
+                    :variant="tone === 'default' ? 'pill' : 'destructive'"
                     class="rounded-full px-6"
                     :disabled="processing || !isConfirmed"
                     data-test="confirm-dialog-button"
                     @click="emit('confirm', typedText)"
                 >
-                    {{ t('common.confirm') }}
+                    {{ confirmLabel ?? t('common.confirm') }}
                 </Button>
             </DialogFooter>
         </DialogContent>

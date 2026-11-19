@@ -7,6 +7,7 @@ use App\Models\ClientService;
 use App\Models\JobOrderWorker;
 use App\Models\Payment;
 use App\Models\Service;
+use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
@@ -22,6 +23,8 @@ use Inertia\Testing\AssertableInertia as Assert;
  */
 beforeEach(function () {
     app()->setLocale('en');
+    // The page shows only the statistics the admin approved (Website content).
+    SiteSetting::factory()->create(['approved_statistics' => ['clients_served', 'services_provided']]);
 });
 
 /**
@@ -199,15 +202,13 @@ describe('the landing page', function () {
             ->where('statistics', ['clients_served' => 2, 'services_provided' => 2]));
     });
 
-    test('one number being zero does not hide it or the other: both are shown', function (int $clients, int $services) {
+    test('a number that is zero is not shown, and the other one still is', function (int $clients, int $services, array $expected) {
         Cache::put(LandingStatistics::CACHE_KEY, ['clients_served' => $clients, 'services_provided' => $services], 600);
 
-        $this->get(route('home'))->assertInertia(fn (Assert $page) => $page
-            ->where('statistics.clients_served', $clients)
-            ->where('statistics.services_provided', $services));
+        $this->get(route('home'))->assertInertia(fn (Assert $page) => $page->where('statistics', $expected));
     })->with([
-        'no clients, some services' => [0, 5],
-        'some clients, no services' => [3, 0],
+        'no clients, some services' => [0, 5, ['services_provided' => 5]],
+        'some clients, no services' => [3, 0, ['clients_served' => 3]],
     ]);
 
     test('the page uses the real numbers and the exact labels, and has no mockup numbers left', function () {
@@ -215,8 +216,9 @@ describe('the landing page', function () {
         $english = file_get_contents(resource_path('js/locales/en.ts'));
 
         expect($page)->toContain('v-if="statistics"')
-            ->toContain('props.statistics.clients_served')
-            ->toContain('props.statistics.services_provided')
+            ->toContain("key: 'clients_served'")
+            ->toContain("key: 'services_provided'")
+            ->toContain('props.statistics?.[stat.key]')
             ->not->toContain('1240')->not->toContain('3860')
             ->and($english)->toContain("clients: 'Clients Served'")->toContain("services: 'Services Provided'");
     });

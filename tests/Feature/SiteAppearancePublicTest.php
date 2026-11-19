@@ -34,7 +34,8 @@ test('with nothing set the page sends empty values and shows the built-in logo, 
     $this->get(route('home'))->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Welcome')
-            ->where('site', ['agency_name' => null, 'agency_name_my' => null, 'logo_url' => null, 'favicon_url' => null, 'hero_image_url' => null]))
+            ->where('site.agency_name', null)->where('site.agency_name_my', null)->where('site.logo_url', null)
+            ->where('site.favicon_url', null)->where('site.hero_image_url', null))
         ->assertSee('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', false);
 });
 
@@ -77,7 +78,9 @@ test('only public values are sent: no storage key, no disk path, no admin', func
 
     $props = $this->get(route('home'))->assertOk()->viewData('page')['props']['site'];
 
-    expect(array_keys($props))->toBe(['agency_name', 'agency_name_my', 'logo_url', 'favicon_url', 'hero_image_url'])
+    expect(array_keys($props))->toEqualCanonicalizing(array_keys(app(SiteSettings::class)->forPage()))
+        ->and(array_keys($props))->not->toContain('logo_key')->not->toContain('updated_by')->not->toContain('approved_statistics')
+        ->not->toContain('is_published')
         ->and(json_encode($props))->not->toContain('logo_key')->not->toContain('updated_by')
         ->not->toContain(storage_path());
 });

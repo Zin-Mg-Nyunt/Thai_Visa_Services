@@ -3,6 +3,7 @@
 use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\Service;
+use App\Models\SiteSetting;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -25,21 +26,19 @@ test('the mockup contact details and the invented experience claim are gone from
         ->not->toContain('info@example.com')
         ->not->toContain('Bangkok, Thailand')
         ->not->toContain('10+ years')
-        ->not->toContain('experienceTitle')->not->toContain('experienceText')
-        ->not->toContain('data-test="contact-section"')
-        ->not->toContain('tel:')->not->toContain('mailto:')
-        ->not->toContain('href="#contact"')
-        ->not->toContain('landing.contact');
+        ->not->toContain('experienceText');
 });
 
-test('the About section no longer has an Experience card', function () {
+test('the Experience card has no built-in text: it shows only what the admin wrote', function () {
+    $english = file_get_contents(resource_path('js/locales/en.ts'));
     $page = file_get_contents(resource_path('js/pages/Welcome.vue'));
 
-    expect($page)->not->toContain("key: 'experience'")
-        ->toContain("key: 'mission'")->toContain("key: 'help'");
+    expect($english)->toContain("experienceTitle: 'Experience'")->not->toContain('experienceText')
+        ->and($page)->toContain("key: 'experience'")->toContain('.filter((card) => card.text !== \'\')');
 });
 
 test('the statistics and the services are not affected, and the page is served to guests', function () {
+    SiteSetting::factory()->create(['approved_statistics' => ['clients_served', 'services_provided']]);
     $service = Service::factory()->create(['title' => 'Work Permit']);
     ClientService::factory()->forService($service)->create(['client_id' => Client::factory()->create()->id]);
 

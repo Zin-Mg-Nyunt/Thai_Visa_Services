@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Site\SiteSettings;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PublishWebsiteRequest;
 use App\Http\Requests\UpdateWebsiteContentRequest;
 use App\Models\SiteSetting;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ use Inertia\Response;
 
 /**
  * The Website content screen (Section 4.10): the agency texts in English and Burmese, the contact details, the social links, which
- * statistics may be shown, and the publish switch. The website cannot be published without a logo and a favicon (Section 4.11).
+ * statistics may be shown. Publishing the website is a separate action (it cannot be done without a logo and a favicon, Section 4.11).
  *
  * A save is one transaction under a lock on the settings row; the cached settings are cleared once it has committed. If anything
  * fails, the previous content stays.
@@ -93,22 +94,38 @@ class WebsiteContentController extends Controller
                 $setting->approved_statistics = $statistics === [] ? null : $statistics;
             }
 
-            if ($request->has('is_published')) {
-                $publish = $request->boolean('is_published');
-
-                // Checked on the locked row, so the answer is the one that is saved.
-                if ($publish && ($setting->logo_key === null || $setting->favicon_key === null)) {
-                    throw ValidationException::withMessages(['is_published' => __('Upload a logo and a favicon before publishing the website.')]);
-                }
-
-                $setting->is_published = $publish;
-            }
-
             $setting->updated_by = $request->user()->id;
             $setting->save();
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Website content saved.')]);
+
+        return to_route('admin.settings.content.edit');
+    }
+
+    /**
+     * Publish or unpublish the website. Publishing needs a logo and a favicon (Section 4.11); this is checked on the locked row,
+     * so the answer is the one that is saved. The content itself is not touched: what becomes public is what was last saved.
+     */
+    public function publish(PublishWebsiteRequest $request): RedirectResponse
+    {
+        SiteSetting::ensureExists();
+
+        $publish = $request->boolean('published');
+
+        DB::transaction(function () use ($request, $publish): void {
+            $setting = SiteSetting::query()->lockForUpdate()->findOrFail(SiteSetting::ID);
+
+            if ($publish && ($setting->logo_key === null || $setting->favicon_key === null)) {
+                throw ValidationException::withMessages(['published' => __('Upload a logo and a favicon before publishing the website.')]);
+            }
+
+            $setting->is_published = $publish;
+            $setting->updated_by = $request->user()->id;
+            $setting->save();
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $publish ? __('Website published.') : __('Website unpublished.')]);
 
         return to_route('admin.settings.content.edit');
     }

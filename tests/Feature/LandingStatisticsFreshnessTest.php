@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\ClientService;
 use App\Models\JobOrder;
 use App\Models\Service;
+use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     app()->setLocale('en');
     $this->admin = User::factory()->create();
+    // The page shows only the statistics the admin approved (Website content).
+    SiteSetting::factory()->create(['approved_statistics' => ['clients_served', 'services_provided']]);
     $this->passport = Service::factory()->create(['title' => 'Passport']);
     $this->sub = Service::factory()->subServiceOf($this->passport)->create(['title' => 'BATH']);
 });

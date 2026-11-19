@@ -39,6 +39,7 @@ const en = {
     },
     landing: {
         ourServices: 'Our Services',
+        contactUs: 'Contact Us',
         rights: '© {name}. All rights reserved.',
         hero: {
             eyebrow: 'Visa & employment services',
@@ -51,6 +52,7 @@ const en = {
         about: {
             eyebrow: 'About',
             title: 'Who we are',
+            experienceTitle: 'Experience',
             missionTitle: 'Mission',
             missionText:
                 'Make visa and work-permit services simple, transparent and reliable.',
@@ -65,6 +67,12 @@ const en = {
         stats: {
             clients: 'Clients Served',
             services: 'Services Provided',
+        },
+        contact: {
+            eyebrow: 'Contact',
+            title: 'Talk to us',
+            callNow: 'Call now',
+            message: 'Message us',
         },
     },
     roles: {
@@ -663,8 +671,21 @@ const en = {
         },
         publish: {
             title: 'Publish',
-            hint: 'Until the website is published, unconfirmed content stays hidden.',
-            label: 'Publish the website',
+            hint: 'Until the website is published, the texts and contact details written here stay hidden from visitors.',
+            hintPublished:
+                'Visitors can see the texts and contact details you saved here.',
+            stateDraft: 'Not published',
+            statePublished: 'Published',
+            publishButton: 'Publish website',
+            unpublishButton: 'Unpublish website',
+            publishTitle: 'Publish the website?',
+            publishDescription:
+                'Visitors will see the texts, contact details and links that are saved here. Check them first. This publishes what is saved, not changes you have not saved.',
+            unpublishTitle: 'Unpublish the website?',
+            unpublishDescription:
+                'Visitors will no longer see the texts and contact details written here. The logo, name, services and approved statistics stay.',
+            saveFirst:
+                'Save your changes first. Publishing uses what is saved.',
             missing: 'To publish, upload: {items}.',
             logo: 'a logo',
             favicon: 'a favicon',

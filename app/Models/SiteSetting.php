@@ -44,7 +44,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $address
  * @property string|null $address_my
  * @property string|null $messaging_link
- * @property array<string, string>|null $social_links
+ * @property array<string, mixed>|null $social_links
  * @property array<int, string>|null $approved_statistics
  * @property bool $is_published
  * @property int|null $updated_by

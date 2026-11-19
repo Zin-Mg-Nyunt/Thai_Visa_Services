@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::post('settings/appearance', [AppearanceController::class, 'update'])->name('settings.appearance.update');
         Route::get('settings/content', [WebsiteContentController::class, 'edit'])->name('settings.content.edit');
         Route::post('settings/content', [WebsiteContentController::class, 'update'])->name('settings.content.update');
+        Route::post('settings/content/publish', [WebsiteContentController::class, 'publish'])->name('settings.content.publish');
     });
 });
 
