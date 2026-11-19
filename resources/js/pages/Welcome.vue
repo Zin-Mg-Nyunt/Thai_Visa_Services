@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import {
-    Award,
-    BriefcaseBusiness,
-    HeartHandshake,
-    Mail,
-    MapPin,
-    Phone,
-    Target,
-} from '@lucide/vue';
+import { BriefcaseBusiness, HeartHandshake, Target } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import HeroIllustration from '@/components/HeroIllustration.vue';
@@ -31,8 +23,6 @@ const props = defineProps<{
     }[];
 }>();
 
-// Mockup data. The real contact details come from settings in a later phase.
-const contact = { phone: '+66 2 123 4567', email: 'info@example.com' };
 const stats = computed(() =>
     props.statistics
         ? [
@@ -49,7 +39,6 @@ const stats = computed(() =>
 );
 
 const about = [
-    { icon: Award, key: 'experience' },
     { icon: Target, key: 'mission' },
     { icon: HeartHandshake, key: 'help' },
 ];
@@ -71,12 +60,6 @@ const serviceCards = computed(() =>
 
 const formatNumber = (value: number) =>
     value.toLocaleString(locale.value === 'my' ? 'my-MM' : 'en-US');
-
-const contactLine = computed(() => [
-    contact.phone,
-    contact.email,
-    t('landing.contact.address'),
-]);
 </script>
 
 <template>
@@ -111,13 +94,6 @@ const contactLine = computed(() => [
                     <Button as-child variant="pill">
                         <a href="#services">{{ t('landing.ourServices') }}</a>
                     </Button>
-                    <Button
-                        as-child
-                        variant="outline"
-                        class="rounded-full border-white bg-transparent px-6 font-semibold text-white hover:bg-white/10 hover:text-white"
-                    >
-                        <a href="#contact">{{ t('landing.contactUs') }}</a>
-                    </Button>
                 </div>
             </div>
 
@@ -135,7 +111,7 @@ const contactLine = computed(() => [
             <h2 class="mt-1 text-2xl font-bold text-brand-dark sm:text-3xl">
                 {{ t('landing.about.title') }}
             </h2>
-            <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
                 <article
                     v-for="item in about"
                     :key="item.key"
@@ -215,58 +191,6 @@ const contactLine = computed(() => [
                         {{ t(stat.label) }}
                     </p>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <section
-        id="contact"
-        class="scroll-mt-36 bg-mint/40 md:scroll-mt-20"
-        data-test="contact-section"
-    >
-        <div
-            class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-8 md:py-16"
-        >
-            <div class="min-w-0">
-                <p
-                    class="text-xs font-bold tracking-wider text-brand-dark/70 uppercase"
-                >
-                    {{ t('landing.contact.eyebrow') }}
-                </p>
-                <h2 class="mt-1 text-2xl font-bold text-brand-dark sm:text-3xl">
-                    {{ t('landing.contact.title') }}
-                </h2>
-                <ul class="mt-3 grid gap-1.5 text-sm text-muted-foreground">
-                    <li class="flex items-center gap-2 break-all">
-                        <Phone class="size-4 shrink-0" />
-                        {{ contactLine[0] }}
-                    </li>
-                    <li class="flex items-center gap-2 break-all">
-                        <Mail class="size-4 shrink-0" />
-                        {{ contactLine[1] }}
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <MapPin class="size-4 shrink-0" />
-                        {{ contactLine[2] }}
-                    </li>
-                </ul>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <Button as-child variant="pill">
-                    <a
-                        :href="`tel:${contact.phone.replace(/\s/g, '')}`"
-                        data-test="call-now"
-                    >
-                        <Phone class="size-4" />
-                        {{ t('landing.contact.callNow') }}
-                    </a>
-                </Button>
-                <Button as-child variant="pillDark">
-                    <a :href="`mailto:${contact.email}`" data-test="message-us">
-                        <Mail class="size-4" />
-                        {{ t('landing.contact.message') }}
-                    </a>
-                </Button>
             </div>
         </div>
     </section>

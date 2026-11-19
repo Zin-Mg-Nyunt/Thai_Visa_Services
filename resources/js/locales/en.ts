@@ -39,7 +39,6 @@ const en = {
     },
     landing: {
         ourServices: 'Our Services',
-        contactUs: 'Contact Us',
         rights: '© {name}. All rights reserved.',
         hero: {
             eyebrow: 'Visa & employment services',
@@ -52,9 +51,6 @@ const en = {
         about: {
             eyebrow: 'About',
             title: 'Who we are',
-            experienceTitle: 'Experience',
-            experienceText:
-                '10+ years helping clients with Thai visa and employment paperwork.',
             missionTitle: 'Mission',
             missionText:
                 'Make visa and work-permit services simple, transparent and reliable.',
@@ -69,13 +65,6 @@ const en = {
         stats: {
             clients: 'Clients Served',
             services: 'Services Provided',
-        },
-        contact: {
-            eyebrow: 'Contact',
-            title: 'Talk to us',
-            address: 'Bangkok, Thailand',
-            callNow: 'Call now',
-            message: 'Message us',
         },
     },
     roles: {
