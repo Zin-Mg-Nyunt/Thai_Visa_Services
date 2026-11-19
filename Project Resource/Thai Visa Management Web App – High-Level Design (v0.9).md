@@ -1068,7 +1068,7 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 | Step | Scope | Status |
 | --- | --- | --- |
 | 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Plan step 5a.2 adds the missing tests; 5a.3 is optional; the Active Clients definition is asked if it becomes necessary. |
-| 5b | Admin Settings tab extras | **Not built.** `/admin/settings` is a "Coming soon" page. Plan steps 5b.1–5b.2; the scope question (D8) is asked when they are reached. |
+| 5b | Admin Settings tab extras | **Not built.** `/admin/settings` is a "Coming soon" page. Plan steps 5b.1–5b.2; the scope question (D8) is asked when they are reached. *Since step 5c.4:* `/admin/settings` is a minimal page with one link, to Website appearance (`/admin/settings/appearance`), reached from the Settings item in the admin navigation; step 5b.1 completes the hub. |
 | 5c | Website appearance and the `site_settings` foundation | **Not built.** There is no `site_settings` table. Plan steps 5c.1–5c.5; the migration is reviewed and run by the user. |
 | 5d | Public landing page | **Built with mockup content.** The statistics are real (D1). The services are hard-coded, the agency facts are mockups, and there is no publish switch. Corrections are plan steps 5d.1–5d.7. |
 | 5e | Settings and appearance audit logs | **Deferred (D3).** No work in V1. |

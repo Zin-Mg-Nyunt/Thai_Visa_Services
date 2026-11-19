@@ -71,6 +71,9 @@ class SiteSetting extends Model
     /** The only row's id. */
     public const ID = 1;
 
+    /** The disk of the three website images: public, so a visitor's browser loads them from their address. */
+    public const DISK = 'public_assets';
+
     public $incrementing = false;
 
     protected $keyType = 'int';

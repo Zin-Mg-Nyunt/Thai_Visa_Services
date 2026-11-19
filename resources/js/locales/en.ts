@@ -585,6 +585,58 @@ const en = {
                 'The sub-service can no longer be chosen for new clients. Existing clients, payments and reports stay unchanged.',
         },
     },
+    siteSettings: {
+        description: 'Manage the public website.',
+        appearance: {
+            title: 'Website appearance',
+            description:
+                'The logo, favicon and hero image of the public website, and the hero text.',
+        },
+    },
+    appearance: {
+        head: 'Website appearance',
+        title: 'Website appearance',
+        description:
+            'The logo, favicon and hero image of the public website, and the hero text. A change shows on the website as soon as you save.',
+        images: 'Images',
+        logo: {
+            title: 'Logo',
+            hint: 'Required to publish. PNG, JPG or WebP, up to 2 MB. Shown in the navigation bar. It is made smaller on your device before upload.',
+        },
+        favicon: {
+            title: 'Favicon',
+            hint: 'Required to publish. PNG or ICO, up to 2 MB. Shown in the browser tab. It is not changed on your device. Some browsers keep an old favicon for a while.',
+        },
+        hero: {
+            title: 'Hero image',
+            hint: 'Optional. JPG, PNG or WebP, up to 2 MB. Without one, the hero image area stays blank. It is made smaller on your device before upload.',
+        },
+        text: {
+            title: 'Hero text',
+            hint: 'Write both languages. If one is empty, the other is shown. Leave a text empty to hide it.',
+            headingEn: 'Hero heading (English)',
+            headingMy: 'Hero heading (Burmese)',
+            descriptionEn: 'Hero description (English)',
+            descriptionMy: 'Hero description (Burmese)',
+        },
+        noImage: 'No image yet',
+        willRemove: 'This image will be removed when you save.',
+        choose: 'Choose image',
+        change: 'Change image',
+        preparing: 'Preparing...',
+        undo: 'Undo',
+        remove: 'Remove image',
+        keep: 'Keep image',
+        size: 'New file size: {size}',
+        errors: {
+            imageType: 'Choose a PNG, JPG or WebP image.',
+            faviconType: 'Choose a PNG or ICO file.',
+            faviconTooLarge: 'The favicon can be at most 2 MB.',
+            tooLarge:
+                'This image is still over 2 MB after it was made smaller. Choose a smaller image.',
+            unreadable: 'This image could not be read. Choose another one.',
+        },
+    },
     settings: {
         title: 'Settings',
         description: 'Manage your profile and account settings',

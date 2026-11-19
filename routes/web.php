@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AppearanceController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientPhotoController;
 use App\Http\Controllers\Admin\ClientServiceController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\JobOrderController;
 use App\Http\Controllers\Admin\JobOrderWorkerController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Client\DocumentController as ClientDocumentController;
 use App\Http\Controllers\Client\PhotoController;
@@ -97,7 +99,9 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
         Route::resource('job-search', JobOrderController::class)
             ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
             ->parameters(['job-search' => 'jobOrder']);
-        Route::inertia('settings', 'admin/ComingSoon', ['section' => 'settings'])->name('settings');
+        Route::get('settings', [SettingsController::class, 'index'])->name('settings');
+        Route::get('settings/appearance', [AppearanceController::class, 'edit'])->name('settings.appearance.edit');
+        Route::post('settings/appearance', [AppearanceController::class, 'update'])->name('settings.appearance.update');
     });
 });
 
