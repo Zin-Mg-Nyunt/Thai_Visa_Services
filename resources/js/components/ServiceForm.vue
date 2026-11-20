@@ -8,6 +8,7 @@ import {
     update,
 } from '@/actions/App/Http/Controllers/Admin/ServiceController';
 import InputError from '@/components/InputError.vue';
+import ServiceIconPicker from '@/components/ServiceIconPicker.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { localised } from '@/lib/service';
+import { FALLBACK_SERVICE_ICON } from '@/lib/serviceIcons';
 import type { ServiceAvailability } from '@/lib/status';
 import { index, show } from '@/routes/admin/services';
 import type { ParentOption, Service } from '@/types';
@@ -39,6 +41,10 @@ const form = useForm({
     title_my: props.service?.title_my ?? '',
     public_description: props.service?.public_description ?? '',
     public_description_my: props.service?.public_description_my ?? '',
+    // The saved icon when editing (null shows the fallback); a new service starts with the fallback icon.
+    icon: (props.service ? props.service.icon : FALLBACK_SERVICE_ICON) as
+        | string
+        | null,
     parent_id: (props.service?.parent_id ?? props.defaultParentId ?? null) as
         | number
         | null,
@@ -70,7 +76,11 @@ const cancelHref = () => (props.service ? show(props.service.id) : index());
 const submit = () => {
     const target = props.service ? update(props.service.id) : store();
 
-    form.submit(target.method, target.url);
+    // A new sub-service gets no icon: sub-services are never shown on the website. An edit keeps the saved value.
+    form.transform((data) => ({
+        ...data,
+        icon: !props.service && isSubService.value ? null : data.icon,
+    })).submit(target.method, target.url);
 };
 </script>
 
@@ -244,6 +254,30 @@ const submit = () => {
                 {{ t('services.form.subServiceNotShown') }}
             </p>
             <InputError :message="form.errors.show_on_website" />
+        </section>
+
+        <section
+            v-if="!isSubService"
+            class="space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
+            data-test="service-icon-section"
+        >
+            <div>
+                <h2
+                    id="service-icon-label"
+                    class="text-lg font-semibold text-brand-dark"
+                >
+                    {{ t('services.form.iconTitle') }}
+                </h2>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    {{ t('services.form.iconHint') }}
+                </p>
+            </div>
+
+            <ServiceIconPicker
+                v-model="form.icon"
+                labelledby="service-icon-label"
+                :error="form.errors.icon"
+            />
         </section>
 
         <section

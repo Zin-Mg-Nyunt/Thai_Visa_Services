@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $title_my
  * @property string|null $public_description
  * @property string|null $public_description_my
+ * @property string|null $icon a Lucide icon name from App\Enums\ServiceIcon; null shows the fallback icon
  * @property bool $show_on_website
  * @property ServiceAvailability $status
  * @property string|null $default_fee
@@ -42,6 +43,7 @@ use Illuminate\Support\Carbon;
     'title_my',
     'public_description',
     'public_description_my',
+    'icon',
     'show_on_website',
     'status',
     'default_fee',

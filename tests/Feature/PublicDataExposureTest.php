@@ -124,7 +124,7 @@ describe('the landing page', function () {
 
         expect(array_keys($props))->toEqualCanonicalizing(['errors', 'name', 'locale', 'auth', 'sidebarOpen', 'statistics', 'services', 'site'])
             ->and($props['auth']['user'])->toBeNull()
-            ->and(array_keys($props['services'][0]))->toBe(['id', 'title', 'title_my', 'public_description', 'public_description_my']);
+            ->and(array_keys($props['services'][0]))->toBe(['id', 'title', 'title_my', 'public_description', 'public_description_my', 'icon']);
     });
 
     test('the statistics are only totals, and only the approved ones', function () {

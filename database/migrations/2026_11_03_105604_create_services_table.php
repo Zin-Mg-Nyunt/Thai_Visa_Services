@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('title_my')->nullable();
             $table->text('public_description')->nullable();
             $table->text('public_description_my')->nullable();
+            // The Lucide icon name shown on the service's landing page card, one of App\Enums\ServiceIcon. Null shows the fallback icon.
+            $table->string('icon', 64)->nullable();
             $table->boolean('show_on_website')->default(false);
             $table->string('status')->default('active');
             $table->decimal('default_fee', 12, 2)->nullable();

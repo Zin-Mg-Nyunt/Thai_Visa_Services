@@ -12,6 +12,8 @@ export type Service = {
     title_my: string | null;
     public_description: string | null;
     public_description_my: string | null;
+    /** A Lucide name from the allowed list (lib/serviceIcons.ts), or null: the fallback icon is shown. */
+    icon: string | null;
     show_on_website: boolean;
     status: ServiceAvailability;
     /** A decimal string such as "8000.00"; money is never a float. */

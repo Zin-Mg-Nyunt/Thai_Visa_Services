@@ -75,10 +75,10 @@ test('an admin edit shows on the very next request', function () {
     expect(landingServices())->toBe([]);
 });
 
-test('only the two titles and two public descriptions leave the server', function () {
+test('only the two titles, the two public descriptions and the icon leave the server', function () {
     Service::factory()->create(['default_fee' => '8000.00', 'has_documents' => true]);
 
-    expect(array_keys(landingServices()[0]))->toBe(['id', 'title', 'title_my', 'public_description', 'public_description_my']);
+    expect(array_keys(landingServices()[0]))->toBe(['id', 'title', 'title_my', 'public_description', 'public_description_my', 'icon']);
 });
 
 test('with no service to show the list is empty and the section is hidden', function () {

@@ -2,7 +2,6 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import {
     Award,
-    BriefcaseBusiness,
     HeartHandshake,
     Mail,
     MapPin,
@@ -21,6 +20,7 @@ import {
     serviceCardsOf,
 } from '@/lib/landingSections';
 import type { LandingService } from '@/lib/landingSections';
+import { SERVICE_ICONS } from '@/lib/serviceIcons';
 import type { PublicSite } from '@/types/site';
 
 const { t, locale } = useI18n();
@@ -286,7 +286,13 @@ const formatNumber = (value: number) =>
                     <div
                         class="flex size-10 items-center justify-center rounded-xl bg-mint text-brand-dark"
                     >
-                        <BriefcaseBusiness class="size-5" />
+                        <component
+                            :is="SERVICE_ICONS[service.icon]"
+                            class="size-5"
+                            aria-hidden="true"
+                            data-test="service-icon"
+                            :data-icon="service.icon"
+                        />
                     </div>
                     <h3
                         class="mt-4 text-sm font-bold wrap-break-word text-brand-dark"

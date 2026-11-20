@@ -1,4 +1,5 @@
 import { localized } from '@/composables/useLocale';
+import { serviceIconName } from '@/lib/serviceIcons';
 import type { PublicSite } from '@/types/site';
 
 /**
@@ -17,11 +18,13 @@ export type LandingService = {
     title_my: string | null;
     public_description: string | null;
     public_description_my: string | null;
+    /** The saved Lucide icon name; null (or a name not in the allowed list) shows the fallback icon. */
+    icon: string | null;
 };
 
 /**
  * The service cards the landing page shows: each service in the visitor's language, leaving out one that has no title in either
- * language rather than showing an empty card.
+ * language rather than showing an empty card. Each card has its service's own icon, always a name from the allowed list.
  */
 export function serviceCardsOf(services: LandingService[]) {
     return services
@@ -32,6 +35,7 @@ export function serviceCardsOf(services: LandingService[]) {
                 service.public_description,
                 service.public_description_my,
             ),
+            icon: serviceIconName(service.icon),
         }))
         .filter((service) => service.title !== '');
 }

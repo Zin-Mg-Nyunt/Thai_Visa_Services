@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ServiceIcon;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,8 @@ class ServiceResource extends JsonResource
             'title_my' => $this->title_my,
             'public_description' => $this->public_description,
             'public_description_my' => $this->public_description_my,
+            // Only an allowed icon name leaves the server; anything else is null, which the page shows as the fallback icon.
+            'icon' => ServiceIcon::valueOrNull($this->icon),
             'show_on_website' => $this->show_on_website,
             'status' => $this->status->value,
             'default_fee' => $this->default_fee,

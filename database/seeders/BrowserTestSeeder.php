@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ServiceIcon;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\ClientService;
@@ -22,7 +23,7 @@ use RuntimeException;
  * browser tests: the `browser` environment AND a SQLite file called browser.sqlite. So it can never touch the development or the
  * MySQL database, whatever is typed.
  *
- * Seeded: one admin, three services, a client with a Work Permit and documents (PIN 5678), an open job order, and a published
+ * Seeded: one admin, three main services (Work Permit and Passport with their icons, Job Search) and one sub-service of Passport, a client with a Work Permit and documents (PIN 5678), an open job order, and a published
  * website with content, a logo and a favicon.
  */
 class BrowserTestSeeder extends Seeder
@@ -46,9 +47,11 @@ class BrowserTestSeeder extends Seeder
             'role' => UserRole::Superadmin, 'email_verified_at' => now(),
         ]);
 
-        $workPermit = Service::factory()->create(['title' => 'Work Permit', 'title_my' => 'အလုပ်လုပ်ခွင့်', 'public_description' => 'Work permit applications and renewals.', 'has_documents' => true, 'show_on_website' => true]);
-        Service::factory()->create(['title' => 'Passport', 'public_description' => 'Passport services.', 'show_on_website' => true]);
+        $workPermit = Service::factory()->create(['title' => 'Work Permit', 'title_my' => 'အလုပ်လုပ်ခွင့်', 'public_description' => 'Work permit applications and renewals.', 'has_documents' => true, 'show_on_website' => true, 'icon' => ServiceIcon::FileCheck->value]);
+        $passport = Service::factory()->create(['title' => 'Passport', 'public_description' => 'Passport services.', 'show_on_website' => true, 'icon' => ServiceIcon::BookUser->value]);
         Service::factory()->jobSearch()->create(['show_on_website' => false]);
+        // A sub-service with an icon of its own: it must never become a card on the landing page.
+        Service::factory()->subServiceOf($passport)->create(['title' => 'MOU', 'public_description' => null, 'icon' => ServiceIcon::Stamp->value]);
 
         $client = Client::factory()->create(['name' => 'Alice Browser', 'phone' => self::CLIENT_PHONE, 'unique_token' => 'browser-test-token-'.str_repeat('a', 29)]);
         $record = ClientService::factory()->forService($workPermit)->create(['client_id' => $client->id, 'fee' => '8000.00']);

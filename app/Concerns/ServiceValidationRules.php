@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use App\Enums\ServiceAvailability;
+use App\Enums\ServiceIcon;
 use App\Models\Service;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -16,7 +17,7 @@ trait ServiceValidationRules
      * A title is needed in at least one language. A main service also needs a public description in at least
      * one language, because main services are the ones shown on the website; it is optional for a sub-service. A parent must be an
      * existing main service other than Job Search; Job Search itself and a service that already
-     * has sub-services stay main services.
+     * has sub-services stay main services. The icon, when given, must be one of the allowed Lucide names (ServiceIcon).
      *
      * @return array<string, array<int, ValidationRule|Closure|array<mixed>|string>>
      */
@@ -45,6 +46,7 @@ trait ServiceValidationRules
                     }
                 },
             ],
+            'icon' => ['nullable', 'string', Rule::enum(ServiceIcon::class)],
             'status' => ['required', Rule::enum(ServiceAvailability::class)],
             'default_fee' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99', 'decimal:0,2'],
             'has_documents' => ['required', 'boolean'],
@@ -63,6 +65,7 @@ trait ServiceValidationRules
             'public_description.required_without_all' => __('Enter a public description in English or Burmese.'),
             'public_description_my.required_without_all' => __('Enter a public description in English or Burmese.'),
             'parent_id.exists' => __('Choose a main service as the parent.'),
+            'icon' => __('Choose one of the icons in the list.'),
         ];
     }
 }

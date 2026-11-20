@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ServiceIcon;
 use App\Models\Service;
 use Illuminate\Database\Seeder;
 
@@ -13,6 +14,9 @@ class ServiceSeeder extends Seeder
      * or overwrites an admin's edits. Fees that are not decided yet stay empty.
      *
      * Job Search is a service type here; its companies and workers live in the job order tables.
+     *
+     * Each main service is given its landing page icon here, explicitly (sub-services are never shown on the website, so they
+     * have none). Icons are never worked out from a name; the admin can change them later in the service form.
      */
     public function run(): void
     {
@@ -25,6 +29,7 @@ class ServiceSeeder extends Seeder
             'title_my' => 'ပတ်စပို့',
             'public_description' => 'Passport services including Bath and MOU.',
             'public_description_my' => 'Bath နှင့် MOU အပါအဝင် ပတ်စပို့ ဝန်ဆောင်မှုများ။',
+            'icon' => ServiceIcon::BookUser->value,
             'show_on_website' => true,
             'default_fee' => 3500,
         ]);
@@ -42,6 +47,7 @@ class ServiceSeeder extends Seeder
             'title_my' => 'CI',
             'public_description' => 'Certificate of identity services.',
             'public_description_my' => 'မှတ်ပုံတင်လက်မှတ် (CI) ဝန်ဆောင်မှုများ။',
+            'icon' => ServiceIcon::FileBadge->value,
             'show_on_website' => true,
         ]);
 
@@ -50,6 +56,7 @@ class ServiceSeeder extends Seeder
             'title_my' => 'Pink Card',
             'public_description' => 'Pink card application support.',
             'public_description_my' => 'Pink Card လျှောက်ထားမှု ကူညီပံ့ပိုးခြင်း။',
+            'icon' => ServiceIcon::IdCard->value,
             'show_on_website' => true,
             'default_fee' => 4000,
         ]);
@@ -59,6 +66,7 @@ class ServiceSeeder extends Seeder
             'title_my' => 'အလုပ်လုပ်ခွင့် (Work Permit)',
             'public_description' => 'Work permit applications and document delivery.',
             'public_description_my' => 'အလုပ်လုပ်ခွင့် လျှောက်ထားမှုနှင့် စာရွက်စာတမ်း ပို့ဆောင်ခြင်း။',
+            'icon' => ServiceIcon::FileCheck->value,
             'show_on_website' => true,
             'default_fee' => 8000,
             'has_documents' => true,
@@ -69,6 +77,7 @@ class ServiceSeeder extends Seeder
             'title_my' => '၉၀ ရက် အစီရင်ခံခြင်း',
             'public_description' => 'Reporting every 90 days, handled for you.',
             'public_description_my' => '၉၀ ရက်တစ်ကြိမ် အစီရင်ခံခြင်းကို ကျွန်ုပ်တို့ လုပ်ပေးသည်။',
+            'icon' => ServiceIcon::CalendarClock->value,
             'show_on_website' => true,
         ]);
 
@@ -78,6 +87,7 @@ class ServiceSeeder extends Seeder
             'title_my' => 'အလုပ်ရှာဖွေရေး',
             'public_description' => 'Matching workers with hiring companies.',
             'public_description_my' => 'လုပ်သားများကို ခန့်ထားလိုသော ကုမ္ပဏီများနှင့် ချိတ်ဆက်ပေးခြင်း။',
+            'icon' => ServiceIcon::Handshake->value,
             'show_on_website' => true,
             'has_documents' => true,
         ]);
