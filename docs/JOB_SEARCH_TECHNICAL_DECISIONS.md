@@ -35,12 +35,17 @@
   - implementation choices still pending review are marked in §17.15
 - **Round 10 (2026-11-17):** the round 9 open items are decided (§17.15), and the implementation was started:
   - Hired → Cancelled refuses a soft-deleted Person and a Person with another In Progress Job Search engagement, and is individual only (§17.3, §17.13)
-  - Unassigned Kept Amount is defined and derived, with a Business Dashboard figure (§17.9, §17.11)
+  - Unassigned Kept Amount is defined and derived, with a Business Dashboard figure (§17.9, §17.11) (*superseded 2026-11-19: no separate dashboard figure; it is part of Total received*)
   - the unique `(job_order_id, client_id)` key is removed from the create migration, with no replacement index; duplicate **active** applications are prevented by locks (§17.16)
+- **Reconciliation with the code (2026-11-19), confirmed by the user:** checked against commit `7eef719` (`docs/reports/HLD_CODEBASE_RECONCILIATION_AUDIT.md`), with the code as the source of truth for describing implemented behaviour. Current code is not automatically the intended rule: behaviour that looked like a bug, was ambiguous, or conflicted with an approved rule was reported separately for the user's decision.
+  - The **detailed lock protocol is approved as implemented** (§11, §17.13, §17.15); the stale-state detection of §14 is built.
+  - The retry detector is **verified on MySQL** (§3.6).
+  - The Unassigned Kept Amount has **no** Business Dashboard figure (§17.9, §17.14 item 34).
+  - Status notes in §17.17 and §17.22 are refreshed.
 
 The business behaviour these decisions support is in [`JOB_SEARCH_BUSINESS_RULES.md`](JOB_SEARCH_BUSINESS_RULES.md). HLD v0.9 was the last approved HLD baseline; HLD v1.0 is **not approved**.
 
-These are approved decisions, not a record of what is built. Most of them are **not implemented yet** (see the business rules, Section 13).
+These are approved decisions, not a record of what is built. Since the 2026-11-19 reconciliation they are implemented, except where the business rules (Section 13) say otherwise.
 
 ---
 
@@ -50,7 +55,7 @@ These are approved decisions, not a record of what is built. Most of them are **
 - **SQLite** may be used for ordinary tests. It **cannot** prove MySQL locking or concurrency behaviour.
 - **Concurrency tests** run on MySQL with **independent connections**.
 - **No Redis** for the MVP.
-- **Testing database:** the user will create a separate MySQL database, `thai_visa_services_testing`, and grant the existing database user access to it.
+- **Testing database:** the user will create a separate MySQL database, `Thai_Visa_Services_Testing` (the name is case-sensitive), and grant the existing database user access to it.
 - **Never** run destructive tests against the development or production database.
 
 ## 2. Engagement relationship
@@ -69,7 +74,7 @@ These are approved decisions, not a record of what is built. Most of them are **
 Exactly **four** workflows retry, through one shared helper:
 
 1. Add Worker, including reassignment, and a fee change made inside Add Worker.
-2. Single application status update, including Hired and, from round 9, **Hired → Cancelled** (§17.13). Hired → Cancelled is not part of bulk updates or the close (pending confirmation, §17.15).
+2. Single application status update, including Hired and, from round 9, **Hired → Cancelled** (§17.13). Hired → Cancelled is not part of bulk updates or the close (decided in round 10, §17.15).
 3. Bulk application status update.
 4. Job Order close, including the resolutions made in the close modal (business rules §4.1).
 
@@ -160,7 +165,7 @@ So with `attempts: 3`:
   1. Detection of 1205 depends on the **English** server message. If the MySQL server's `lc_messages` is not English, 1205 would not be detected.
   2. A 1213 or 1205 raised while the transaction is **nested** is not retried (`DeadlockException`).
   3. A 1205 at commit time is handled by `handleCommitTransactionException` with the same detector.
-- **Verdict:** in Laravel v13.39.0, the default detector retries **both** MySQL 1213 and 1205 when the retried transaction is outermost and the server messages are English. This is **not yet verified on a running MySQL server**.
+- **Verdict:** in Laravel v13.39.0, the default detector retries **both** MySQL 1213 and 1205 when the retried transaction is outermost and the server messages are English. This is **not yet verified on a running MySQL server**. *Reconciled 2026-11-19:* now verified by `RetriedTransactionMysqlTest` on `Thai_Visa_Services_Testing` (a real 1205 is retried, the timeout is restored, exhausted retries give the friendly message). Caveat 1 remains for the production server and is checked by `php artisan db:check-server` (HLD Section 10.3, Step 6, deferred).
 
 ## 4. Fee change during Add Worker
 
@@ -243,7 +248,7 @@ HLD v1.0 was reviewed and **not approved**. Any corrected HLD must reflect these
 
 ## 9. Not recovered (needs confirmation)
 
-- **Detailed lock protocol:** the direction is accepted (round 5). The detailed per-workflow protocol in §11 is **pending approval**.
+- ~~Detailed lock protocol~~ **Resolved 2026-11-19:** approved as implemented (§11).
 - **Recovery for failed post-commit file deletion:** §15, pending.
 - ~~Concurrency-error detector~~ **Resolved in round 5:** Laravel default (§3.5).
 - ~~Retry policy details~~ **Resolved in round 3** (§3): 3 attempts, deadlocks and lock-wait timeouts only, no custom backoff. The numeric-code mapping is deliberately not a decision; verified behaviour is in §3.6.
@@ -391,7 +396,7 @@ Already correct:
 | `Document` rename / release (`DocumentController::update`) | Plain UPDATE on the document row, no lock |
 | PIN checks (`TrackingPinGuard`) | Use a **cache** lock, not database rows |
 
-## 11. Lock protocol: target order accepted in principle (rounds 5–6); detailed protocol **pending approval**
+## 11. Lock protocol: target order accepted in principle (rounds 5–6); detailed protocol **approved as implemented (2026-11-19)**
 
 **Accepted target order (in principle):**
 
@@ -404,8 +409,8 @@ Already correct:
 **What "accepted in principle" means:**
 
 - It is the target design, **not** permission to change every workflow blindly.
-- The per-workflow protocol below, with its documented exceptions, comes from the code audit (§10, re-checked in round 6 at `b7730dd` with no code changes since). It is **not approved** until reviewed.
-- The protocol is **not final.** No deadlock cycle was found in the target design, but the open items in §11.7 remain.
+- The per-workflow protocol below, with its documented exceptions, comes from the code audit (§10, re-checked in round 6 at `b7730dd` with no code changes since). It was **not approved** until reviewed. *Reconciled 2026-11-19:* the protocol as implemented (HLD Section 9.1) is **approved** by the user. The "current" columns of §11.3 describe the code at `b7730dd` and are historical.
+- *Reconciled 2026-11-20 (checked against the code):* no deadlock cycle was found in the target design or in the code. One deviation in Add Worker is open (§11.7); every other item formerly listed as "still to approve" is approved as implemented. (Superseded: "The protocol is **not final** … the open items in §11.7 remain.")
 
 ### 11.1 Levels
 
@@ -436,7 +441,7 @@ Already correct:
 | **Add Worker** | Explicit: JobOrder FOR UPDATE → existing Person FOR UPDATE. Implicit: INSERT client (unique-index locks), INSERT client_service (S on Person and the `services` row), INSERT worker (S on JobOrder, Person, client_service). | L1 order → L2 Person (or INSERT) → L3 the Person's In Progress Job Search engagement FOR UPDATE (detects more than one) → L4 **all** its rows FOR UPDATE, ascending → INSERT the new row, plus a refund remark (L5) if the fee changes. **Round 10:** after the Person lock and before the insert, check that the Person has no **active** (Applied, Interview or Hired) application on this order | None. Today's order L1 → L2 already matches. |
 | **Reassignment** | Not built | Same as Add Worker. The previous Job Order is **not** locked, because attribution is computed. | — |
 | **Single status update** | Not built at `b7730dd` (built later in Phase 4) | L1 order (must be Open) → L2 Person → L3 engagement → L4 row → UPDATE (L3 too when Hired) | — |
-| **Hired → Cancelled** (round 9; **pending approval**) | Not built | L1 order (**no Open check**; locked only so the order of locking matches the other workflows) → L2 Person → L3 **all** the Person's Job Search engagements, ascending → L4 the engagement's rows, ascending → re-validate (§17.3) → UPDATE row → Cancelled and UPDATE engagement → In Progress | None. L1 → L2 → L3 → L4 holds. It conflicts with no other workflow, because the Person lock serialises it with Add Worker for the same Person (§11.4). |
+| **Hired → Cancelled** (round 9; **approved 2026-11-19**) | Not built | L1 order (**no Open check**; locked only so the order of locking matches the other workflows) → L2 Person → L3 **all** the Person's Job Search engagements, ascending → L4 the engagement's rows, ascending → re-validate (§17.3) → UPDATE row → Cancelled and UPDATE engagement → In Progress | None. L1 → L2 → L3 → L4 holds. It conflicts with no other workflow, because the Person lock serialises it with Add Worker for the same Person (§11.4). |
 | **Bulk status update / bulk Hired** | Not built | L1 order → L2 Persons ascending → L3 engagements ascending → L4 rows ascending → UPDATEs | — |
 | **Resolve-and-close** | Only the JobOrder FOR UPDATE (`JobOrder::close`) | L1 order → L2 Persons of **all** the order's Applied/Interview rows, **including soft-deleted Persons** (locked `withTrashed`), ascending → L3 their engagements ascending → L4 **all** the order's rows ascending → re-validate (§14) → auto-cancel the deleted Persons' open rows; apply the admin's resolutions (L4 updates; L3 updates for Hired) → UPDATE order | None. The close must not lock L4 before L3. Deleted Persons must be locked too, or a concurrent deletion could re-classify a row between the read and the update. |
 | **Whole-service cancellation** | Explicit: client_service FOR UPDATE. Implicit: INSERT remark (S on client_service). No cascade. | L2 Person → L3 engagement → L4 **all** its rows across orders, ascending (**no L1**) → L5 cancel remark | **Documented exception:** it skips L1. It must change rows on closed orders without the freeze check, and never needs a JobOrder lock, so skipping L1 avoids an L1-after-L2 inversion. |
@@ -496,11 +501,12 @@ Already correct:
 - The production MySQL isolation level and `lc_messages` setting are unverified.
 - Post-commit file deletion runs inside the web request.
 - **Locking soft-deleted Persons:** `Client::query()` hides them, so the close must lock with `withTrashed()`. Code must not rely on the default scope here.
-- **Still to approve:**
-  - the per-workflow sequences in §11.3
-  - the three documented exceptions: whole-service cancellation skips L1; Person deletion skips L1, L3 and L4; single-service workflows start at L3
-  - the Hired → Cancelled row of §11.3 (round 9), including locking the order without an Open check
-  - the L2 `FOR SHARE` vs `FOR UPDATE` choice for document workflows
+- **Approved as implemented (2026-11-19), checked against the code on 2026-11-20** (superseded heading: "Still to approve"):
+  - the per-workflow sequences of §11.3 as built: single and bulk status updates and the close lock L1 → L2 → L3 → L4 (`UpdateApplicationStatuses`, `CloseJobOrder`; the close locks Persons `withTrashed`)
+  - the three documented exceptions: whole-service cancellation skips L1 (`CancelJobSearchService`: L2 → L3 → L4); Person deletion skips L1, L3 and L4 (`ClientController::destroy`: L2, then the document rows); single-service workflows start at L3 (payments, fee change, generic cancel)
+  - the Hired → Cancelled row of §11.3, including locking the order without an Open check (`CancelHiredApplication`: L1 → L2 → L3 all Job Search engagements → L4)
+  - **`FOR UPDATE`, not `FOR SHARE`, for document workflows.** Upload, rename/release, replace and delete lock the Person (L2) and the client service (L3) `FOR UPDATE`, then the document row (L5) `FOR UPDATE` (`DocumentController::whileLocked`, `lockDocument`). No workflow in the app uses a shared lock. Upload against Person deletion is proven on MySQL (`PersonDeletionConcurrencyMysqlTest`); rename, replace and delete use the same locking helper but have no MySQL test of their own.
+- **Open, reported for the user's decision (2026-11-20):** Add Worker locks L1 → L2, then the Person's active rows on this order (L4, the round 10 same-order check), then the In Progress engagement (L3) and its rows (L4) (`AddWorker`, `FindEngagement`). Locking an L4 row before its L3 row differs from §11.2. No deadlock was found, because every workflow that locks those rows first holds the same Person lock, and the concurrent Add Worker cases are covered on MySQL (`JobSearchConcurrencyMysqlTest`). Whether to accept this as a documented exception or change the code is **not decided**.
 
 ## 12. Remaining balance = 0 on Person deletion: **Option A, derived (approved in round 6)**
 
@@ -543,7 +549,7 @@ For V1:
 
 *Out of scope for V1 / future consideration.*
 
-## 14. Resolve-and-close stale-state detection (behaviour approved; implementation **pending approval**)
+## 14. Resolve-and-close stale-state detection (behaviour approved; **implemented** in `CloseJobOrder`, approved 2026-11-19)
 
 **Current code:** `JobOrder::close()` locks the order and re-checks only `isClosed()`. There is no resolution data, so nothing else can be stale today.
 
@@ -597,9 +603,17 @@ For V1:
 
 Nothing here may be built without approval.
 
-## 16. Tests to add later (not written in this task)
+## 16. Tests to add later (historical list from round 4–6)
 
-- **MySQL concurrency suite** on `thai_visa_services_testing` with independent connections:
+*Reconciled 2026-11-20: this was the list of tests to write; most now exist. MySQL status, checked by test name:*
+
+- *Exist on MySQL:* the 1205 timeout retried, exhaustion with the friendly message, the timeout restored after success, exception and exhaustion (`RetriedTransactionMysqlTest`, `JobSearchConcurrencyMysqlTest`); Add Worker for the same Person on two orders; Person deletion during document upload and Add Service (`PersonDeletionConcurrencyMysqlTest`).
+- *Not found on MySQL by name:* a test that forces a 1213 deadlock and checks the retry; a nested-transaction call not retried; close during a status update; Person deletion during Add Worker; bulk Hired lock order; a stale resolution list aborting (covered on SQLite, `CloseJobOrderTest`); a concurrent duplicate-phone insert returning a validation error.
+- *The other groups below* (Person deletion, Job Order close, Activity, UI) are SQLite feature tests and were not re-checked item by item in this pass.
+
+Original list (historical):
+
+- **MySQL concurrency suite** on `Thai_Visa_Services_Testing` with independent connections:
   - a forced **1213 deadlock** retried and succeeding within 3 attempts
   - a forced **1205 timeout** under the 5-second session timeout, retried
   - exhaustion showing the friendly message
@@ -641,9 +655,9 @@ Technical consequences of the round 9 business rules (`JOB_SEARCH_BUSINESS_RULES
 - Cancelled stays terminal.
 - Hired → Cancelled has its **own validation path**. It differs from the normal status update in three ways:
   1. **No Open-order check.** The closed-order freeze does not apply to this transition. It still applies to every other transition on a closed order.
-  2. **Mandatory confirmation, checked on the server.** The request must carry an explicit confirmation, as Hired does today. The server must not rely on the dialog alone. The request field name is an implementation choice (**pending review**).
+  2. **Mandatory confirmation, checked on the server.** The request must carry an explicit confirmation, as Hired does today. The server must not rely on the dialog alone. The request field is `confirm_cancel_hired` (decided in round 10, §17.15).
   3. **Preconditions re-checked under locks** (§17.3).
-- It uses the existing admin authorization. Whether it gets its own policy ability is an implementation choice (**pending review**).
+- It uses the existing admin authorization. It has its own `cancelHired` ability on `JobOrderWorkerPolicy` (admin, no Open check; decided in round 10, §17.15).
 - The application row is updated in place (`case_status` → cancelled). It is never deleted or recreated.
 
 ### 17.2 Confirmation dialog
@@ -676,7 +690,7 @@ If any step fails, both changes roll back. A partial result (row Cancelled with 
 
 - The operation does not use the order's status as a gate and does not write the order row. The order stays Done or Cancelled, with the same `closed_at`.
 - It does not reopen, edit or add workers to the order. Those rules are not touched.
-- Taking the order lock (L1) first, with no Open check, is for lock-order consistency only (§11.3, pending approval).
+- Taking the order lock (L1) first, with no Open check, is for lock-order consistency only (§11.3, approved 2026-11-19).
 
 ### 17.5 Reassignment creates a new row
 
@@ -698,7 +712,7 @@ If any step fails, both changes roll back. A partial result (row Cancelled with 
   | Cancelled (whole-service) | any | no order |
 
 - **Job Order Money** = the sum of the Kept Amounts attributed to it, with the existing handling of soft-deleted Persons (business rules §6.3 rules 8 and 9).
-- The query shape, an accessor or a view is an implementation choice for Step 11 (**pending review**). It must not double count (§17.11).
+- The query shape was decided in round 10 (§17.15): an aggregate query in the `JobOrderMoney` class, not a stored column or a database view. It must not double count (§17.11).
 - **Closure freezes nothing.** The order's `status` and `closed_at` do not enter the calculation, so the Money of a closed order stays live.
 
 ### 17.7 Payments after the Job Order closes
@@ -718,7 +732,7 @@ The only write is the status change of §17.3. After it, the engagement is In Pr
 
 - Payments received while unassigned raise the Kept Amount and therefore the Unassigned total. When a new Applied/Interview application is created (§17.5), the same formula attributes the Kept Amount to the new order and removes it from Unassigned.
 - **Decided (round 10):** the name covers **all** Kept Amount of Job Search engagements that §17.6 attributes to no order (all-Rejected/Cancelled In Progress engagements, whole-service Cancelled engagements, the amount released by the deleted-Person auto-cancel, and after Hired → Cancelled). Kept is unchanged: real payments minus real refunds.
-- **Display (round 10):** the Business Dashboard shows the Unassigned figure, and Client Detail shows each Job Search service's attribution (Job Order or Unassigned) next to its own Kept Amount. No Job Order card includes it.
+- **Display (round 10, reconciled 2026-11-19):** Client Detail shows each Job Search service's attribution (Job Order or Unassigned) next to its own Kept Amount. The Business Dashboard has **no** Unassigned figure: the amount is part of Total received. (Superseded: "the Business Dashboard shows the Unassigned figure".) No Job Order card includes it.
 - **Query:** one aggregate over `job_order_workers` joined to `client_services` and a per-engagement payments subquery, in whole satang, as in `ServiceStatistics`. An engagement with more than one qualifying row (an anomaly) is attributed through its newest qualifying row only, so it can never be counted twice. No column, table or view is added.
 
 ### 17.10 A new Job Order assignment receives the amount
@@ -747,7 +761,7 @@ The Hired Workers count is a query on the current data: rows of the order whose 
   - After exhaustion, the existing "Please try again" message.
 - It is **not** part of bulk updates or the close (decided in round 10). Both keep refusing every change out of Hired, because the transition table (`WorkerCaseStatus::allowedNext`) still has no exit from Hired. Their retry behaviour is unchanged.
 - Whole-service cancellation and Person deletion stay not retried and keep the normal timeout. This is a different workflow and is not merged with them.
-- The lock sequence is in §11.3. It is part of the lock protocol that is **pending approval**.
+- The lock sequence is in §11.3. It is part of the lock protocol, **approved as implemented (2026-11-19)**.
 
 ### 17.14 Required test scenarios
 
@@ -809,7 +823,7 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 
 **Unassigned Kept Amount (round 10)**
 
-34. The Business Dashboard shows the Unassigned figure; Total Kept = Σ Job Order Money + Unassigned; a whole-service Cancelled engagement's Kept and a deleted Person's auto-cancelled amount count as Unassigned and nothing is double counted.
+34. *Reconciled 2026-11-19:* the Business Dashboard shows **no** separate Unassigned figure (Total received already includes it); Total Kept = Σ Job Order Money + Unassigned; a whole-service Cancelled engagement's Kept and a deleted Person's auto-cancelled amount count as Unassigned and nothing is double counted.
 
 ### 17.15 Decisions of round 10 and what remains
 
@@ -823,7 +837,7 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 
 **Implementation choices made** (no schema change except §17.16): the confirmation field is `confirm_cancel_hired`; the route is `PATCH job-search/{jobOrder}/workers/{worker}/cancel-hired`; authorization is a new `cancelHired` ability on `JobOrderWorkerPolicy` (admin, no Open check).
 
-**Still pending:** the detailed lock protocol as a whole, including the L1 → L2 → L3 → L4 sequence of Hired → Cancelled in §11.3 and the Add Worker check of §17.16. Neither has been proven on MySQL by a concurrency test unless §17.17 says so.
+**Resolved 2026-11-19:** the detailed lock protocol is approved as implemented, and the MySQL tests named in §17.18–§17.21 prove these sequences. *(Historical text follows.)* **Still pending (at round 10):** the detailed lock protocol as a whole, including the L1 → L2 → L3 → L4 sequence of Hired → Cancelled in §11.3 and the Add Worker check of §17.16. Neither has been proven on MySQL by a concurrency test unless §17.17 says so.
 
 ### 17.16 Same Person on the same Job Order again (round 10)
 
@@ -833,6 +847,10 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 - **No database backstop** for "one active application per Person per order" (the same position as for "one In Progress engagement": §2). This is a weaker guarantee than the unique key that was removed, and it relies on every writer of `job_order_workers` taking the locks. Add Worker is the only writer that creates rows.
 - **Compatibility with reassignment.** The engagement rules are evaluated first and unchanged: an open application anywhere blocks, a Complete engagement is not reused, and old rows are never touched. The new row is a new application under the same engagement when reusable.
 - **Worker list and counts.** Several rows of one Person can now show on one order. The Applied Workers and Hired Workers counts already count by current status, so history rows do not inflate them.
+
+### 17.17 Verification status (round 10)
+
+*Historical (round 10). Reconciled 2026-11-19: everything below is committed, and the MySQL tests it lists as missing now exist and pass (§17.18–§17.21, `JobSearchConcurrencyMysqlTest`).* Implemented in the working tree, uncommitted. Behaviour is covered by SQLite tests (`CancelHiredTest`, `JobOrderMoneyTest`, `AddWorkerEngagementTest`, and the updated Job Search suite) and by a browser run on an isolated scratch database. **No MySQL concurrency test was run** for Hired → Cancelled, the same-order duplicate check, or the Money query: SQLite ignores `FOR UPDATE`, so the lock sequence of §11.3 and §17.16 is argued from the code, not proven. The tests listed as MySQL in §17.14 (23 and 24, 32) are still to be written and run on `Thai_Visa_Services_Testing`.
 
 ### 17.18 Step 10: Complete engagement lock and whole-service cancellation (built 2026-11-18)
 
@@ -865,7 +883,7 @@ Pest tests on SQLite for behaviour, plus MySQL tests (independent connections) w
 - **Not done.** The file-recovery mechanism stays unapproved (§15): a document row is hard-deleted in the transaction, so after a failed file removal its key is only in the error log. A payment that is already in flight when the deletion commits is not blocked by a lock; it is refused afterwards because the balance is then 0.
 - **Tests.** SQLite: `PersonDeletionTest` (19). MySQL: `PersonDeletionConcurrencyMysqlTest` (4: upload and Add Service waiting for a deletion; the deletion waiting for each), using a real admin request in a child process (`run-workflow.php http`).
 
-### 17.22 Phase 4 review fixes: security and performance (built 2026-11-19, uncommitted, **pending user review**)
+### 17.22 Phase 4 review fixes: security and performance (committed in `5d273b0`, 2026-11-19)
 
 From the external Phase 4 review (findings P1–P6, S1–S4). No business rule, money formula, lock order, retry rule or schema changed. Measured on MySQL 8.4 with a seeded synthetic data set (40,000 Persons, 40,000 services, 39,466 applications, 59,809 payments, 2,000 orders); medians of 15 runs on a development machine, which compare the two versions and do not predict a production server.
 
@@ -875,12 +893,8 @@ From the external Phase 4 review (findings P1–P6, S1–S4). No business rule, 
 - **P4 Company search (measured, not changed).** `LIKE '%term%'` cannot use the `company_name` index, but at 2,000 orders a search costs 10–31 ms and the list without any search reads the same rows (the `created_at` order has no index). A FULLTEXT index would change the search semantics (whole words, minimum token length, stop words, the `%`/`_` escaping), so it needs a business decision. A future `(created_at, id)` index for the list order is a recommendation, not approved.
 - **P5 Landing statistics (measured, not changed).** A cache miss costs 53 ms (the two counts over 40,000 services), an uncontended refresh after commit 101 ms on the database cache store. The 5-second figure is only the `block(5)` upper bound when another holder of the lock is stuck; a normal contended refresh waits one 250 ms poll. Stampede protection would change the approved freshness behaviour, and a miss is cheap, so nothing was added.
 - **P6 Close validation (measured, not changed).** At the 500-item limit in all three lists, validation takes about 200 ms, of which `distinct` is about 60 ms (Laravel caches the distinct values, so it grows linearly); 50 items take about 25 ms. Replacing `distinct` would mean re-creating its per-index error keys by hand, so it stays.
-- **S1 Personal data in logs (changed).** `RetriedTransaction` no longer reports the database exception (Laravel's `QueryException` message contains the bound values, such as a new worker's name, phone number and birthday). It reports a `ConcurrencyFailureReport`: the workflow that gave up, the attempts, the error class, SQLSTATE, driver error number, connection and the SQL with `?` placeholders. No bound value, no driver free-text, and no chained original exception. The `TryAgainException` still carries the original as its previous exception and is still not reported. Retry rules unchanged. **Not changed, app-wide:** any other unhandled `QueryException` is still logged by Laravel with its values; the connection option `mask_bindings_in_exception_messages` would hide them everywhere, but it is configuration for the whole app and needs approval.
+- **S1 Personal data in logs (changed).** `RetriedTransaction` no longer reports the database exception (Laravel's `QueryException` message contains the bound values, such as a new worker's name, phone number and birthday). It reports a `ConcurrencyFailureReport`: the workflow that gave up, the attempts, the error class, SQLSTATE, driver error number, connection and the SQL with `?` placeholders. No bound value, no driver free-text, and no chained original exception. The `TryAgainException` still carries the original as its previous exception and is still not reported. Retry rules unchanged. **App-wide** (*reconciled 2026-11-19*): `mask_bindings_in_exception_messages` is now on for every database connection (step 5f.2 fixes, `config/database.php`), so no logged query exception carries the query's values. (Superseded: "needs approval".)
 - **S2 Phone lookup rate limit (changed).** `throttle:worker-lookups`: 30 lookups a minute for each signed-in user (keyed by user id), 429 after that, with no data in the answer. Laravel runs it before the `role` middleware, so a signed-in non-superadmin is counted on their own budget (still refused); an admin's budget is never used by anyone else. The Add worker dialog shows "Too many searches in a short time…" (English and Burmese) under the phone field on 429; before, it would have failed silently.
 - **S3 Worker portal login (intentional, not changed).** Verified by tests: a worker added through Add Worker signs in with their tracking token and sees only status, fee, received, remaining and payment status of their Job Search service.
 - **S4 Portal documents (changed).** `ProfileController` loads documents only for services whose documents the client may see (`ClientService::showsDocumentsToClient()`, also used by `ClientPortalServiceResource`), so Job Search documents and those of cancelled services are never read for the portal. The portal output is byte-identical.
 - **Tests.** SQLite: `JobOrderMoneyEquivalenceTest`, `WorkerLookupRateLimitTest`, `PortalJobSearchPrivacyTest`, `RetriedTransactionLogPrivacyTest`. MySQL: `JobOrderMoneyEquivalenceMysqlTest`; the opt-in measurement `JobSearchQueryBenchmarkMysqlTest` (`JOB_SEARCH_BENCHMARK=1`, report to `JOB_SEARCH_BENCHMARK_OUT`), which commits its synthetic rows and removes them, and any temporary index, by id afterwards.
-
-### 17.17 Verification status (round 10)
-
-Implemented in the working tree, uncommitted. Behaviour is covered by SQLite tests (`CancelHiredTest`, `JobOrderMoneyTest`, `AddWorkerEngagementTest`, and the updated Job Search suite) and by a browser run on an isolated scratch database. **No MySQL concurrency test was run** for Hired → Cancelled, the same-order duplicate check, or the Money query: SQLite ignores `FOR UPDATE`, so the lock sequence of §11.3 and §17.16 is argued from the code, not proven. The tests listed as MySQL in §17.14 (23 and 24, 32) are still to be written and run on `Thai_Visa_Services_Testing`.

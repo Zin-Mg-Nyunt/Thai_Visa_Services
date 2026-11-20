@@ -18,12 +18,17 @@ Every instruction is labelled:
 ### Model selection
 
 - **[Confirmed that a rule exists; content unknown]** The user's original `CLAUDE.md` had a model-selection requirement to follow before any code change. Its wording was not recovered.
-- **[Confirmed, 2026-11-19]** Use **Opus 5.5** (`claude-opus-5-5`) for all work: planning, coding, reviews and audits alike. Confirm the session runs on it before any code change. If another model is in use, say so and ask before changing code.
+- **[Confirmed, 2026-11-19, revised the same day]** Model choice is **task-dependent and flexible**, not a fixed rule. The usual workflow:
+  - **Opus 5.5** (`claude-opus-5-5`): most planning, HLD and documentation work, reviews and audits, and code fixes.
+  - **Sonnet 5.5** (`claude-sonnet-5-5`): most implementation work.
+  - The user may also use Sonnet for planning or Opus for implementation when it suits the task. Either model may work on any task the user gives it; neither is forbidden from switching.
+  - At the start of a task, state which model is running. Do not refuse or stop work only because the other model is the usual one for that kind of task.
+  - (Superseded: "Use Opus 5.5 for all work … If another model is in use, say so and ask before changing code.")
 
 ### Sources of truth
 
 - **[Confirmed]** For Job Search, `docs/JOB_SEARCH_BUSINESS_RULES.md` (business) and `docs/JOB_SEARCH_TECHNICAL_DECISIONS.md` (technical) are authoritative. Read both before planning or changing Job Search code.
-- **[Confirmed]** Never infer an intended business rule from the current code. The code may lag the approved rules.
+- **[Confirmed, clarified 2026-11-20]** Current code describes implemented behaviour, not automatically the intended business rule; the code may lag the approved rules. In a documentation reconciliation, use the code to document accurately what is implemented. If behaviour looks like a bug, is ambiguous, or conflicts with an approved rule, report it separately and ask the user before changing code or recording a new rule. (Superseded: "Never infer an intended business rule from the current code.")
 - **[Confirmed]** HLD status:
   - v0.8 was removed on 2026-11-17 and remains in Git history.
   - The original v0.9 was the last approved baseline and is lost.
@@ -42,7 +47,7 @@ Every instruction is labelled:
 ### Database and testing
 
 - **[Confirmed]** MySQL is production. SQLite tests cannot prove locking or concurrency.
-- **[Confirmed]** Concurrency tests use independent MySQL connections on `thai_visa_services_testing`.
+- **[Confirmed]** Concurrency tests use independent MySQL connections on `Thai_Visa_Services_Testing` (case-sensitive; the test guard refuses any other database).
 - **[Confirmed]** Never run destructive tests against the development or production database.
 - **[Confirmed]** No Redis in the MVP.
 - **[Confirmed]** Retry policy, lock-wait timeout and lock order are in `docs/JOB_SEARCH_TECHNICAL_DECISIONS.md` §3 and §11.

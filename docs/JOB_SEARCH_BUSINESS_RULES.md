@@ -46,6 +46,7 @@
   - It is an **individual** action only, never in bulk updates or the close modal (§3.1).
   - **Unassigned Kept Amount** is defined as money retained by a Job Search ClientService and not currently attributed to any Job Order (§6.3.2).
   - The same Person may be **added to the same Job Order again** after the earlier application on it is terminal (§2.2).
+- **Reconciliation with the code (2026-11-19), confirmed by the user:** these rules were checked against the code at commit `7eef719` (`docs/reports/HLD_CODEBASE_RECONCILIATION_AUDIT.md`), with the code as the source of truth for describing implemented behaviour (not automatically the intended rule; see *Rules are not implementation status* below). Rounds 9–10 are confirmed as implemented. One rule changed: the Unassigned Kept Amount has **no** separate Business Dashboard figure; it is part of Total received (§6.3.2). The detailed lock protocol is approved as implemented (Technical Decisions §11). The status in §12 and §13 is refreshed.
 
 **Precedence:**
 
@@ -54,7 +55,7 @@
 - HLD v1.0 is **not approved**.
 - Technical constraints live in [`JOB_SEARCH_TECHNICAL_DECISIONS.md`](JOB_SEARCH_TECHNICAL_DECISIONS.md).
 
-**Rules are not implementation status.** An approved rule here may not be built yet. Never infer the intended rule from the current code. Known gaps are listed separately in [Section 13](#13-implementation-status-not-rules), which is not part of the rules.
+**Rules are not implementation status.** An approved rule here may not be built yet. Current code describes implemented behaviour, not automatically the intended business rule. In a documentation reconciliation, use the code to document accurately what is implemented. If behaviour looks like a bug, is ambiguous, or conflicts with an approved rule, report it separately and ask the user before changing code or recording a new rule. Known gaps are listed separately in [Section 13](#13-implementation-status-not-rules), which is not part of the rules.
 
 **Resolved decisions are final.** Do not reopen a decision recorded here without an explicit instruction from the product owner.
 
@@ -441,7 +442,7 @@ Job Order Money is the current Kept Amount attributed to the current application
 - **The Kept Amount formula does not change:** real payments received minus real refunds. Nothing new is stored, and no payment, refund, write-off or other record is created to move it.
 - **The ClientService keeps showing its own retained money** (Kept) even when no Job Order owns it. The Client Detail page also shows which Job Order, if any, it is currently attributed to, or that it is Unassigned.
 - **Never double counted.** An amount is either attributed to one Job Order or Unassigned, never both. When a new application is created, the Unassigned portion falls by exactly the amount that Job Order receives.
-- **Shown** on the Business Dashboard as its own figure, so that Total Kept = Job Order Money (all orders) + Unassigned Kept Amount for Job Search.
+- **Not a separate Business Dashboard figure** (reconciled 2026-11-19): it is already inside Total received (§6.3.3), and it is shown per service on the Client Detail page. The identity Total Kept = Job Order Money (all orders) + Unassigned Kept Amount still holds for Job Search and is checked by tests. (Superseded: "Shown on the Business Dashboard as its own figure".)
 
 #### 6.3.3 Business totals versus Job Order amounts (round 9)
 
@@ -629,33 +630,30 @@ Resolved earlier: stale state (abort), manpower count (Hired Workers), Worker-na
 **Resolved in round 10 and removed from this list:** a second In Progress engagement (refuse), a deleted Person's Hired application (refuse), bulk and close (individual only), the meaning and display of Unassigned Kept Amount (6.3.2), and the same Person on the same order again (allowed after a terminal application; 2.2).
 
 1. **Post-commit file deletion and recovery for Person deletion.** Files are deleted after commit (approved), and recovery information must remain (approved). The mechanism, whether a queue, table, retry job or the error log, is **not approved**. Technical Decisions §15.
-2. **The detailed lock protocol.** The target order is accepted in principle. The per-workflow protocol and its documented exceptions (Technical Decisions §11) still need approval.
-3. **MySQL runtime verification of the retry detector** for 1213 and 1205 (Technical Decisions §3.6).
-4. **Reconstructed `CLAUDE.md`:** the proposal in `docs/CLAUDE_MD_PROPOSAL.md` awaits review and is not active.
+2. **Reconstructed `CLAUDE.md`:** the proposal in `docs/CLAUDE_MD_PROPOSAL.md` awaits review and is not active.
+
+**Resolved in the 2026-11-19 reconciliation and removed from this list:** the detailed lock protocol (approved as implemented, Technical Decisions §11) and the MySQL runtime verification of the retry detector (verified by `RetriedTransactionMysqlTest`, Technical Decisions §3.6).
 
 ## 13. Implementation status (not rules)
 
-Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`): Phase 4 steps 5–9 are committed up to Step 8, and Step 9 and the round 9–10 work are **uncommitted**. This list is a status report, not a rule. Where it differs from the rules above, the rules win.
+Refreshed in the 2026-11-19 reconciliation against commit `7eef719` (branch `phase-4-step-5`). This list is a status report, not a rule. The HLD (Section 13.3) holds the status of the whole application.
 
-**Built (verified by tests, and by a browser run on an isolated database):**
+**Built and committed** (Phase 4 steps 1–13 and the Phase 4 review; verified by SQLite tests, MySQL concurrency tests on `Thai_Visa_Services_Testing`, and Playwright browser tests):
 
-- The engagement model: one Job Search ClientService can hold several applications. The unique key on `client_service_id` is gone, and Add Worker reuses an In Progress record only when every row is Rejected or Cancelled, refuses an open application, and refuses and logs a record with no application.
-- The statuses `applied, interview, hired, rejected, cancelled`, the transition table, and single and bulk status updates (all or nothing, with the Hired confirmation), on Open orders.
-- The shared retry helper (3 attempts, 5-second session timeout restored on every exit), used by Add Worker, status updates, the close, and Hired → Cancelled.
-- Resolve-and-close in one transaction, with the automatic cancellation of deleted Persons' open applications and the stale-state abort. The Job Order edit is locked against a concurrent close.
-- **Round 9–10:** Hired → Cancelled (individual only, confirmation, closed orders, refusals for a deleted Person, another In Progress engagement, or a non-Complete record), live Job Order Money on the Job Order page, Unassigned Kept Amount on the dashboard, and the attribution line on Client Detail.
-- **Round 10:** the same Person on the same Job Order again after a terminal application (there is no unique `(job_order_id, client_id)` key any more; a duplicate active application is refused under the order and Person locks).
+- The engagement model: one Job Search ClientService holds several applications; Add Worker reuses an In Progress record only when every row is Rejected or Cancelled, refuses an open application, and refuses and logs a record with no application.
+- The five statuses and the transition table; single and bulk status updates (all or nothing, with the Hired confirmation) on Open orders.
+- The shared retry helper (3 attempts, 5-second session timeout restored on every exit), used by Add Worker, the status updates, the close and Hired → Cancelled.
+- Resolve-and-close in one transaction, with the automatic cancellation of deleted Persons' open applications and the stale-state abort; the Job Order edit is locked against a concurrent close.
+- Hired → Cancelled (individual only, confirmation, closed orders, the refusals of §3.1); live Job Order Money; the Unassigned Kept Amount as a classification shown on Client Detail (no dashboard figure, §6.3.2).
+- The same Person on the same Job Order again after a terminal application.
+- The Complete engagement lock and whole-service cancellation (§5).
+- The Job Order detail page: four cards, the Hired-based manpower warning, worker names linking to Client Detail, cancelled applications listed apart.
+- Job Search documents: full admin CRUD while In Progress or Complete, read-only when Cancelled, never shown to the client.
+- Person deletion: the Person is locked first; a deleted Person's remaining balance is derived as 0; files are removed after the commit.
 
-- **Step 10 (2026-11-18):** the **Complete engagement lock** and **whole-service cancellation**.
-  - The Client page edit form no longer changes the status of a Job Search service at all (the request prohibits it). A Complete Job Search service also has a locked fee and takes no new remark; its dates stay editable. Both are checked again on the locked row, so a form opened before another action cannot write stale data. Other services are unchanged.
-  - Whole-service cancellation of a Job Search service (`CancelJobSearchService`) cancels the service, records the refund and its remark, and cancels every application row of it in one transaction, on closed orders as well (Section 5). It runs on the normal lock timeout and is not retried.
-  - MySQL concurrency tests on `Thai_Visa_Services_Testing` cover Hired → Cancelled, Add Worker, reassignment, the Money snapshot and the whole-service cancellation, with real separate connections.
+**Not built:**
 
-- **Step 11 (2026-11-18):** the **Job Order detail page** of Section 11. Exactly four cards (Manpower Requested, Applied Workers, Hired Workers, Money); the manpower warning compares the **Hired** Workers with the manpower (the Job Orders list and the edit page use the same rule); worker names open Client Detail; the historical Cancelled applications are listed apart and are never counted as workers. The counts are worked out in the database on each request and leave out deleted Persons.
+- The Person-deletion file-recovery mechanism (pending technical decision, Technical Decisions §15). Today a file that cannot be removed is only reported to the error log.
+- Application Activity, which matches the rules (excluded from V1).
 
-**Not built yet:**
-
-- **Job Search documents: built (Step 12).** In Progress and Complete take full admin CRUD, Cancelled is read-only (view and download, logged), and they are never shown to the client (the release switch is refused for them). Every change locks and re-checks the Person and the service.
-- **Person deletion: built (Step 13), except file recovery.** The Person row is locked first; the remaining balance of a deleted Person's services is derived as 0 in `remaining()` and `canTakePayment()`; a photo that cannot be removed is reported; Add Service takes the same first lock. What is **not** built is the file-recovery mechanism (not approved): a document file that cannot be removed is only in the error log.
-- **Lock protocol.** The detailed protocol is still pending approval. The workflows named above have MySQL concurrency tests that pass; the status-edit form's lock is proven on SQLite and by reading, and has no MySQL contention test.
-- Application Activity is not built, which matches the rules (excluded from V1).
+**Open technical question (2026-11-20):** Add Worker locks the Person's active application on the same order before the engagement, which differs from the lock-order rule. No deadlock was found; the decision is open (Technical Decisions §11.7).

@@ -1,6 +1,6 @@
 # Thai Visa Management Web App – High-Level Design (v0.9)
 
-Status: **v0.9 (reconstructed), approved by the user on 2026-11-17. Round 9 and round 10 revisions (2026-11-17) are a DRAFT pending user review and are NOT approved.** · Stack: Laravel, Vue.js, Inertia.js, MySQL · Hosting: DigitalOcean Droplet · File storage: DigitalOcean Spaces (approved)
+Status: **v0.9 (reconstructed), approved by the user on 2026-11-17. The round 9–10 revisions, the Phase 5 decisions and the 2026-11-19 reconciliation with the code are confirmed by the user** (see the notes below). · Stack: Laravel, Vue.js, Inertia.js, MySQL · Hosting: DigitalOcean Droplet · File storage: DigitalOcean Spaces (approved)
 
 > **About this document.**
 >
@@ -14,37 +14,47 @@ Status: **v0.9 (reconstructed), approved by the user on 2026-11-17. Round 9 and 
 >   - **Round 7:** that auto-cancel removes the application's Job Order Money attribution, with the Kept Amount unchanged.
 >
 >   **Approved by the user on 2026-11-17.** HLD v0.8 was removed from the repository at the same time; it remains in Git history. Approval of this HLD is not approval to implement: each implementation step needs its own go-ahead.
-> - **Round 9 (2026-11-17), DRAFT pending user review, not approved:** this document was revised to match the business rules approved in round 9.
+> - **Round 9 (2026-11-17), confirmed in the 2026-11-19 reconciliation (keep the current code behaviour):** this document was revised to match the business rules approved in round 9.
 >   - **Hired → Cancelled** is allowed (the only way out of Hired), with a mandatory confirmation, also on a closed Job Order. The ClientService returns from Complete to In Progress in the same transaction.
 >   - **Job Order Money is live**, also after the order closes. **Unassigned Kept Amount** is a derived classification, not a transaction.
 >   - The Hired Workers card counts current Hired applications only.
->   - Revision history: v0.9 reconstructed (rounds 1–8, approved 2026-11-17) → round 9 draft (this revision). The version number and file name are unchanged. The changed sections are 4.2, 4.7.2–4.7.7, 4.7.10, 4.12, 5, 7, 9.1, 11, 13 and 14, and every change is marked *Round 9* or sits in a paragraph that says so.
-> - **Round 10 (2026-11-17), DRAFT pending user review, not approved:** the five open round 9 questions are decided.
+>   - Revision history: v0.9 reconstructed (rounds 1–8, approved 2026-11-17) → round 9 (drafted 2026-11-17; confirmed in the 2026-11-19 reconciliation). The version number and file name are unchanged. The changed sections are 4.2, 4.7.2–4.7.7, 4.7.10, 4.12, 5, 7, 9.1, 11, 13 and 14, and every change is marked *Round 9* or sits in a paragraph that says so.
+> - **Round 10 (2026-11-17), confirmed in the 2026-11-19 reconciliation:** the five open round 9 questions are decided.
 >   - Hired → Cancelled is refused for a soft-deleted person and when the person has another In Progress engagement, and is an individual action only (not in bulk updates or the close modal).
->   - Unassigned Kept Amount is money retained by a Job Search engagement and not attributed to any Job Order; the dashboard shows it.
+>   - Unassigned Kept Amount is money retained by a Job Search engagement and not attributed to any Job Order. It is part of Total received and has **no** separate dashboard figure (reconciled 2026-11-19; superseded: "the dashboard shows it").
 >   - The same person may be added to the same order again after their earlier application on it is terminal. The unique `(job_order_id, client_id)` key is removed, with no replacement index.
->   - The implementation was started in the working tree (uncommitted). The implementation-gap lists were refreshed.
+>   - Implemented and committed in Phase 4 (steps 5–13).
 > - **Phase 5 review (2026-11-19): decisions confirmed by the user, applied to this document.** Every change is marked *Phase 5* or sits in a paragraph that says so. Changed sections: 3.2, 3.3, 4.10, 4.11, 4.12, 12 (new 12.1–12.4: Phase 5 status, the 5a and 5d audit findings, the implementation plan (12.2: one sequential implementation table) and the questions that may arise during implementation; **planning only, pending user approval, not approval to implement**) and 13.1.
 >   - **D1 Services Provided:** the implemented definition (every service record) is the approved one and replaces "number of available main services".
 >   - **D2 Logos:** PNG, JPG/JPEG and WebP only; SVG is not allowed in V1, and no SVG sanitiser is used.
 >   - **D3 Audit logs:** audit logs for settings and appearance changes are not required in V1 (Step 5e deferred).
 >   - **D4 Before publishing:** the landing page keeps its structure, and unconfirmed or unavailable sections and content are hidden; mockup information is never shown as verified agency facts.
 >   - **D5 Landing content:** mockup data may be used temporarily; the final system lets administrators manage agency content through CRUD; agency facts are never invented.
+> - **Reconciliation with the code (2026-11-19), confirmed by the user.** The whole document was compared with the code at commit `7eef719` (`docs/reports/HLD_CODEBASE_RECONCILIATION_AUDIT.md`), with the code as the source of truth for describing implemented behaviour, and outdated, contradictory and missing text was corrected. Current code describes implemented behaviour, not automatically the intended business rule: the code was used to document accurately what is built. Behaviour that looked like a bug, was ambiguous, or conflicted with an approved rule was reported separately for the user's decision, not recorded as a rule. Changes are marked *Reconciled 2026-11-19*, and replaced wording is quoted as "Superseded". Decisions taken with it:
+>   - **Round 9–10:** keep the current code behaviour; this document follows it.
+>   - **Hero image:** with no uploaded image, the built-in illustration tagged "Sample photo" is shown (Section 4.11).
+>   - **Refused settings attempts:** they get 403 and are not logged (Section 4.11).
+>   - **Unknown tracking token:** 404 (not found) (Section 6).
+>   - **Lock protocol:** approved as implemented (Section 9.1).
+>   - **N1 Active clients:** Persons not soft-deleted with at least one In Progress service, as of today (Section 4.2).
+>   - **N9 Model choice:** task-dependent, not a fixed rule (Section 12.3; `docs/CLAUDE_MD_PROPOSAL.md`).
+>   - **Step 6:** the production hosting, server setup and deployment phase; **deferred** (Section 10.3).
 > - **HLD v1.0 was reviewed and is not approved.** Its correction items (U1–U4) are applied here.
 > - **For Job Search,** the two `docs/` files are authoritative. Where this HLD and those files disagree, the files win.
-> - **Everything not related to Job Search, Person deletion or concurrency is carried over from v0.8 unchanged.**
+> - **Everything not related to Job Search, Person deletion or concurrency was carried over from v0.8**, and has since been reconciled with the code (2026-11-19).
 > - **Labels used in this document:**
 >   - *Approved*: a recovered decision
->   - *Verified current code*: read from the code at commit `b7730dd`
+>   - *Verified current code*: read from the code at the commit named next to it (older labels: `b7730dd`)
+>   - *Reconciled 2026-11-19*: corrected to match the code at `7eef719`
 >   - *Recommendation, pending approval*: not decided
 >   - *Open*: undecided
-> - **Approved rules are not implementation status.** Much of the Job Search design here is not built yet (Section 13.3).
+> - **Approved rules are not implementation status.** Section 13.3 lists what is built and what remains. Since the 2026-11-19 reconciliation, the rules here match the code unless Section 13.3 says otherwise.
 
 ## 1. Purpose and Scope
 
 A web app for a visa-services agency in Thailand to manage clients, the services each client buys, payments, and documents. Clients get a simple read-only portal to track progress and download their own documents. The admin also manages Job Search (company hiring requests and the workers matched to them).
 
-**In scope:** admin back office, client tracking portal with tracking link and QR code, service catalog with optional sub-services, payments and profit reporting (profit = received money), Work Permit document delivery, Job Search module, a public landing page, English and Burmese UI.
+**In scope:** admin back office, client tracking portal with tracking link and QR code, service catalog with optional sub-services, payments and money reporting (the money kept: received minus refunds; there is no profit figure in V1, because costs are not tracked), Work Permit document delivery, Job Search module, a public landing page, English and Burmese UI.
 
 **Out of scope (v1):** online payment gateway, automated LINE/SMS notifications, additional staff roles (planned for version 2), mobile native apps. These can be added later (see Section 12).
 
@@ -58,6 +68,8 @@ A web app for a visa-services agency in Thailand to manage clients, the services
 
 v1 has two roles: admin (full permission) and client (read and download their own data only). The `users` table keeps a `role` column so more roles can be added in version 2; they are not part of v1.
 
+*Reconciled 2026-11-19*: the admin role is stored as `superadmin` (`App\Enums\UserRole`, its only value), and every admin route requires it. Admin accounts are created with `php artisan app:create-superadmin`; there is no self-registration. Fortify provides password reset and email verification; there is no two-factor sign-in in V1.
+
 ## 3. System Architecture
 
 ```
@@ -66,7 +78,7 @@ Browser (Vue 3 + Inertia pages, English / Burmese UI)
 DigitalOcean Droplet (client's DigitalOcean account)
    Laravel app (routes, controllers, policies, services, jobs)
    |-- MySQL  (on the same Droplet)
-   |-- Queue + scheduler (reports; database driver, no Redis in the MVP)
+   |-- no queue jobs or scheduled tasks in V1 (reports are worked out on request); no Redis
    |-- Google OAuth (admin sign-in)
    |
    |  S3-compatible API (private access keys from .env)
@@ -90,11 +102,12 @@ DigitalOcean Spaces is **approved by the client** as the file storage provider. 
 | Topic | Design |
 | --- | --- |
 | Provider | DigitalOcean Spaces (S3-compatible object storage) |
-| Environments | Development uses the Laravel local filesystem disk on the developer machine, so no cloud account is needed. Production uses DigitalOcean Spaces. The disk is chosen by an environment variable, the application code is the same, and the database stores the same relative key in both. In development, private files are served through a permission-checked Laravel route and public website images from the local public disk. This is server-side file storage; the browser localStorage is used only to remember the selected language (Section 4.9). |
+| Environments | Development uses the Laravel local filesystem disk on the developer machine, so no cloud account is needed. Production uses DigitalOcean Spaces. The disk is chosen by an environment variable, the application code is the same, and the database stores the same relative key in both. In development, private files are served through a permission-checked Laravel route and public website images from the local public disk. This is server-side file storage; the browser keeps only the selected language, in localStorage and a `locale` cookie (Section 4.9). |
 | File types | User photos and PDF documents (private bucket), plus the website logo, favicon and hero image (separate public bucket, Section 4.11) |
 | Storage access | Private by default. Public access must not be enabled for private documents: no public-read ACLs, and no CDN on private files. The only exception is a separate public bucket that holds the website logo, favicon and hero image (Section 4.11) |
 | Authorization | Laravel verifies permissions before any private file is accessed. Admin has full access; a client reaches only files on their own record (never Job Search documents), and Work Permit documents only when the record is Fully Paid or the admin has released that document (release does not depend on payment status) |
-| File delivery | Short-lived signed URL (option B, selected): Laravel checks permissions first, then redirects to a signed Spaces URL that expires within minutes |
+| File delivery | Short-lived signed URL (option B, selected): Laravel checks permissions first, then redirects to a signed Spaces URL that expires within minutes (2 minutes). In development the app streams the file itself |
+| Profile photos | *Reconciled 2026-11-19*: shown through a temporary signed app route (`client-photos/{client}`, valid for 1 hour) that also checks who is asking; never a public file address |
 | Configuration | Access keys, bucket name, region and endpoint are kept in environment variables and never committed to Git; the repository holds only a `.env.example` with variable names |
 | Ownership | Production infrastructure and billing belong to the client's DigitalOcean account |
 
@@ -111,7 +124,7 @@ Option B (short-lived signed URL) was selected; option A is kept for reference.
 | --- | --- | --- | --- |
 | Website logo | PNG, JPG, WebP | 2 MB | Public bucket; required; *Phase 5 (D2):* SVG is not allowed in V1 |
 | Favicon | PNG, ICO | 2 MB | Public bucket; required |
-| Hero image | JPG, PNG, WebP | 2 MB | Public bucket; optional, the area is left blank if absent |
+| Hero image | JPG, PNG, WebP | 2 MB | Public bucket; optional. *Reconciled 2026-11-19*: when absent, the built-in illustration (tagged "Sample photo") is shown |
 | Profile photo | JPG only | 2 MB | Private bucket; a user icon is shown if absent |
 | Other advertising images | To be defined when added | 2 MB | Public bucket; the image area is left blank if absent |
 | PDF documents | PDF | Maximum 5 MB | Private bucket |
@@ -153,20 +166,23 @@ Images are reduced in the browser before they are uploaded, so large photos from
 
 1. **Tracking link:** `https://app.example.com/track/{unique_token}`. The token is a long random string (at least 32 chars), one per client, generated by the admin as a link or QR code (Section 4.8), shared with the client, and never expiring.
 2. **Login:** the page asks for a 4-digit PIN. The server compares it with the last 4 digits of the client's stored phone number for that token. On success this client is signed in on that browser and sent to /client/{unique\_token}/profile. Several clients can be signed in on one browser. Logout (POST /client/{unique\_token}/logout) signs out only that client and returns to that client's PIN page. Repeated wrong PINs lock the client (Section 6).
-3. **Profile page:** name, phone, birthday, gender, payment status (Deposit / Fully Paid) with received amount and remaining balance, service status, remarks.
-4. **Per-service view:** each service shows its main service title with the optional sub-service title next to it, for example “Passport – Bath”; with no sub-service only “Passport” is shown.
-   - **Work Permit:** list of documents the admin uploaded. Each document is either **Downloadable** (button shown) or **Locked** (message with the received amount and the remaining balance to pay).
-   - **Other services:** only status (In Progress / Complete / Cancel); no documents section.
+3. **Profile page:** photo, name, phone, birthday and gender, then every service of the client on the same page (*Reconciled 2026-11-19*: there is no separate per-service page). Remarks are never shown to the client.
+4. **Each service** shows its main service title with the optional sub-service title next to it, for example “Passport – Bath”; with no sub-service only “Passport” is shown. It also shows its status. (*Reconciled 2026-11-19*; superseded: "Other services: only status".)
+   - A service that is **not cancelled** also shows the fee, received amount, remaining balance and payment status (Unpaid, Deposit or Fully Paid), Job Search included (Section 4.5).
+   - A **cancelled** service shows its status only.
+   - **Documents** are listed for a service that is not cancelled, takes documents (`has_documents`, for example Work Permit) and is not Job Search. Each document is either **Downloadable** (button shown) or **Locked** (message with the received amount and the remaining balance to pay).
 5. **Permissions:** a client can only see rows where `client_id` equals their own. Enforced in policies and in every query scope. Job Search documents are never shown to the client, whatever the engagement status (In Progress, Complete or Cancelled). The client sees only the documents of their own other services, such as a Work Permit.
 
 ### 4.2 Admin Back Office
 
 **Dashboard tabs:** Business, Services, Clients, Settings.
 
-- **Business dashboard:** total received, outstanding balances, profit, by month and by main service with an optional sub-service breakdown; Job Search profit is included in the overall service profit. Date-range filter. Total received is the money kept (received minus refunds; not a net profit, as costs are not tracked) and does not drop when a person is deleted: a deleted person's financial history stays in it. **Outstanding** is the balance still owed today on services that are not cancelled, for clients who are not deleted. A Complete service with an unpaid balance stays in Outstanding: Complete means the work is finished, not that it is paid. A deleted person's unpaid balance is left out, the same as the Clients list. Person deletion sets the remaining balance of their services to zero and does not change service statuses (Section 4.12). *Round 9:* these totals come from the services and payments, **not** from adding up Job Order Money cards. Total received (kept) includes Kept Amount that no Job Order is attributed (Unassigned). See Section 4.7.7. **Active clients** counts clients who are not deleted. A deleted service stays in the figures with status inactive (Section 4.12).
-- **Clients:** table with search; filter by service, sub-service and status; create/edit; cancel and delete follow Section 4.12.
+- **Business dashboard:** total received, outstanding balances and active clients, with the money received by month and by main service with an optional sub-service breakdown; Job Search money is included like any other service. The **Profit** card shows "Coming soon": costs are not tracked in V1, so no profit figure is calculated (*Reconciled 2026-11-19*; superseded: "profit … Job Search profit is included in the overall service profit"). Date-range filter: this month by default; last month, this year or a custom range, both ends included, in Asia/Bangkok. Total received is the money kept (received minus refunds; not a net profit, as costs are not tracked) and does not drop when a person is deleted: a deleted person's financial history stays in it. **Outstanding** is the balance still owed today on services that are not cancelled, for clients who are not deleted. A Complete service with an unpaid balance stays in Outstanding: Complete means the work is finished, not that it is paid. A deleted person's unpaid balance is left out, the same as the Clients list. Person deletion sets the remaining balance of their services to zero and does not change service statuses (Section 4.12). *Round 9:* these totals come from the services and payments, **not** from adding up Job Order Money cards. Total received (kept) includes Kept Amount that no Job Order is attributed (Unassigned). See Section 4.7.7. **Active clients** (*N1, confirmed 2026-11-19*) counts Persons who are **not soft-deleted** and have **at least one In Progress service**, as of **today**; it does not follow the selected date range. (Superseded: "counts clients who are not deleted".) A deleted service stays in the figures with status inactive (Section 4.12).
+  - **Date basis** (*Reconciled 2026-11-19*): a payment counts on its payment date; a fee-change refund on the Asia/Bangkok day of its automatic refund remark; a cancel refund on the Bangkok day of the cancellation. The month chart covers the 12 months ending with the range's end month. Outstanding and Active clients are as of today.
+  - **No separate Unassigned figure** (*Reconciled 2026-11-19*): Unassigned Job Search money is already inside Total received and is shown only on Client Detail (Section 4.7.7).
+- **Clients:** table with search (name or phone); filter by service, sub-service, status and payment (fully paid, or a balance remaining; *Reconciled 2026-11-19*); create/edit; cancel and delete follow Section 4.12.
 - **Services:** catalog management for services and sub-services (add, edit, deactivate, delete), the clients of each service shown with their sub-service or “Parent service only”, a sub-service filter on that client list, and per-service statistics with an optional sub-service breakdown.
-- **Settings:** admin account, Google sign-in link, default currency, document-lock default, public website content (Section 4.10) and website appearance (Section 4.11).
+- **Settings** (`/admin/settings`, *Reconciled 2026-11-19*): links to the admin account (profile and security pages), Website appearance (Section 4.11) and Website content (Section 4.10); it shows whether the admin's Google sign-in is linked, and the currency (THB, fixed and read-only in V1). There is **no** documents-locked-by-default setting: a new document is always locked until it is released or the service is fully paid (step 5b.2 was not built, by the user's decision). (Superseded: "default currency, document-lock default".)
 
 ### 4.3 Client Management (CRUD)
 
@@ -174,7 +190,7 @@ Fields: profile picture, name, phone (required and unique), birthday, gender, re
 
 A client can hold **several services** at once (for example Passport + Work Permit), so fees, payments and status belong to the *client-service* record, not the client.
 
-**One person record per individual.** The phone number is the main identifier: it is required, it must be unique, and a client without a phone number cannot be created. Before creating a record the admin searches by phone, and an existing person is reused instead of duplicated. The same record serves as a client, a Job Search worker, or both; worker-specific and service-specific data sit in separate tables linked to the person (Section 5). Cancel and delete follow the rules in Section 4.12: cancel keeps the record. Delete is permanent (no restore). It removes the person's documents and files, sets every service's remaining balance to zero, and soft-deletes the database record. It does **not** cancel any service (Section 4.12).
+**One person record per individual.** The phone number is the main identifier: it is required, it must be unique, and a client without a phone number cannot be created. *Reconciled 2026-11-19*: the Add Worker dialog searches by phone first and reuses an existing person; the normal client form has no search step, and a phone number already used by an active person is refused. A number typed with a leading `0` is stored as `+66…`, and one with `00` as `+…`, so it is always in international format. (Superseded: "Before creating a record the admin searches by phone".) The same record serves as a client, a Job Search worker, or both; worker-specific and service-specific data sit in separate tables linked to the person (Section 5). Cancel and delete follow the rules in Section 4.12: cancel keeps the record. Delete is permanent (no restore). It removes the person's documents and files, sets every service's remaining balance to zero, and soft-deletes the database record. It does **not** cancel any service (Section 4.12).
 
 **Profile photo.** JPG only, maximum 2 MB, stored in the private bucket (Section 3.2). If a person has no photo, a user icon is shown. Large photos are reduced in the browser first (Section 3.3); type and size are then checked in the browser and again on the server.
 
@@ -183,7 +199,7 @@ A client can hold **several services** at once (for example Passport + Work Perm
 Initial seed: Passport (sub-services: Bath, MOU), CI, Pink Card, Work Permit, 90 Days Report and Job Search. Work Permit and Job Search have documents. Default fees: Work Permit THB 8,000, Passport THB 3,500, Pink Card THB 4,000; the other services have no default fee until the admin sets one.
 
 - Each service: title, status (active/inactive), default fee, `has_documents` flag (true for Work Permit and Job Search), optional `parent_id` for sub-services.
-- Admin can add, edit or delete services and sub-services at any time (delete rules: Section 4.12).
+- Admin can add, edit or delete services and sub-services at any time (delete rules: Section 4.12). *Reconciled 2026-11-19*: Job Search cannot be deleted.
 - **Service overview cards:** total clients, in-progress count, complete count, cancelled count, total received payment (the money kept: received minus refunds). The counts are operational and leave out deleted clients, so they match the Clients list the service filter leads to; a cancelled service counts in total clients and in the cancelled count. The money is financial and includes every client-service record, also those of deleted clients and deleted sub-services. Everything is added up in the database in whole satang.
 
 **Sub-services.** A main service can have optional sub-services (for example Passport – Bath and Passport – MOU).
@@ -193,14 +209,14 @@ Initial seed: Passport (sub-services: Bath, MOU), CI, Pink Card, Work Permit, 90
 - **Client-service link:** `client_services.service_id` always stores the main service ID. `client_services.sub_service_id` is nullable and stores the selected sub-service, if any.
 - **Validation:** the backend and the database both validate the parent-child relationship: the selected sub-service must belong to the selected main service.
 - **Fees:** a sub-service may have its own default fee. The default fee for a client-service is the sub-service default fee first, otherwise the main service default fee.
-- **Payments and profit:** payments and profit stay on the client-service record. Profit is grouped by main service, with an optional sub-service breakdown.
+- **Payments and money kept:** payments and the money kept stay on the client-service record. The money kept is grouped by main service, with an optional sub-service breakdown (there is no profit figure in V1, Section 1).
 - **History:** existing records and financial history are preserved when a sub-service is deactivated or soft-deleted (Section 4.12).
 
-**Job Search service.** Job Search remains a **main service** and cannot have sub-services. It keeps the fixed system key `job_search` and is excluded from the normal “Add Service to Client” form. Its separate workflow (Section 4.7) and profit rules are unchanged, and its profit is still included in the overall service profit and in the dashboard reports.
+**Job Search service.** Job Search remains a **main service** and cannot have sub-services. It keeps the fixed system key `job_search` and is excluded from the normal “Add Service to Client” form. Its separate workflow (Section 4.7) and money rules are unchanged, and its money kept is still included in the overall service totals and in the dashboard reports.
 
 **Bilingual service content.** The `services` table holds four nullable fields: `title` (English), `title_my` (Burmese), `public_description` (English) and `public_description_my` (Burmese). A **show on website** switch decides whether a service appears on the landing page (Section 4.10).
 
-- **Validation:** when creating or updating a service, the admin must give a title in at least one language and a public description in at least one language. The other language version is optional and may be left empty.
+- **Validation:** when creating or updating a service, the admin must give a title in at least one language and, for a main service, a public description in at least one language (*Reconciled 2026-11-19*: a sub-service needs no public description, as it never appears on the website). The other language version is optional and may be left empty.
 - **Enforcement:** the rules are checked in the frontend and always enforced by the backend, whatever the frontend does.
 - **Form:** the admin service form has separate English and Burmese inputs for the title and for the public description.
 - **Display:** a service is shown in the selected language first and falls back to the other language if that value is missing or empty.
@@ -223,15 +239,15 @@ Rather than a single "received money" number, v1 keeps a **payment ledger** (`pa
 - **Outstanding** is the sum of `remaining` over services that are not Cancel, for persons who are **not soft-deleted**. Soft-deleted persons are therefore never in Outstanding.
 - **Person deletion changes no input of these formulas:** fee, payments and refunds stay exactly as they were, and no fake payment, refund, write-off or adjustment is created. The zero comes only from the first branch.
 - **Payment status** derived automatically: `received = 0` → Unpaid; `0 < received < fee` → Deposit; `received >= fee` → Fully Paid.
-- Audit trail and accurate monthly profit reports.
+- Audit trail and accurate monthly money reports (the money kept; no profit figure in V1).
 
-The admin UI can still show a simple "received money" field; saving it creates or adjusts a ledger entry.
+*Reconciled 2026-11-19*: the ledger is **append-only**; there is no payment edit or delete. Adding a service can record a first payment ("received now", at most the fee). A payment must be more than 0, at most the remaining balance (checked under a row lock), and dated today or earlier (Asia/Bangkok). The only payment method in V1 is **Cash**. (Superseded: "saving it creates or adjusts a ledger entry".)
 
 **Visibility:** admin and client both see the received amount and the remaining balance for every payment status (Unpaid, Deposit, Fully Paid). The money counted in reports is the amount kept: received money less refunds (fee-change refunds and cancel refunds); v1 tracks no costs, so it is not a net profit.
 
 ### 4.6 Work Permit Documents
 
-- Admin uploads one or more files per Work Permit record (PDF/JPG/PNG; images up to 2 MB, PDFs up to 5 MB, Section 3.2), with a title and type.
+- Admin uploads one or more files per Work Permit record (PDF/JPG/PNG; images up to 2 MB, PDFs up to 5 MB, Section 3.2), with a title (there is no document type; *Reconciled 2026-11-19*).
 - Each document has `client_can_download` (boolean) controlled by the admin per document.
 - Documents unlock automatically when the record becomes Fully Paid. Separately, the admin can release any single document with the per-document flag; this release does not depend on the payment status and does not change it.
 - Clients see Locked documents as a title plus remaining balance, with no file access.
@@ -313,7 +329,7 @@ stateDiagram-v2
 - **Rejected and Cancelled are terminal.** They are never reactivated. A new application is a new row.
 - **Hired** completes the engagement in the same transaction. *Round 9:* its **only** exit is **Hired → Cancelled** (below). Hired → Applied, Interview or Rejected are never allowed.
 - **Application-level Cancelled** means the Worker no longer wants that Job Order. It gives no refund and does not cancel the engagement, which stays In Progress. So does an engagement after Rejected.
-- **Hired → Cancelled (round 9, draft):**
+- **Hired → Cancelled (round 9; confirmed in the 2026-11-19 reconciliation):**
   - The admin may change one Hired application to Cancelled, also when its Job Order is Done or Cancelled. This does **not** reopen, edit or add workers to the order.
   - A **confirmation dialog is mandatory.** It explains that the application changes from Hired to Cancelled; the engagement returns from Complete to In Progress; the worker can be assigned to another order under the existing rules; the previous order's Money decreases; and the Kept Amount becomes Unassigned. If the admin dismisses it, nothing changes.
   - **One atomic transaction** changes the application and the engagement. No new engagement is created, no application row is deleted or recreated, and no payment, refund or write-off is created.
@@ -363,7 +379,7 @@ stateDiagram-v2
 
 #### 4.7.5 Job Order closing (Done or Cancelled)
 
-**Job Order close rules** (the same text appears in Sections 4.7.5 and 4.12):
+**Job Order close rules** (stated here only; Section 4.12 refers to this section):
 
 1. **Who and what:** the admin can close an **Open** Job Order as **Done** or **Cancelled**. Both are the same closing action.
 2. **Soft-deleted Persons:** any of their applications on the order that is still **Applied** or **Interview** is **automatically set to Cancelled** during the close. The admin does not resolve these, and they are not listed for resolution.
@@ -471,7 +487,7 @@ sequenceDiagram
   - It arises when rule 2 leaves the Kept Amount with no order, for example after Hired → Cancelled. Payments received meanwhile increase it.
   - When a new eligible application is created, the Kept Amount is attributed to the new order and is no longer Unassigned.
   - It is in **no** Job Order Money card. It is derived, not stored.
-  - *Round 10:* it covers every Job Search engagement's Kept Amount that has no order (all-Rejected/Cancelled engagements, whole-service Cancelled engagements, the amount released by the deleted-person auto-cancel, and after Hired → Cancelled). The ClientService keeps showing its own Kept Amount, with its current attribution on the Client Detail page, and the Business Dashboard shows the Unassigned figure.
+  - *Round 10:* it covers every Job Search engagement's Kept Amount that has no order (all-Rejected/Cancelled engagements, whole-service Cancelled engagements, the amount released by the deleted-person auto-cancel, and after Hired → Cancelled). The ClientService keeps showing its own Kept Amount, with its current attribution, on the Client Detail page. *Reconciled 2026-11-19*: the Business Dashboard has **no** Unassigned figure; Unassigned money is part of Total received. (Superseded: "the Business Dashboard shows the Unassigned figure".)
 - **Business totals versus Job Order amounts (round 9):**
   - **Total Received / Kept** is the sum of every engagement's Kept Amount, **including** Unassigned amounts and deleted persons' history. It is calculated from services and payments.
   - **Job Order Money** is only the part currently attributed to that order.
@@ -514,7 +530,7 @@ The UI shows each application's current status. *Future consideration only.*
   - search by company name and filter by status, paginated
   - Done and Cancel buttons start the closing workflow (4.7.5)
   - the manpower warning marker
-  - *Verified current code:* no column sorting and no inline status yet
+  - each row shows its status badge; there is no column sorting (*Reconciled 2026-11-19*)
 - **Detail page: exactly four summary cards.** The earlier six-card design is obsolete.
 
   | Card | Rule |
@@ -572,7 +588,7 @@ The UI shows each application's current status. *Future consideration only.*
 ### 4.9 Localization (English / Burmese)
 
 - **Languages:** the admin back office, the client portal and the public landing page are available in **Burmese (Myanmar) and English**, with a language switcher on every page, including the PIN screen.
-- **Default language:** **Burmese (Myanmar)**. The selected language is saved in the browser's `localStorage`, so it is remembered across page navigation and refreshes in that browser and can be changed at any time. Because `localStorage` is read in the browser, the app applies the saved choice at start-up, before the first screen is drawn where possible.
+- **Default language:** **Burmese (Myanmar)**. The selected language is saved in the browser's `localStorage`, so it is remembered across page navigation and refreshes in that browser and can be changed at any time. Because `localStorage` is read in the browser, the app applies the saved choice at start-up, before the first screen is drawn where possible. *Reconciled 2026-11-19*: the choice is also saved in a `locale` cookie, so the server's own messages (validation errors, notices) use the same language.
 - **Localization files:** Laravel language files and vue-i18n hold all UI labels, buttons, navigation items, validation messages, status labels and user-facing system messages, including the messages returned by server-side validation. No text is hard-coded in components.
 - **Fallback:** if a translation or a database value is missing or empty in the selected language, the other language is shown. If neither language has a value, an empty value is shown, never a raw translation key.
 - **Fonts:** Burmese text uses Unicode with a bundled web font, so it displays the same on every device.
@@ -593,16 +609,26 @@ A public home page at `/` lets anyone learn about the agency without logging in.
 
 **Rules**
 
-- **Real statistics only:** numbers are calculated from the database and never hard-coded or typed in. The admin chooses in Settings which statistics are approved for display. Only totals are shown: no names, photos, phone numbers, documents, payments, profit or per-person data. A number that cannot be calculated is hidden, not replaced by a placeholder.
+- **Real statistics only:** numbers are calculated from the database and never hard-coded or typed in. The admin chooses in Settings which statistics are approved for display (*Reconciled 2026-11-19*: a statistic is shown only when approved; the section is also hidden when both numbers are 0 or when they cannot be worked out). Only totals are shown: no names, photos, phone numbers, documents, payments, profit or per-person data. A number that cannot be calculated is hidden, not replaced by a placeholder.
 - **Caching:** statistics are cached for a short time (for example 10 minutes) so public traffic does not query the database on every visit. *Phase 5 (D1), as implemented:* the cache lasts 10 minutes and is refreshed once after the outermost transaction that creates a Person or a service record commits (never after a rollback); a failed refresh never fails the admin's action.
 - **Editable content:** the admin edits the agency name, hero heading and description, overview, mission, contact details and social links in Settings (logo, favicon and hero image: Section 4.11), with separate English and Burmese values; if one language is missing, the other is shown. The developer drafts the text and does not invent business facts.
 - **Separation from admin features:** public routes use their own controller, return only the fields listed above, and sit outside the login middleware. The Admin Login button is only a link; access still requires admin sign-in (Section 6).
-- **Protection:** basic rate limiting and standard security headers on public pages.
+- **Protection:** `/` is limited to 60 requests a minute per visitor; the security headers are listed in Section 6 (*Reconciled 2026-11-19*).
+- **SEO** (*Reconciled 2026-11-19*): the page sends a meta description (the hero description, or else the overview, only while the website is published) and link-preview tags. It is rendered in the browser; there is no server-side rendering in V1.
 - **Contact links:** tap-to-call, email and messaging links open the visitor's own app. A contact form is not part of v1.
+- **Content rules** (*Reconciled 2026-11-19*): social links only for Facebook, Instagram, TikTok and YouTube; every link must be a full http or https address; the phone may hold only digits, spaces and `+ - ( )`. Length limits: agency name 120, overview and the three About texts 1,000, address 500, hero heading 150 and hero description 500 characters.
 
 **Content drafting and review.** The developer drafts professional English and Burmese text for the hero heading, hero description, agency overview, mission, services introduction and contact section. Nothing is invented: no agency name, years of experience, licences, qualifications, client counts, success rates, contact details or other unverified business information. Anything the client has not provided stays empty. The draft stays unpublished (`is_published` is off on the site settings) until the client reviews and approves it. After publishing, saved changes appear immediately (Section 4.11). Contact details and statistics stay hidden until they are provided or can be verified.
 
 *Phase 5 (D4, D5):* before publishing, the landing page keeps its structure and hides every unconfirmed or unavailable section and piece of content; mockup information is never presented as verified agency facts. Mockup data may be used temporarily during development. The final system lets administrators manage the agency content (agency name, overview, mission, contact details, social links and other approved public content) through CRUD in Settings.
+
+**Publishing, as built** (*Reconciled 2026-11-19*):
+
+- **Always public, as soon as they are saved:** the agency name, logo, favicon and hero image. They are the look of the website, not claims about the agency.
+- **Before publishing:** the admin's texts (hero heading and description, overview, Experience, mission, how we help, address) and every contact detail (phone, email, messaging link, social links) are withheld. The Contact section is hidden, and the page shows its built-in hero, mission and how-we-help texts. The Experience card is hidden because it has no built-in text.
+- **After publishing:** the admin's texts replace the built-in ones wherever they are filled, and the filled contact details appear.
+- **Publish and Unpublish** are a separate, confirmed action on the Website content screen (`/admin/settings/content`). Publishing is refused while the logo or favicon is missing.
+- If the settings cannot be read, the page still works with the built-in name, logo, favicon and texts, and the error is reported.
 
 ### 4.11 Website Appearance Settings
 
@@ -612,19 +638,19 @@ An admin screen at `/admin/settings/appearance` (Settings tab) controls how the 
 | --- | --- |
 | Website logo | Required; upload and replace; shown in the navigation bar. Accepted: PNG, JPG, WebP (*Phase 5 (D2):* no SVG in V1) |
 | Favicon | Required; upload and replace; shown in the browser tab. Accepted: PNG or ICO |
-| Hero image | Optional; upload and replace the image in the homepage hero section. If none is uploaded, the hero image area stays blank. Accepted: JPG, PNG, WebP |
+| Hero image | Optional; upload, replace or remove the image in the homepage hero section. If none is uploaded, the built-in illustration (tagged "Sample photo") is shown (*Reconciled 2026-11-19*; superseded: "the hero image area stays blank"). Accepted: JPG, PNG, WebP |
 | Hero heading | Editable text, in English and Burmese |
 | Hero description | Editable text, in English and Burmese |
 
 **Rules**
 
-- **Authorization:** only authorized admins can view or change these settings. Every route and action is protected by a Laravel policy (for example `manage-site-settings`). In v1 every admin has it; when roles are added in version 2 it can be granted per role. Clients and public visitors cannot reach the screen, and refused attempts return 403 and are logged.
+- **Authorization:** only authorized admins can view or change these settings. Every route and action is protected by a Laravel policy (for example `manage-site-settings`). In v1 every admin has it; when roles are added in version 2 it can be granted per role. Clients and public visitors cannot reach the screen; refused attempts return 403 and are **not** logged (*Reconciled 2026-11-19*; superseded: "and are logged").
 - **Storage:** images are stored in DigitalOcean Spaces and only their **storage keys** are saved in the database (`logo_key`, `favicon_key`, `hero_image_key`), never the files or fixed URLs. Keys are random, not the original file names, so a replacement gets a new key.
 - **Public bucket:** a public landing page cannot use short-lived signed URLs, so these three images go in a **separate public Spaces bucket** used only for website images. The private bucket for documents and photos stays private (Section 3.1). The public image address is built from a configured base URL plus the storage key.
 - **Upload checks:** file type is verified from the file content, not only the extension; every image is limited to 2 MB (Section 3.2) and is reduced in the browser before upload (Section 3.3); the checks run in the browser and again on the server, and the server decides. *Phase 5 (D2):* SVG is not accepted in V1.
-- **Save and publish:** validate, upload the new file to Spaces, then save the new key and text in one database transaction and clear the cached site settings. If any step fails, the previous logo, favicon, hero image and text stay unchanged and the admin sees an error. The old file is deleted from Spaces only after the new settings are saved.
-- **Changes appear after saving:** the public site reads settings that are refreshed on every successful save, and image addresses carry a version value (from `updated_at`) so browsers fetch the new image straight away. Some browsers keep favicons cached longer than other images.
-- **Required and optional images:** the logo and favicon are required, so the landing page cannot be published without them; the hero image is optional and its area is left blank when there is none; empty hero text is hidden.
+- **Save** (publishing is a separate, confirmed action, Section 4.10; *Reconciled 2026-11-19*): validate, upload the new file to Spaces, then save the new key and text in one database transaction and clear the cached site settings. If any step fails, the previous logo, favicon, hero image and text stay unchanged and the admin sees an error. The old file is deleted from Spaces only after the new settings are saved.
+- **Changes appear after saving:** the public site reads settings that are refreshed on every successful save (the admin's hero texts only while the website is published, Section 4.10), and image addresses carry a version value (from `updated_at`) so browsers fetch the new image straight away. Some browsers keep favicons cached longer than other images.
+- **Required and optional images:** the logo and favicon are required, so the landing page cannot be published without them; the hero image is optional, and the built-in illustration is shown when there is none; empty hero text falls back to the built-in text.
 - **Audit:** *Phase 5 (D3):* audit logs for settings and appearance changes are **not required in V1** (Step 5e deferred); no audit table and no settings audit logging. (Superseded: "plus an audit log entry".)
 
 ### 4.12 Cancel, Close and Delete Rules
@@ -633,43 +659,13 @@ An admin screen at `/admin/settings/appearance` (Settings tab) controls how the 
 
 **Job order: Done or Cancel (closing)**
 
-**Job Order close rules** (the same text appears in Sections 4.7.5 and 4.12):
-
-1. **Who and what:** the admin can close an **Open** Job Order as **Done** or **Cancelled**. Both are the same closing action.
-2. **Soft-deleted Persons:** any of their applications on the order that is still **Applied** or **Interview** is **automatically set to Cancelled** during the close. The admin does not resolve these, and they are not listed for resolution.
-3. **Non-deleted Persons:** every application on the order that is **Applied** or **Interview** must be resolved by the admin before the order can close.
-   - The admin chooses **Hired**, **Rejected** or **Cancelled** for each one, individually or through a bulk update.
-   - **Bulk updates are all-or-nothing.**
-   - **Hired** needs its explicit confirmation.
-4. **No other automatic changes.**
-   - Only soft-deleted Persons' Applied/Interview applications change automatically.
-   - Hired, Rejected and Cancelled applications are not changed by the close.
-   - Non-deleted Persons' applications change only through the admin's resolutions.
-   - Nothing is auto-rejected.
-5. **Hired consequences** follow the existing rules: the engagement becomes **Complete** in the same transaction, and cannot be reassigned while the application stays Hired. *Round 9:* only Hired → Cancelled (Section 4.7.3) can undo it.
-6. **One atomic database transaction** contains all four steps:
-   1. the automatic cancellations
-   2. the admin's resolutions
-   3. the Hired consequences
-   4. closing the order
-
-   If any step fails, the **entire operation rolls back**. There is no partial resolution and no partial close.
-7. **Changed state:** after acquiring its locks, the operation re-reads the order and application states. If they differ from what the admin's screen was based on, the whole transaction rolls back, and the admin refreshes, reviews and submits again.
-8. **Money:** the automatically cancelled applications' Job Order Money attribution is removed from the order being closed. The ClientService Kept Amount is unchanged, and no payment, refund, write-off or adjustment is created (Sections 4.7.7 and 4.7.10).
-9. **After closing,** the order is frozen: no edit, no reopen, no new workers, and no normal status changes. Payments on the engagements continue through the Client page, and the order's attributed Money stays **live** (*round 9*: closing freezes nothing). The one status exception is **Hired → Cancelled** of a single application, through its confirmation workflow (Section 4.7.3). It does not reopen the order, which stays Done or Cancelled.
-
-**Distinctions:**
-
-- **Person deletion** itself never changes application statuses. The automatic cancellation in rule 2 happens only when a Job Order close is performed.
-- **Whole-service cancellation** is a separate workflow with its own rules (Section 4.7.6). It may still cancel application rows on closed orders.
-
-The resolution screen (Case A / Case B) and the sequence diagram are in Section 4.7.5.
+The close rules, the distinctions from Person deletion and whole-service cancellation, the resolution screen (Case A / Case B) and the sequence diagram are in **Section 4.7.5** (*Reconciled 2026-11-19*: stated once; this section used to repeat them word for word).
 
 **Worker or client cancel (cancel is not delete)**
 
 - When the admin cancels a client's service, its status becomes **Cancel**.
 - If the person had paid only a deposit, the remaining balance becomes 0.
-- A **refund** field appears on cancel. The admin can enter a refund amount, which is deducted from the total fees of that service, so reports count only the amount kept (received minus refunds).
+- A **cancel refund** field appears on cancel. The admin can enter a refund of at most the money kept. It is stored apart (`cancel_refund_amount`) and lowers the amount kept (received minus refunds), which is what reports count; the fee is not changed (*Reconciled 2026-11-19*; superseded: "deducted from the total fees of that service").
 - **For a Job Search engagement,** this is *whole-service cancellation* (Section 4.7.6):
   - only while In Progress
   - started from the Client Detail page
@@ -732,6 +728,8 @@ The scope is **only** files of Person deletion. There is **no** generic orphan-f
 >
 > Options are discussed in Technical Decisions §15.
 
+*Current behaviour* (*Reconciled 2026-11-19*): the document rows are deleted and the photo path cleared in the transaction. After the commit each file is removed; a file that cannot be removed is only reported to the error log, with its key. There is no recovery list yet.
+
 | | Whole-service cancellation | Person delete |
 | --- | --- | --- |
 | Scope | One Job Search engagement | The person, and every service's remaining balance |
@@ -771,35 +769,35 @@ sequenceDiagram
 
 - The admin can delete a service. It disappears from the UI and from the landing page, and **cannot be chosen for new clients**.
 - Clients already using the service continue without any problem, and their service records stay.
-- The profit records of the service stay. The Business dashboard still shows its profit, with status **inactive**.
+- The money records of the service stay. The Business dashboard still shows its money kept, with status **inactive**.
 - Delete is a soft delete: nothing is removed from the database. *Phase 5 (D1):* Services Provided on the landing page counts service records (`client_services`), not catalogue services, so deleting or deactivating a catalogue service does not change it. (Superseded: "counts only available (not deleted) main services".)
 
 #### Sub-service delete and deactivation
 
 - The admin can deactivate a sub-service or delete it. Delete is a soft delete: nothing is removed from the database.
 - A deactivated or deleted sub-service can no longer be chosen for new or changed client services.
-- Existing client-service records that use it keep it, with their fees, payments, refunds and financial history unchanged. Its profit stays in the reports under its main service and in the sub-service breakdown.
+- Existing client-service records that use it keep it, with their fees, payments, refunds and financial history unchanged. Its money kept stays in the reports under its main service and in the sub-service breakdown.
 - The database refuses to remove a sub-service row that other records point to (restrict foreign keys).
-- When a main service is soft-deleted, its sub-services can no longer be chosen for new or changed client service assignments. The sub-services stay in the database; they are not automatically deleted or modified. If the main service is restored, its sub-services become available again, except those that were independently deactivated or deleted. Existing client services, fees, payments, refunds and historical records stay unchanged.
+- When a main service is soft-deleted, its sub-services can no longer be chosen for new or changed client service assignments. The sub-services stay in the database; they are not automatically deleted or modified. *Reconciled 2026-11-19*: V1 has no restore for services, so a deleted main service and its sub-services stay unavailable. (Superseded: "If the main service is restored, its sub-services become available again".) Existing client services, fees, payments, refunds and historical records stay unchanged.
 
 ## 5. Data Model (core tables)
 
 | Table | Key columns |
 | --- | --- |
-| users | id, name, email, password (nullable), google\_id, role |
+| users | id, role (`superadmin`, the only V1 value and the default), name, email (unique), email\_verified\_at, password (required), google\_id (nullable, unique), remember\_token, timestamps (*Reconciled 2026-11-19*; superseded: "password (nullable)") |
 | clients | id, unique\_token (unique), name, phone (required; unique among clients that are not deleted), birthday, gender, remarks, photo\_path (nullable), created\_at, updated\_at, deleted\_at (soft delete). The 4-digit PIN is calculated from the last four digits of the phone and is not stored. |
 | services | id, parent\_id (nullable; main service or sub-service, maximum two levels), key (nullable, unique; job\_search for Job Search), title (nullable), title\_my (nullable), public\_description (nullable), public\_description\_my (nullable), show\_on\_website, status, default\_fee, has\_documents, deleted\_at (soft delete) |
 | client\_services | id, client\_id, service\_id (always the main service), sub\_service\_id (nullable), status, start\_date, end\_date, fee, refund\_amount (set automatically when a fee change leaves more received than the fee), cancel\_refund\_amount (entered on cancel), cancelled\_at. Remarks are in `client_service_remarks`. |
 | client\_service\_remarks | id, client\_service\_id, kind (note / refund / cancel), body (nullable), details (JSON, nullable; the numbers of an automatic refund or cancel remark), created\_by, created\_at, updated\_at. Add-only. |
-| payments | id, client\_service\_id, amount, paid\_at, method, note, created\_by |
+| payments | id, client\_service\_id, amount, paid\_at, method (only `cash` in V1), note, created\_by. Append-only |
 | documents | id, client\_service\_id, title, storage\_key, mime, size, client\_can\_download, uploaded\_by (no type column: the title is enough). For Job Search, the client service is the engagement |
 | job\_orders | id, company\_name, manpower, male\_count, female\_count, interview\_date, start\_date, status (open / done / cancelled), closed\_at, notes. No money column |
 | job\_order\_workers | One **application**: id, job\_order\_id, client\_id (shared person record), client\_service\_id (the Job Search engagement; **many applications per engagement**, so not unique; the foreign-key index remains), case\_status (applied / interview / hired / rejected / cancelled), notes. No unique key on (job\_order\_id, client\_id) and no replacement composite index (round 10: the same person can have several applications on one order over time; a duplicate *active* application is prevented by locks) |
-| site\_settings | id, agency\_name, hero\_heading, hero\_description, overview, mission, logo\_key (required), favicon\_key (required), hero\_image\_key (nullable), phone, email, address, messaging\_link, social\_links, approved\_statistics (which public numbers may be shown), is\_published, updated\_by, updated\_at; Burmese versions of the text fields |
+| site\_settings | *Reconciled 2026-11-19*: **one row** (fixed id 1). English/Burmese pairs (`…` and `…_my`): agency\_name, hero\_heading, hero\_description, overview, experience, mission, how\_we\_help, address. logo\_key, favicon\_key, hero\_image\_key: all nullable (the logo and favicon are required only to publish). phone, email, messaging\_link, social\_links (JSON: facebook, instagram, tiktok, youtube), approved\_statistics (JSON: clients\_served, services\_provided), is\_published (default false), updated\_by, timestamps |
 | document\_access\_logs | id, document\_id (nullable; kept when the document is deleted), client\_id and document\_title (copies), outcome (allowed / denied), reason (locked / not\_owner / not\_available), actor\_type, actor\_id, ip, created\_at |
 | client\_pin\_attempts | id, client\_id, ip\_address, user\_agent (nullable), caused\_lock, created\_at. One row per wrong PIN. The PIN is never stored. The admin sees the rows of one client on that client's detail page, where the Unlock button is also found. |
 
-**Verified current code (commit `b7730dd`, Phases 1–4 Step 4; the `job_order_workers` and `case_status` lines below were changed by later steps, see the approved target changes):**
+**Constraints and indexes** (*Reconciled 2026-11-19*, from the migrations at `7eef719`):
 
 - `clients`: unique `unique_token`; index on `phone`; unique generated column `active_phone` (the phone while the client is not deleted), which gives phone uniqueness among clients that are not deleted; soft deletes.
 - `client_pin_attempts`: foreign key `client_id` to `clients.id` (cascade on delete, which never fires because clients are only soft-deleted); index `(client_id, created_at)`.
@@ -807,32 +805,39 @@ sequenceDiagram
 - `client_services`: foreign keys to `clients` and `services` (restrict on delete); composite foreign key `(service_id, sub_service_id)` to `services(parent_id, id)`; indexes `(client_id, service_id, status)` and `(service_id, sub_service_id)`.
 - `payments`, `client_service_remarks`, `documents`: foreign key to `client_services` (restrict); index on `client_service_id`. `document_access_logs.document_id` is set to null when a document is deleted.
 - `job_orders`: indexes on `status` and `company_name`.
-- `job_order_workers`: foreign keys to `job_orders`, `clients` and `client_services` (restrict); no unique key on `client_service_id` or `(job_order_id, client_id)` (both removed from the create migration); index `client_id`.
+- `job_order_workers`: foreign keys to `job_orders`, `clients` and `client_services` (restrict), each with its own index; index `client_id`. **No** unique key on `client_service_id` or on `(job_order_id, client_id)`, and no composite index (round 10; measured in the Phase 4 review, Technical Decisions §17.22). `case_status` is `applied, interview, hired, rejected or cancelled`.
+- `site_settings`: a single row with id 1; `updated_by` to `users` (null on delete).
+- No Application Activity table and no `live_service_id` column. Job Order Money and Unassigned Kept Amount are derived, never stored.
 
-**Approved target changes (built in the working tree on 2026-11-17, uncommitted; Phase 4 steps 5–9 and rounds 9–10):**
-
-- `job_order_workers.client_service_id`: no unique constraint; the foreign-key index remains.
-- `job_order_workers (job_order_id, client_id)`: the unique constraint is removed from the original create migration, with **no replacement composite index** unless query-performance evidence requires one (round 10). No separate migration: the database is rebuilt from scratch.
-- `case_status`: values `applied, interview, hired, rejected, cancelled`. Remove `working`.
-- **No Application Activity table** (out of scope for V1).
-- No `live_service_id` column.
-- **Round 9: no schema change is proposed.** Job Order Money and Unassigned Kept Amount are derived from `client_services`, `payments` and `job_order_workers`, and nothing is stored. Any column or table that later proves necessary would be *Recommendation, pending approval*.
-
-**Derived values** (calculated in query/accessor, not stored): received, remaining, payment status, service counts, profit (grouped by main service, with an optional sub-service breakdown), public statistics.
+**Derived values** (calculated in query/accessor, not stored): received, remaining, payment status, service counts, money kept (grouped by main service, with an optional sub-service breakdown), public statistics.
 
 **Parent-child rule (enforced by the backend now; the database enforces the client-service pair from Phase 2):** a `services.parent_id` must point to a main service (a row whose own `parent_id` is empty); a client-service's `sub_service_id`, when set, must be a sub-service whose `parent_id` equals that client-service's `service_id`. Job Search (`key = job_search`) never has sub-services.
 
 ## 6. Authentication and Security
 
-**Admin:** Laravel session auth, Google sign-in limited to allow-listed email(s), password hashing (bcrypt/argon), CSRF protection, optional 2FA later.
+**Admin:** Laravel session auth (Fortify, at `/admin/login`), password hashing, CSRF protection, password reset and email verification. Google sign-in works for **existing admin accounts only**: it matches the linked Google id, or the Google-verified email of an account not yet linked; there is no separate allow-list (*Reconciled 2026-11-19*; superseded: "limited to allow-listed email(s)"). No two-factor sign-in in V1 (optional later).
 
 **Client PIN risk and mitigation.** A 4-digit PIN has only 10,000 combinations, and last-4-of-phone is guessable. The long random token makes brute force impractical *if* attempts are limited (a phone number is mandatory, so every client has a PIN):
 
-- **PIN lock:** wrong PIN attempts are counted per client, across all IP addresses, not per IP. 5 consecutive incorrect PIN attempts lock the client for 15 minutes, and the client cannot sign in until the lock ends. These v1 rules are fixed in code; they are not configurable in Settings. Admin unlock: the admin can unlock a client's PIN lock manually with the Unlock button on the client detail page. The same page shows that client's wrong-PIN attempt records.
+- **PIN lock:** wrong PIN attempts are counted per client, across all IP addresses, not per IP. 5 consecutive incorrect PIN attempts lock the client for 15 minutes, and the client cannot sign in until the lock ends. These v1 rules are fixed in code; they are not configurable in Settings. *Reconciled 2026-11-19*: the count of wrong PINs expires 24 hours after it starts and is reset by a correct PIN; the lock is kept in the cache, and every wrong PIN is also stored in `client_pin_attempts`. Admin unlock: the admin can unlock a client's PIN lock manually with the Unlock button on the client detail page. The same page shows that client's wrong-PIN attempt records.
 - **Token:** never derivable from client data. It is created once with the client record and has no expiration. The current application does not support regenerating a token, so the admin cannot replace a tracking link that has been shared by mistake.
 - Sessions follow the application's session lifetime setting.
-- Generic error message (do not reveal whether a token exists).
+- *Reconciled 2026-11-19*: an unknown tracking token, or that of a deleted client, gets a 404 (not found) page. The token is 48 random characters, so it cannot be guessed. (Superseded: "Generic error message (do not reveal whether a token exists)".)
 - Do not index tracking pages (`noindex`), and send `Referrer-Policy: no-referrer`.
+
+**Security controls, as implemented** (*Reconciled 2026-11-19*):
+
+| Control | Behaviour | Where |
+| --- | --- | --- |
+| Every response | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` | `SecurityHeaders` |
+| HSTS | `Strict-Transport-Security`, 6 months, only in production over https | `SecurityHeaders`, `config/security.php` |
+| Content Security Policy | Sent as **Report-Only**; enforced only when `CSP_ENFORCE` is turned on (a later decision) | `ContentSecurityPolicy`, `config/security.php` |
+| Client pages | `/track/*` and `/client/*`: `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, and a robots `noindex` meta tag | `SecurityHeaders`, `app.blade.php` |
+| Trusted hosts | Only the `APP_URL` host and the `TRUSTED_HOSTS` names are answered; with no usable host it **fails closed** (every request refused). Not applied in local development and tests | `TrustedHosts`, `bootstrap/app.php` |
+| Query values in logs | `mask_bindings_in_exception_messages` on every database connection; a retried workflow that gives up logs codes and SQL placeholders only | `config/database.php`, `RetriedTransaction` |
+| Rate limits | `/` and `/track`: 60 a minute; document download: 10 a minute per client and address; worker phone lookup: 30 a minute per admin; Google sign-in: 10 a minute; admin login: 5 a minute per email and address; password change: 6 a minute | `routes/web.php`, `routes/settings.php`, `AppServiceProvider`, `FortifyServiceProvider` |
+| Settings access | `manage-site-settings` gate (superadmin); refused attempts get 403 and are not logged | `AppServiceProvider` |
+
 
 **Files:** private Spaces bucket, no public-read ACLs, a Laravel permission check before every download, short-lived signed URLs (option B), encryption at rest as offered by the provider (to confirm), upload validation in the browser and again on the server (type and size, Section 3.2; virus scan optional), random object keys, and credentials only in environment variables.
 
@@ -844,12 +849,13 @@ sequenceDiagram
   - their services' remaining balance becomes zero by derivation; no service is cancelled
   - soft-delete the database record (Section 4.12)
 - Keep an audit log of document access.
+- *Open owner questions* (PDPA review findings 6 and 7, `docs/reports/PHASE_5_SECURITY_PDPA_REVIEW.md`): what a soft-deleted Person record keeps (today: name, phone, birthday and gender), and how long the PIN-attempt rows and the document access log (IP addresses) are kept.
 
 ## 7. Key Flows
 
 **Client views a document:** open tracking link → enter PIN → profile → open Work Permit → document listed → if unlocked, Download → server checks policy → logs access → redirect to a short-lived signed Spaces URL (Section 3.1).
 
-**Admin records a deposit:** Client → service → Add payment → ledger row saved → payment status recalculated → remaining balance shown to admin and (if fee/payment visible) to client.
+**Admin records a deposit:** Client → service → Add payment → ledger row saved → payment status recalculated → remaining balance shown to the admin and, for a service that is not cancelled, to the client.
 
 **Admin adds a service to a client:** open the client → Add Service → choose a main service (Job Search is not listed) → optionally choose one of its sub-services → the fee is filled from the sub-service default fee, otherwise the main service default fee → save; the record stores the main service in `service_id` and the sub-service, if any, in `sub_service_id`.
 
@@ -869,24 +875,24 @@ sequenceDiagram
 
 1. Client page → Delete → type the phone number to confirm.
 2. In one database transaction: soft-delete the person and clear the document and photo references. The remaining balance becomes 0 by derivation, and no status or money record changes.
-3. After commit: delete the person's document files and photo, with recovery information (mechanism pending, Section 4.12).
+3. After commit: delete the person's document files and photo. A file that cannot be removed is reported to the error log (the recovery mechanism is still pending, Section 4.12).
 
 **Admin shares tracking access:** open the client → Share access → link and QR code are generated on screen from the stored token (the QR image is not saved) → copy the link or save the QR image → send it to the client → the client opens it and enters the PIN.
 
 ## 8. UI Structure (Inertia pages)
 
-- Public: / (landing page), `/track/{token}` (PIN form), `/client/{token}/profile (implemented)`, `/client/{token}/services/{id} (planned for Phase 3)`.
-- Admin: `/admin/login`, `/admin/dashboard`, `/admin/clients`, `/admin/clients/{id}`, `/admin/services`, `/admin/services/{id}`, `/admin/job-search`, `/admin/job-search/{id}`, `/admin/workers/{id}`, `/admin/settings`.
+- Public: `/` (landing page), `/track/{token}` (PIN form), `/client/{token}/profile` (every service on one page), `/client/{token}/documents/{id}/download`. (*Reconciled 2026-11-19*; superseded: "`/client/{token}/services/{id}` (planned for Phase 3)", which was not built.)
+- Admin: `/admin/login`, `/admin/dashboard`, `/admin/clients` (with create, show and edit), `/admin/services` (with create, show and edit), `/admin/job-search` (with create, show and edit), `/admin/settings`, `/admin/settings/appearance`, `/admin/settings/content`; the account pages `/settings/profile` and `/settings/security`.
   - `/admin/workers/{id}` is listed in v0.8 but **superseded** (not built).
   - Worker-name links on the Job Order page open the existing Client Detail page, `/admin/clients/{id}` (approved).
 - Mobile-first for the client portal (clients will open it from a chat link). Admin screens responsive, table-heavy on desktop.
-- Shared Vue components: DataTable (filter/sort/inline actions), StatusBadge, MoneySummary, FileUploader, ConfirmDialog.
+- Shared Vue components (*Reconciled 2026-11-19*): `StatusBadge`, `ConfirmDialog`, `StatCard`, `PhotoPicker` and `DocumentList`, among others. (Superseded: DataTable, MoneySummary and FileUploader, which were never built.)
 
 ## 9. Non-Functional Requirements
 
 - **Performance:** pages under 2 seconds for typical data (a few thousand clients); paginate all tables server-side.
 - **Availability:** single region deployment, the app and MySQL run on one Droplet (Section 10).
-- **Auditability:** created\_by/updated\_by on money and document records; access logs for downloads.
+- **Auditability** (*Reconciled 2026-11-19*): `created_by` on payments and remarks, `uploaded_by` on documents, `updated_by` on the website settings; an access log for every document download attempt.
 - **Localization:** Burmese (default) and English UI for admin and client, switchable at any time (Section 4.9); store dates in UTC, display in Asia/Bangkok; utf8mb4 for Burmese and Thai text.
 - **Browser support:** current Chrome, Safari, Edge; mobile Safari and Chrome for the client portal.
 
@@ -897,14 +903,14 @@ sequenceDiagram
 **Database and testing:**
 
 - MySQL is the production target.
-- SQLite tests cannot prove locking. Concurrency is tested on MySQL with independent connections against a separate `thai_visa_services_testing` database.
+- SQLite tests cannot prove locking. Concurrency is tested on MySQL with independent connections against the separate `Thai_Visa_Services_Testing` database (the name is case-sensitive; the test guard refuses any other).
 - No Redis in the MVP.
 - Destructive tests never run against the development or production database.
 
 **Retried workflows (3 Laravel transaction attempts).** Only deadlocks and lock-wait timeouts are retried, with no custom backoff. Laravel retries immediately.
 
 1. Add Worker, including reassignment and a fee change inside it.
-2. Single application status update, including Hired and (*round 9, draft*) **Hired → Cancelled**. It uses this same workflow with no new retry policy: 3 attempts, the 5-second session timeout restored on every exit path, outermost transaction, side-effect-free closure. It is not part of bulk updates or the close (decided in round 10).
+2. Single application status update, including Hired and (*round 9*) **Hired → Cancelled**. It uses this same workflow with no new retry policy: 3 attempts, the 5-second session timeout restored on every exit path, outermost transaction, side-effect-free closure. It is not part of bulk updates or the close (decided in round 10).
 3. Bulk application status update.
 4. Job Order close, including its resolutions.
 
@@ -938,7 +944,7 @@ sequenceDiagram
 - A concurrency error inside a **nested** transaction is not retried: Laravel throws `DeadlockException`. Retried workflows must therefore be the outermost transaction.
 - **MySQL 1213 (deadlock):** SQLSTATE `40001`, matched by code and by message, so it is retried.
 - **MySQL 1205 (lock-wait timeout):** SQLSTATE `HY000`, matched by message only, so it is retried, provided the server's error messages are English.
-- These findings come from reading the source and are not yet verified on a running MySQL server.
+- *Reconciled 2026-11-19*: verified on MySQL by `RetriedTransactionMysqlTest` (a real 1205 lock-wait timeout is retried, the session timeout is restored, and used-up retries give the friendly message). The production server must still answer in English; `php artisan db:check-server` checks it (Step 6, Section 10.3).
 - No numeric error-code list is an approved decision.
 
 **Atomic operations (approved):**
@@ -952,27 +958,19 @@ sequenceDiagram
 - resolve-and-close, including the auto-cancel of deleted persons' open applications
 - the database side of Person deletion
 
-**Lock order.** Three layers, kept apart:
+**Lock order** (*approved; confirmed as implemented in the 2026-11-19 reconciliation*):
 
-- *Verified current code:* explicit locks exist only for:
-  - Add Worker: job order, then the existing person
-  - close: job order
-  - payment, service edit and generic cancel: client service
-  - document replace: document
-
-  Person deletion currently takes no explicit lock.
-- *Approved:*
-  - Add Worker locks the job order and the person in a consistent order. Person deletion locks the person first. Bulk Hired locks client services in ascending id.
-  - **Accepted target direction (round 5):** job orders → persons → client services → applications → dependent rows, each in ascending id.
-- *Recommendation, pending approval* (the detailed protocol from the code audit):
-  - Job orders are locked only at the start of a workflow.
-  - Discover with plain reads, lock in order, then re-validate with locking reads, because MySQL REPEATABLE READ snapshots stale plain reads.
-  - **Documented exceptions:** whole-service cancellation skips the job-order level; Person deletion skips the job-order and application levels.
-  - Missing locks to add: Add Service, documents and Job Order edit. Duplicate-phone handling is also needed.
-
-  - *Round 9:* Hired → Cancelled locks the job order (no Open check), then the person, then all the person's Job Search engagements in ascending id, then the engagement's applications. This row is part of the pending protocol.
-
-  Details and the per-workflow sequences are in Technical Decisions §11 and §17.
+- **Order:** job orders → persons → client services → applications → dependent rows, each in ascending id. Discover with plain reads, lock in order, then re-validate with locking reads (MySQL REPEATABLE READ snapshots make plain reads stale).
+- **As implemented:**
+  - Single and bulk status updates, and the close: the job order → persons → engagements → applications.
+  - Add Worker: the job order → the person → the person's active application on this order, if any (the same-order check of round 10) → the person's In Progress engagement → its applications. *Reconciled 2026-11-20:* the same-order check locks an application row before its engagement, which differs from the rule "never lock an application before its engagement". It is reported for the user's decision and is **not** recorded as approved (Technical Decisions §11.7).
+  - Every lock is exclusive (`FOR UPDATE`); no workflow uses a shared lock (`FOR SHARE`).
+  - Hired → Cancelled: the job order (no Open check; locked only to keep the order of locking) → the person → all the person's Job Search engagements → the engagement's applications.
+  - Whole-service cancellation: the person → the service → its applications (documented exception: no job-order level).
+  - Person deletion: the person first (documented exception: no job-order or application level).
+  - Add Service, and document upload, rename, replace and delete: the person → the service (→ the document).
+  - Job Order edit: the order. Payments, the service edit and the generic cancel: the client service.
+- These are covered by MySQL concurrency tests with independent connections (Section 11). Details and per-workflow sequences: Technical Decisions §11 and §17.
 
 **Document and storage consistency (approved wording, U2/U3):**
 
@@ -988,10 +986,10 @@ sequenceDiagram
 ## 10. Deployment and Environments
 
 - Environments: local, staging, production.
-- Hosting: one DigitalOcean Droplet in the client's account with Nginx, PHP-FPM, queue worker via Supervisor and scheduler via cron. MySQL runs on the same Droplet.
+- Hosting: one DigitalOcean Droplet in the client's account with Nginx and PHP-FPM; MySQL runs on the same Droplet. *Reconciled 2026-11-19*: V1 has no queue jobs or scheduled tasks, so no queue worker or cron entry is needed. Setting it up is Step 6 (Section 10.3).
 - Assets built with Vite; HTTPS via Let's Encrypt.
 - Spaces buckets: for production, one private bucket for documents and photos and one public bucket for website images (development uses the local disk, Section 3.1; staging is to be decided), each with its own access keys limited to that bucket where Spaces permissions allow (to confirm); keys live only in environment variables.
-- CI: run tests and build on each push; deploy by tag.
+- CI (*Reconciled 2026-11-19*): `.github/workflows/tests.yml` runs the checks (`composer ci:check`) and the Playwright browser tests on pull requests and on pushes to `main`. There is no deploy job yet (Step 6). Note: this repository's branch is `master`, so a push to it does not start the workflow; reported in the reconciliation audit, not changed.
 
 ### 10.1 Indicative Cost Estimates
 
@@ -1013,10 +1011,22 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
 - **Handover pack:** admin account setup, deployment steps, the list of environment variables, and how to rotate Spaces keys.
 - **Before go-live:** the resource sizes and prices in Section 10.1 are confirmed within the agreed budget, with the expected costs and limitations written into the contract.
 
+### 10.3 Step 6: production hosting, server setup and deployment (**DEFERRED**)
+
+*Decided 2026-11-19.* "Step 6" is the production hosting, server setup and deployment phase. It is **deferred until the user is ready for production deployment**; it is not an immediate implementation step. It covers:
+
+- the DigitalOcean Droplet and server setup (Nginx, PHP-FPM, HTTPS)
+- the domain and DNS
+- production MySQL setup and configuration
+- the production environment and server configuration: `APP_URL`, `TRUSTED_HOSTS`, trusted proxies, `SESSION_SECURE_COOKIE`, `APP_ENV`, `APP_DEBUG`, `LOG_LEVEL`, and the Spaces buckets and keys (`docs/reports/PHASE_5_OPEN_RISKS.md`, R1, R2 and R6)
+- deploying the application, and the related production preparation
+
+**Production-dependent checks wait for Step 6:** the production part of step 5f.3, `php artisan db:check-server` (isolation level and message language, Section 14 risks 5 and 6; `docs/reports/PHASE_5_MYSQL_CHECKS.md`), stays deferred until a production or staging server exists. The checks on `Thai_Visa_Services_Testing` are done and passed.
+
 ## 11. Testing Strategy
 
 - Feature tests for policies (a client can never read another client's data or documents).
-- Unit tests for payment-status, refund and profit calculations; feature tests for the cancel, delete and job order closing rules (Section 4.12).
+- Unit tests for payment-status, refund and money-kept calculations; feature tests for the cancel, delete and job order closing rules (Section 4.12).
 - **Job Search feature tests:**
   - engagement reuse and the strict reassignment block (all rows checked)
   - the transition table, with Hired completing the engagement
@@ -1034,7 +1044,7 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
   - *Round 9:* Money after Hired → Cancelled (the old order falls, the amount is Unassigned, payments while Unassigned raise it, Outstanding unchanged, the new order receives it, never counted twice); a payment after close raises the closed order's Money; the Hired Workers card falls; Σ Job Order Money + Unassigned = Job Search Kept; dashboard totals not double counted
   - the four cards and the Money attribution, including the deleted-person hint
   - the document permission matrix and the portal exclusion
-- **MySQL concurrency tests:** run on `thai_visa_services_testing` with independent connections, covering:
+- **MySQL concurrency tests:** run on `Thai_Visa_Services_Testing` with independent connections, covering:
   - concurrent Add Worker for the same person
   - close during status updates
   - Person deletion during Add Worker, document upload and Add Service
@@ -1046,38 +1056,39 @@ All pricing is an indicative estimate and must be confirmed against DigitalOcean
   - restoration of the session timeout on every exit path
 
   SQLite results are never used as evidence of concurrency safety.
-- Tests for sub-services (the parent-child rule is rejected by the backend and the database when violated, the fee fallback, Job Search cannot receive sub-services or be added through the normal form, profit grouped by main service); PIN lock tests (5 consecutive wrong PINs lock the client for 15 minutes, attempts counted per client across IP addresses, admin unlock); tests that the public pages expose no private data and show main services only; tests that only authorized admins can change website appearance and that invalid uploads are rejected.
-- Browser tests (Laravel Dusk or Playwright) for the main admin and client flows, including the image size reduction. File tests run against the local disk.
+- Tests for sub-services (the parent-child rule is rejected by the backend and the database when violated, the fee fallback, Job Search cannot receive sub-services or be added through the normal form, money kept grouped by main service); PIN lock tests (5 consecutive wrong PINs lock the client for 15 minutes, attempts counted per client across IP addresses, admin unlock); tests that the public pages expose no private data and show main services only; tests that only authorized admins can change website appearance and that invalid uploads are rejected.
+- Browser tests: **Playwright** (*Reconciled 2026-11-19*; `tests/Browser`, `npm run test:browser`, also run in CI) for admin login, the landing page, the client portal, Add worker (including the 429 message) and the appearance upload with image reduction. File tests run against the local disk.
 
 ## 12. Delivery Phases
 
 1. **Foundation:** auth (admin + Google, client token/PIN), clients CRUD with unique phone, tracking link and QR generation, file upload with browser image size reduction and an environment-based disk (local in development, Spaces in production), English/Burmese UI setup, seed services.
 2. **Services and payments:** service catalog with sub-services, client-services (with optional sub-service selection), payment ledger, service overview stats.
 3. **Client portal:** profile, status view with main and sub-service titles, Work Permit documents (auto-unlock when fully paid).
-4. **Job Search:** job orders table, detail pages, worker linking, profit.
-   - *Verified status (2026-11-17):* steps 1–4 were built at commit `b7730dd`. Steps 5–9 (engagement model, retry helper, Add Worker reuse, status updates, resolve-and-close) followed, with Hired → Cancelled, live Money and the same-order reapplication added in rounds 9–10. Still to build: the Complete-engagement locks, whole-service cancellation, the four-card page, Job Search documents and the Person-deletion fixes (Section 13.3).
+4. **Job Search:** job orders table, detail pages, worker linking, Job Order Money.
+   - *Status* (*Reconciled 2026-11-19*): **complete.** Steps 1–13 are committed (including the Complete-engagement locks, whole-service cancellation, the four-card page, Job Search documents and the Person-deletion fixes), followed by the Phase 4 security and performance review (`5d273b0`). (Superseded: "Still to build: …".)
 5. **Business dashboard, public landing page, appearance settings and hardening:** reports, audit logs, security review.
-   - *Phase 5 (2026-11-19):* split into steps 5a–5i. Status, audit findings and the step-by-step implementation plan are in Sections 12.1–12.4 (planning, pending user approval). Settings audit logs (5e) are deferred out of V1 (D3).
+   - *Phase 5:* split into steps 5a–5i and built, apart from the items listed in Section 12.1 (status) and Section 13.3. Settings audit logs (5e) are deferred out of V1 (D3).
+6. **Step 6, production hosting, server setup and deployment:** **deferred** until the user is ready for production (Section 10.3; decided 2026-11-19).
 
 Possible later additions: LINE/SMS notifications with the tracking link, staff roles, invoices/receipts as PDF, Thai UI language.
 
-### 12.1 Phase 5 status and audit findings (*Phase 5*, 2026-11-19; planning, **pending user approval**)
+### 12.1 Phase 5 status and audit findings (*Phase 5*, 2026-11-19; status kept current)
 
-Audited against the code at commit `5d273b0`. The audit changed no code. The confirmed decisions D1–D5 are in the header note and in Section 13.1. The questions that may come up during implementation are in Section 12.3.
+The status rows below are current. The tables after them (the 5a and 5d audits, the agency content and the design comparison) are **historical**: they describe the code at `5d273b0`, before steps 5d.1–5d.7, and every 5d finding marked FAIL or NEEDS ATTENTION there has since been fixed (*Reconciled 2026-11-19*). The confirmed decisions are in the header note, Section 12.3 and Section 13.1.
 
 | Step | Scope | Status |
 | --- | --- | --- |
-| 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Step 5a.2 (Asia/Bangkok midnight boundary tests) is committed; 5a.3 is optional; the Active Clients definition is asked if it becomes necessary. |
+| 5a | Business dashboard | **Built and audited.** Correct against the approved rules. Findings are below. Step 5a.2 (Asia/Bangkok midnight boundary tests) is committed; 5a.3 is optional; the Active Clients definition is confirmed (N1, Section 4.2). |
 | 5b | Admin Settings tab extras | **Step 5b.1 committed.** *Since step 5b.1:* `/admin/settings` is the Settings hub, reached from the Settings item in the admin navigation. It links to the admin account (profile and security), Website appearance (`/admin/settings/appearance`) and Website content (`/admin/settings/content`), and shows two read-only facts: whether the admin's Google sign-in is linked, and the currency (THB, fixed in V1). Step 5b.2 (documents locked by default) was intentionally skipped by the user's decision: no migration, no change. |
 | 5c | Website appearance and the `site_settings` foundation | **Built and committed** (5c.1–5c.5): the `site_settings` table, the cached reader, image upload validation, browser image reduction, the Website appearance screen, and the public pages using the settings. The migration was run by the user, and on the MySQL testing database with approval. |
 | 5d | Public landing page | **Built and committed** (5d.1–5d.7): real statistics (D1), services from the catalogue, admin-written content (Website content screen), a Publish/Unpublish button with a confirmation, and SEO tags. Before publishing, admin-written content is hidden and the built-in copy is the fallback. |
 | 5e | Settings and appearance audit logs | **Deferred (D3).** No work in V1. |
-| 5f | Hardening and security review | **In progress.** 5f.1 (public data exposure tests) and 5f.2 (security and PDPA review, `docs/reports/PHASE_5_SECURITY_PDPA_REVIEW.md`) are committed. 5f.3 (MySQL checks) is built and the testing-database checks passed (integrity audit, full MySQL suite, audit again with an identical fingerprint); the production server check (`db:check-server`) has not run because there is no server yet (see `docs/reports/PHASE_5_MYSQL_CHECKS.md`). |
+| 5f | Hardening and security review | **In progress.** 5f.1 (public data exposure tests) and 5f.2 (security and PDPA review, `docs/reports/PHASE_5_SECURITY_PDPA_REVIEW.md`) are committed. 5f.3 (MySQL checks) is built and the testing-database checks passed (integrity audit, full MySQL suite, audit again with an identical fingerprint); the production server check (`db:check-server`) has not run because there is no server yet (see `docs/reports/PHASE_5_MYSQL_CHECKS.md`); it belongs to Step 6, which is deferred (Section 10.3). |
 | 5g | Security headers | **Built and committed** (5g.1–5g.2): public protections, `X-Frame-Options`, HSTS (production over https only, 6 months), and a Content Security Policy in Report-Only mode (enforcing is a later decision). |
 | 5h | Browser tests and CI | **Built and committed** (5h.1): Playwright browser tests (31) and a CI job. |
-| 5i | Documentation and `CLAUDE.md` | Partly done. 5i.1 (these status rows) is done; the final Section 13.3 refresh waits until all Phase 5 work is finished. 5i.2 (`CLAUDE.md`) waits for approval of the proposal. |
+| 5i | Documentation and `CLAUDE.md` | Partly done. 5i.1: these status rows are kept current, and Section 13.3 was refreshed in the 2026-11-19 reconciliation. 5i.2 (`CLAUDE.md`) waits for approval of the proposal. |
 
-**Step 5a audit (Business dashboard: `app/Actions/Dashboard/BusinessReport.php`, `app/Http/Requests/DashboardRangeRequest.php`, `resources/js/pages/Dashboard.vue`)**
+**Historical, at `5d273b0`.** **Step 5a audit (Business dashboard: `app/Actions/Dashboard/BusinessReport.php`, `app/Http/Requests/DashboardRangeRequest.php`, `resources/js/pages/Dashboard.vue`)**
 
 | Item | Result | Implemented behaviour (verified code) |
 | --- | --- | --- |
@@ -1092,7 +1103,7 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 | Query efficiency | NEEDS ATTENTION (scaling) | **Per load:** about 7 queries, none repeated.<br>**Concern:** `feeRefundMovements` reads every refund remark ever recorded, plus an `IN` list of all their service ids (`:178-214`). |
 | Authorization and privacy | PASS | The route is superadmin-only (tested). The page receives only totals and service titles. |
 
-**Step 5d audit (landing page: `WelcomeController`, `app/Actions/Landing/LandingStatistics.php`, `resources/js/pages/Welcome.vue`, `layouts/PublicLayout.vue`)**
+**Historical, at `5d273b0`.** **Step 5d audit (landing page: `WelcomeController`, `app/Actions/Landing/LandingStatistics.php`, `resources/js/pages/Welcome.vue`, `layouts/PublicLayout.vue`)**
 
 | Item | Result | Finding |
 | --- | --- | --- |
@@ -1106,7 +1117,7 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 | Responsive | NOT VERIFIED | **Code:** the breakpoints look sound.<br>**Not done:** no rendered check, because no browser tool was available. That check belongs to 5h. |
 | Privacy | PASS | **Sent to guests:** only `name`, `locale`, `auth.user = null`, `sidebarOpen` and the two totals.<br>**Missing:** `/` has no rate limit (plan 5g.1). |
 
-**Agency content today:**
+**Agency content at `5d273b0` (historical; Section 4.10 describes it now):**
 
 | Content | Source today |
 | --- | --- |
@@ -1117,7 +1128,7 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
 | Agency name | `APP_NAME` configuration |
 | Overview, mission, social links, messaging link, publish switch | **Missing** |
 
-**UI design PDF** (`Project Resource/Thai Visa Management – UI Design.pdf`, pages 1–2):
+**UI design PDF** (`Project Resource/Thai Visa Management – UI Design.pdf`, pages 1–2; historical, the deviations were addressed in step 5d.6):
 
 - **Section order:** navigation, hero, Who we are (3 cards), What we do for you (service cards, 4 per row), dark statistics band, Talk to us, dark footer.
 - **Colours and font:** brand dark `#023842`, green `#00d47f`, mint `#e3f6ee`, Inter with Noto Sans Myanmar. **These match.**
@@ -1128,9 +1139,9 @@ Audited against the code at commit `5d273b0`. The audit changed no code. The con
   - The labels read "Clients Served", not "Clients served".
   - The services are not from the catalogue.
 
-### 12.2 Phase 5 implementation plan (*Phase 5*, 2026-11-19; planning, **pending user approval**)
+### 12.2 Phase 5 implementation plan (*Phase 5*, 2026-11-19; executed, kept as a record)
 
-Implement the steps from top to bottom, one at a time. A step starts when the steps in its **Blocked by** column are done and the user has approved it. The audit findings, files and tests behind each step are in Section 12.1.
+This was the step order for Phase 5; Section 12.1 records what was built. The only steps not done are 5b.2 (not built, by the user's decision) and 5i.2 (waiting for approval of the `CLAUDE.md` proposal). The production part of 5f.3 belongs to Step 6, which is deferred (Section 10.3).
 
 | Step | Scope | Blocked by |
 | --- | --- | --- |
@@ -1154,7 +1165,7 @@ Implement the steps from top to bottom, one at a time. A step starts when the st
 | 5f.1 | Tests that the public pages and the client portal expose no private data. | 5d.5 |
 | 5h.1 | Browser tests: admin login, the Add worker 429 message, the appearance upload with image reduction, the landing page at 375, 768 and 1280 px, and the client PIN and portal flow. | 5c.4, 5d.5 |
 | 5f.2 | Security and PDPA review of the whole app (read-only report). | 5f.1, 5g.1, 5g.2, 5h.1 and every other implementation step above |
-| 5f.3 | MySQL checks: the deferred testing-database integrity audit, the full MySQL suite, and the production isolation level and message language. | **Steps:** 5c.1 and 5b.2 (migrations written and run), 5c.4 and 5d.4 (the transactional saves) and every other implementation step above. **External:** testing-database access; a production or staging server ("Step 6", unclarified). |
+| 5f.3 | MySQL checks: the deferred testing-database integrity audit, the full MySQL suite, and the production isolation level and message language. | **Steps:** 5c.1 and 5b.2 (migrations written and run), 5c.4 and 5d.4 (the transactional saves) and every other implementation step above. **External:** testing-database access; a production or staging server (Step 6, deferred; Section 10.3). |
 | 5i.1 | Documentation: after each step is completed and verified, update its status in Section 12.1. After all Phase 5 work is done, do the final refresh of Section 13.3. | Each step, for its status update; all steps above, for the final Section 13.3 refresh |
 | 5i.2 | Activate `CLAUDE.md` from the approved proposal. | User approval of `docs/CLAUDE_MD_PROPOSAL.md` |
 
@@ -1163,49 +1174,49 @@ Implement the steps from top to bottom, one at a time. A step starts when the st
 - **5e**, settings and appearance audit logs: deferred by D3; not in V1.
 - **5a.3**, the optional dashboard refund-scan optimisation: only if the user asks for it.
 - **5h.2**, an optional MySQL job in CI: only if the user asks for it.
-- **5f.4**, app-wide masking of query values in logs: not approved.
+- **5f.4**, app-wide masking of query values in logs: **done** in the 5f.2 fixes (`config/database.php`, every connection; Section 6). (Superseded: "not approved".)
 - Also out of scope: a profit figure, FULLTEXT company search, the `(created_at, id)` job orders index, and every V1 exclusion in Section 14.
 
 **Prerequisites that are not implementation steps**
 
-- **Model rule.** The only recorded rule (`docs/CLAUDE_MD_PROPOSAL.md`) says "Opus 5.5 for all work". Confirm it before handing these steps to Sonnet 5.5.
+- **Model choice** (N9, decided 2026-11-19): task-dependent, not a fixed rule: Opus 5.5 mostly for planning, documentation, reviews and code fixes, Sonnet 5.5 mostly for implementation, and either for other tasks when it suits (`docs/CLAUDE_MD_PROPOSAL.md`).
 - **Migrations** (5c.1, and the column for 5b.2): the implementation agent may write them, but the user reviews and runs them.
 - **MySQL tests** need the testing-database password, provided by the user.
 - **Publishing** needs the real agency content and verified facts from the client (D5).
 - **Questions during implementation.** When a step reaches a business or design choice that the HLD does not settle, the agent stops, asks the user, and continues after the answer. The known open questions are listed in Section 12.3.
 
-### 12.3 Open Phase 5 decisions (*Phase 5*, 2026-11-19; none of these is decided)
+### 12.3 Phase 5 decisions (*Phase 5*, 2026-11-19; **all decided**)
 
-These are questions that may come up during implementation. They are not steps in Section 12.2: when a step reaches one, the implementation agent stops and asks the user, briefly stating the options and their consequences, and continues after the answer.
+These questions were open during Phase 5 planning. Each is now decided; the table keeps the question and records the outcome (*Reconciled 2026-11-19*).
 
-| # | Decision needed | Steps waiting | Context or recommendation (**a recommendation is not a decision**) |
-| --- | --- | --- | --- |
-| D6 | How strict the Content Security Policy should be; HSTS in production only? | 5g.2 | Recommendation: HSTS in production only. A CSP that allows the app's own scripts and fonts, tested in report-only mode first. |
-| D7 | Laravel Dusk or Playwright for browser tests | 5h.1 | Either one is a new dependency. |
-| D8 | Are the Settings tab extras (admin account, Google link, currency, documents-locked default) in Phase 5? | 5b.1, 5b.2 | Profile and security pages already exist under `/settings`. |
-| D9 | Who writes and who runs migrations | 5c.1 (and everything after it), 5b.2 | Recommendation: the implementation agent writes them, and the user reviews and runs them. |
-| D10 | When to do the deferred Phase 4 items: the testing-database integrity audit, app-wide log masking, and the 429 browser check | 5f.3, 5f.4, 5h.1 | — |
-| "Step 6" | What 5f is "blocked by" | 5f.3 | "Step 6" appears in no project document. It may mean deployment, because the production MySQL checks need a server. |
-| N1 | Active Clients definition | None (asked if it becomes necessary) | Implemented: not deleted and with at least one In Progress service, as of today. |
-| N2 | Fields for the three About cards (Experience, Mission, How we help) | 5c.1, 5d.4 | Section 5 lists only `overview` and `mission`, but the design PDF has three cards. |
-| N3 | Should the public services list be cached? | 5d.1 | Recommendation: no cache; it is one indexed query, and nothing can go stale. |
-| N4 | Order of the public services | 5d.1 | There is no sort column. Recommendation: by `id` for now; a sort column would need a migration. |
-| N5 | Hero and About copy before real content exists; what shows when no hero image is set | 5c.5, 5d.2 | Section 4.11 says the hero area stays blank. Today an illustration with a "Sample photo" tag is shown. |
-| N6 | Exact unpublished behaviour (D4): what `is_published = false` hides beyond the sections that are already empty | 5d.5 | D4 keeps the page structure and hides unconfirmed content. |
-| N7 | Should statistics wait for the admin's approval (Section 4.10, `approved_statistics`)? | 5d.4, 5d.5 | Today they are always shown when not zero. |
-| N8 | Server-side rendering for SEO | 5d.7 | It adds a Node process in production. |
-| N9 | Model for implementation | 5i.2, every implementation step | The only recorded rule (`docs/CLAUDE_MD_PROPOSAL.md`, 2026-11-19) says "Opus 5.5 for all work", but this plan is handed to a Sonnet 5.5 implementation agent. The user must confirm which applies. |
+| # | Question | Outcome |
+| --- | --- | --- |
+| D6 | How strict the Content Security Policy should be; HSTS in production only? | Step 5g.2: HSTS (6 months) in production over https only; the Content Security Policy is sent in Report-Only mode. Enforcing it (`CSP_ENFORCE`) is a later decision (`docs/reports/PHASE_5_OPEN_RISKS.md`, R7). |
+| D7 | Laravel Dusk or Playwright for browser tests | Playwright (step 5h.1). |
+| D8 | Are the Settings tab extras in Phase 5? | Step 5b.1 built (the Settings hub). Step 5b.2 (documents locked by default) not built, by the user's decision. |
+| D9 | Who writes and who runs migrations | The implementation agent writes them; the user reviews and runs them (the `site_settings` migration was run this way). |
+| D10 | When to do the deferred Phase 4 items | Done: the testing-database integrity audit and the full MySQL suite passed (step 5f.3); query-value masking is on (5f.2 fixes); the Add worker 429 message is covered by a Playwright test. |
+| Step 6 | What 5f is "blocked by" | **Decided 2026-11-19:** Step 6 is the production hosting, server setup and deployment phase. It is **deferred** until the user is ready for production; the production checks of 5f.3 wait for it (Section 10.3). |
+| N1 | Active Clients definition | **Decided 2026-11-19 (keep the code):** Persons not soft-deleted with at least one In Progress service, as of today, independent of the date range (Section 4.2). |
+| N2 | Fields for the three About cards | Separate `experience` and `how_we_help` texts (English and Burmese) besides `overview` and `mission` (Section 5). |
+| N3 | Should the public services list be cached? | No cache: one query per page view. |
+| N4 | Order of the public services | By `id`; there is no sort column. |
+| N5 | Hero and About copy before real content exists; what shows when no hero image is set | Built-in hero, mission and how-we-help texts before publishing; with no hero image, the built-in illustration tagged "Sample photo" (confirmed 2026-11-19; Sections 4.10 and 4.11). |
+| N6 | Exact unpublished behaviour | As in Section 4.10, "Publishing, as built". |
+| N7 | Should statistics wait for the admin's approval? | Yes: a statistic is shown only when it is listed in `approved_statistics`. |
+| N8 | Server-side rendering for SEO | No server-side rendering in V1. |
+| N9 | Model for implementation | **Decided 2026-11-19:** model choice is task-dependent, not a fixed rule. Opus 5.5 is used mostly for planning, HLD work, reviews and code fixes; Sonnet 5.5 mostly for implementation; the user may also use Sonnet for planning or Opus for implementation when it suits the task (`docs/CLAUDE_MD_PROPOSAL.md`). |
 
-### 12.4 Rules for the implementation agent (*Phase 5*)
+### 12.4 Rules for the implementation agent (*Phase 5*; they still apply to later work)
 
-1. Follow the Section 12.2 table **from top to bottom**, **one approved step at a time**, and only on that step's scope. Start a step when the steps in its **Blocked by** column are done and the user has approved it.
+1. Work **one approved step at a time**, and only on that step's scope. Start a step when the steps it depends on are done and the user has approved it.
    - Use the HLD, the existing code and the approved rules as the basis.
-   - When a step reaches a business or design choice they do not settle (Section 12.3 lists the known ones), stop, ask the user with the options and their consequences, and continue only after the answer. Never decide it on the user's behalf.
+   - When a step reaches a business or design choice they do not settle (Section 12.3 records the Phase 5 ones), stop, ask the user with the options and their consequences, and continue only after the answer. Never decide it on the user's behalf.
    - Never start a deferred or out-of-scope item.
 2. Before each step, report the branch, HEAD, and the staged, unstaged and untracked files. Preserve all existing work: never reset, stash, clean or overwrite.
-3. Follow `CLAUDE.md` once it is active, and the model rule (N9).
+3. Follow `CLAUDE.md` once it is active. Model choice is task-dependent (N9); state which model is running, and never refuse a task only because the other model usually does it.
 4. Follow every approved rule in this HLD and in `docs/JOB_SEARCH_*.md`. The code is not a source of rules.
-5. Never write or run a migration without the D9 decision. Never connect to a database other than the in-memory SQLite test database or `Thai_Visa_Services_Testing`.
+5. Migrations: the agent may write them; the user reviews and runs them (D9). Never connect to a database other than the in-memory SQLite test database or `Thai_Visa_Services_Testing`.
 6. Run the relevant tests, Pint, PHPStan (compare with the 19 errors that already exist), `vue-tsc`, the format check (compare with the 5 files that already fail) and the build. Report the results, then **stop** for review.
 7. Never commit or push without the user's explicit approval.
 
@@ -1215,7 +1226,7 @@ These are questions that may come up during implementation. They are not steps i
 
 | Topic | Decision |
 | --- | --- |
-| Profit | For this version, the figure is the money kept: received money less refunds (fee-change refunds and cancel refunds). No costs are tracked in v1, so it is not a net profit; the dashboard Profit card stays disabled (Coming soon) |
+| Profit | No profit figure in V1: no costs are tracked. Reports show the money kept: received money less refunds (fee-change refunds and cancel refunds), which is not a net profit. The dashboard Profit card shows "Coming soon" |
 | Job Search money | **Superseded in v0.9.** Job Order Money is the Kept Amount *attributed* to the current application (Section 4.7.7): moved on reassignment, on the hired order while Hired, none after whole-service cancel. **Round 9:** it is live after the order closes and is not frozen. Kept Amount with no order is the derived **Unassigned Kept Amount**. It is not called net profit, and the admin cannot edit it |
 | Job Order detail cards | Exactly four: Manpower Requested, Applied Workers, Hired Workers (current Hired only, round 9), Money (live, never including Unassigned; Section 4.7.10). This replaces the v0.8 active/cancelled worker counts. The manpower warning compares **Hired Workers** with manpower and shows only when Hired > manpower; it is never a block, and there is no male + female ≤ manpower rule |
 | Worker-name links | Open the existing Client Detail page of the person |
@@ -1238,7 +1249,7 @@ These are questions that may come up during implementation. They are not steps i
 | Payment visibility | Client and admin both see the received amount and remaining balance for any payment status |
 | Service status | In Progress / Complete / Cancel for every service (Section 4.12) |
 | Reminders | Not needed |
-| Roles | v1: admin (full permission) and client (read and download own data only); more roles in version 2 through the role column |
+| Roles | v1: admin (full permission; stored as `superadmin`) and client (read and download own data only); more roles in version 2 through the role column |
 | Language | Burmese (Myanmar) is the default and English is also available; switchable by admin and client and remembered in localStorage; missing text falls back to the other language; the client provides other Burmese content and reviews the landing page text |
 | Phone number | Main identifier; required and unique; stored in international format; no phone number, no account |
 | Data retention | Delete removes the person's documents, PDF files and profile photo from storage, after the commit. The database record is soft-deleted, with no restore. Operational counts and lists leave the person out, their derived remaining balance is 0 so they leave Outstanding, and their financial history stays in the money totals (Section 4.12) |
@@ -1259,12 +1270,12 @@ These are questions that may come up during implementation. They are not steps i
 | Public website images | Separate public Spaces bucket for logo, favicon and hero image; profile photos and private documents stay private; object keys stored in the database |
 | Upload rules | Images up to 2 MB; logo PNG/JPG/WebP (*Phase 5 (D2):* no SVG in V1), favicon PNG/ICO, hero JPG/PNG/WebP, profile photo JPG only; PDFs up to 5 MB; checked on frontend and backend (Section 3.2) |
 | Job order closing | (*Round 9:* the order's Money stays live, and Hired → Cancelled is the one status exception on a closed order.) Done and Cancel are the same closing action. Soft-deleted Persons' Applied/Interview applications are auto-cancelled. Non-deleted Persons' Applied/Interview applications must be resolved by the admin to Hired, Rejected or Cancelled (individually or in bulk, all-or-nothing). Nothing else changes automatically, and nothing is auto-rejected. Automatic cancellations, resolutions, Hired consequences and the close are one atomic transaction. A closed order is frozen (Sections 4.7.5 and 4.12) |
-| Worker or client cancel | Deposit-only payer's remaining balance becomes 0; a refund field appears and the refund is deducted from the service's total fees; the record stays in the database and in the UI with Cancel status. For Job Search: whole-service cancellation, In Progress only, from Client Detail, cascading to every application (no activity records in V1) |
+| Worker or client cancel | Deposit-only payer's remaining balance becomes 0; a cancel refund of at most the money kept can be entered; it lowers the kept amount and the fee is unchanged (*Reconciled 2026-11-19*); the record stays in the database and in the UI with Cancel status. For Job Search: whole-service cancellation, In Progress only, from Client Detail, cascading to every application (no activity records in V1) |
 | Worker or client delete | **Corrected in rounds 5–7.** Permanent, no restore. Soft-delete the person; delete their documents, PDF files and profile photo after the database commit; their remaining balance is derived as 0 (Option A, with no write-off or adjustment entry). Change **no** service or application status, Job Order Money attribution, fee, payment, refund or remark. Left out of admin lists, worker lists, operational counts and Outstanding; the ledger, kept money and the landing page Clients Served count stay. The rounds 3–4 cancellation cascade is revoked |
 | Service overview statistics | Total clients, In Progress, Complete and Cancelled counts leave out deleted clients; total received (kept) includes them; added up in the database in whole satang |
-| Service delete | Disappears from the UI and cannot be used for new clients; current clients, records and profit data remain; profit stays in the Business dashboard with status inactive |
+| Service delete | Disappears from the UI and cannot be used for new clients; current clients, records and money data remain; its money kept stays in the Business dashboard with status inactive |
 | Worker documents | **Updated in v0.9.** Job Search documents belong to the engagement, so they are shared across its sequential job orders. They are separate from the person's other services, admin-only, and never in the client portal. Admin CRUD on In Progress and Complete; read and download only on Cancelled |
-| Required and optional images | Logo and favicon are required; the hero image is nullable and its area is left blank when there is none |
+| Required and optional images | Logo and favicon are required to publish; the hero image is optional, and the built-in illustration (tagged "Sample photo") is shown when there is none (*Reconciled 2026-11-19*) |
 | PDF size limit | PDF documents up to 5 MB; images up to 2 MB |
 | Refund calculation | After a cancel, the amount kept is received minus refund, and the remaining balance is 0 |
 | Payments after closing | Workers already on a closed job order can still pay their remaining balance, through the Client page, and the closed order's Money rises with it (round 9). Complete engagements with an unpaid balance stay in Outstanding |
@@ -1272,11 +1283,21 @@ These are questions that may come up during implementation. They are not steps i
 | Storage by environment | Development uses the local filesystem disk; production uses DigitalOcean Spaces; the disk is selected by an environment variable (Section 3.1) |
 | Image size reduction | Images are resized and compressed in the browser before upload; the server still validates type and size (Section 3.3) |
 | Sub-services | One services table with a nullable parent\_id; maximum two levels (Main Service and Sub-service); selection is always optional; client\_services.service\_id always stores the main service and sub\_service\_id is nullable; the backend and the database both validate the parent-child relationship (Section 4.4) |
-| Sub-service fees, payments and profit | A sub-service may have its own default fee; the fee falls back to the main service default fee; payments and profit stay on the client-service record; profit is grouped by main service with an optional sub-service breakdown; existing records and financial history are preserved when a sub-service is deactivated or soft-deleted |
+| Sub-service fees, payments and money kept | A sub-service may have its own default fee; the fee falls back to the main service default fee; payments and the money kept stay on the client-service record; the money kept is grouped by main service with an optional sub-service breakdown; existing records and financial history are preserved when a sub-service is deactivated or soft-deleted |
 | Client portal service title | The optional sub-service title is shown next to the main service title, for example “Passport – Bath”; with no sub-service, only “Passport” is shown |
-| Job Search service | Remains a main service and cannot have sub-services; fixed system key job\_search; excluded from the normal “Add Service to Client” form; its workflow and profit rules are unchanged and its profit is included in overall service profit and dashboard reports |
+| Job Search service | Remains a main service and cannot have sub-services; fixed system key job\_search; excluded from the normal “Add Service to Client” form; its workflow and money rules are unchanged and its money kept is included in the overall service totals and dashboard reports |
 | Landing page services | Main services only; sub-services never appear as separate cards. *Phase 5 (D1):* Services Provided counts service records, not catalogue services (see Statistic definitions) |
 | Client PIN lock and token | 5 consecutive incorrect PIN attempts lock the client for 15 minutes, counted per client across all IP addresses; fixed in code, not configurable in Settings; the admin can unlock manually from the client detail page; the token is created once with the client record and cannot be regenerated by the admin in the current application (Section 6) |
+| Reconciliation with the code (2026-11-19) | The code at `7eef719` was the source of truth for describing implemented behaviour; outdated, contradictory and missing text was corrected (header note; `docs/reports/HLD_CODEBASE_RECONCILIATION_AUDIT.md`). Current code describes implemented behaviour, not automatically the intended business rule: the code was used to document accurately what is built. Behaviour that looked like a bug, was ambiguous, or conflicted with an approved rule was reported separately for the user's decision, not recorded as a rule. |
+| Round 9–10 (2026-11-19) | Confirmed: keep the current code behaviour |
+| Active clients (N1, 2026-11-19) | Persons not soft-deleted with at least one In Progress service, as of today; independent of the dashboard date range (Section 4.2) |
+| Unassigned on the dashboard (2026-11-19) | No separate figure: Unassigned Job Search money is part of Total received; it is shown on Client Detail only |
+| Hero image without an upload (2026-11-19) | The built-in illustration tagged "Sample photo" is shown |
+| Refused settings attempts (2026-11-19) | 403, not logged |
+| Unknown tracking token (2026-11-19) | 404 (not found) |
+| Lock protocol (2026-11-19) | Approved as implemented (Section 9.1; Technical Decisions §11) |
+| Model choice (N9, 2026-11-19) | Task-dependent, not a fixed rule: Opus 5.5 mostly for planning, HLD work, reviews and code fixes; Sonnet 5.5 mostly for implementation; either may be used for other tasks (`docs/CLAUDE_MD_PROPOSAL.md`) |
+| Step 6 (2026-11-19) | The production hosting, server setup and deployment phase; **deferred** until the user is ready for production (Section 10.3) |
 
 ### 13.2 Remaining Items
 
@@ -1296,9 +1317,11 @@ These are questions that may come up during implementation. They are not steps i
 **Still open:**
 
 - **A. Person-deletion file recovery: PENDING TECHNICAL DECISION, NOT APPROVED FOR IMPLEMENTATION.** Undecided: a table or queue; record structure and fields; which metadata is stored; the retry mechanism (queued job, Artisan command or other); retry frequency and maximum attempts; failure retention and monitoring. See Section 4.12 and Technical Decisions §15.
-- **B. Detailed lock protocol.** The target order is accepted in principle. The per-workflow protocol and its exceptions (Technical Decisions §11) are pending approval.
-- **C. MySQL runtime check of the retry detector** (1213 and 1205).
-- **D. `CLAUDE.md`.** The reconstruction proposal (`docs/CLAUDE_MD_PROPOSAL.md`) awaits review and is not active.
+- **D. `CLAUDE.md`.** The reconstruction proposal (`docs/CLAUDE_MD_PROPOSAL.md`) awaits review and is not active. Its model rule is the flexible one of N9.
+- **E. PDPA owner questions** (review findings 6 and 7): what a deleted Person record keeps, and how long the PIN-attempt rows and the document access log are kept (Section 6).
+- **F. Step 6, production hosting and deployment:** deferred (Section 10.3). The production `db:check-server` run and the production checklist wait for it.
+
+**Resolved in the 2026-11-19 reconciliation and removed from this list:** B, the detailed lock protocol (approved as implemented, Section 9.1), and C, the MySQL runtime check of the retry detector (verified by `RetriedTransactionMysqlTest`).
 
 **Carried over from v0.8:**
 
@@ -1308,16 +1331,17 @@ These are questions that may come up during implementation. They are not steps i
 
 ### 13.3 Implementation Status and Gaps (verified current code vs approved rules)
 
-Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`). Phase 4 steps 5–8 are committed; Step 9 and the round 9–10 work are **uncommitted**. The full list is in `docs/JOB_SEARCH_BUSINESS_RULES.md` §13.
+Refreshed in the 2026-11-19 reconciliation against commit `7eef719` (branch `phase-4-step-5`). The full comparison is in `docs/reports/HLD_CODEBASE_RECONCILIATION_AUDIT.md`.
 
-- **Built:** the engagement model and reassignment; the five statuses, with single and bulk updates and the Hired confirmation; the retry helper; resolve-and-close with the deleted-person auto-cancel and the stale-state abort; the Job Order edit lock; *round 9–10:* Hired → Cancelled, live Job Order Money, the Unassigned Kept Amount on the dashboard and on Client Detail, and the same person on the same order again.
-- **Not built:**
-  - the Complete-engagement locks: the Client page form can still edit a Complete service and set it back to In Progress, which bypasses Hired → Cancelled and its one-In-Progress guard
-  - whole-service cancellation with its cascade
-  - the four-card Job Order page, Worker-name links and the Hired-based manpower warning
-  - Job Search documents
-  - the Person-deletion fixes (explicit lock, derived zero balance, photo failure reporting) and the races with document upload and Add Service
-- **Unproven:** no MySQL concurrency test has run for these workflows. SQLite cannot show locking.
+- **Built and committed:** Phases 1–4 (all Job Search steps, including the Complete-engagement locks, whole-service cancellation, the four-card page, Job Search documents and the Person-deletion fixes), the Phase 4 review fixes, and Phase 5 steps 5a, 5b.1, 5c, 5d, 5f.1, 5f.2, 5g and 5h (Section 12.1).
+- **Proven on MySQL** (`Thai_Visa_Services_Testing`): the retry helper with real 1205 timeouts, Add Worker and Hired → Cancelled races, whole-service cancellation, Person deletion against upload and Add Service, and Money consistency. The testing-database integrity audit passed.
+- **Not built, by decision:** step 5b.2 (documents locked by default); settings audit logs (5e, D3); the Person-deletion file-recovery mechanism (pending technical decision, Section 4.12).
+- **Waiting:** step 5i.2 (`CLAUDE.md`, needs approval of the proposal); Step 6 (deferred, Section 10.3), including the production `db:check-server` run; enforcing the Content Security Policy (a later decision).
+- **Known issues reported, not changed:**
+  - The CI workflow runs on pushes to `main`, but this repository's branch is `master` (Section 10).
+  - A duplicate-phone race on the normal client form gives a database error; only Add Worker turns it into a friendly message (Section 14, risk 4).
+  - Three MySQL scenarios of Section 11 have no test found by name: a close during status updates, bulk Hired lock ordering, and a stale resolution list (the last is covered on SQLite).
+  - Add Worker locks the person's active application on the same order before their engagement, unlike the lock-order rule. No deadlock was found; whether to accept it as an exception or change the code is open (Section 9.1; Technical Decisions §11.7).
 
 ## 14. V1 Exclusions and Known Risks
 
@@ -1340,8 +1364,8 @@ Refreshed on 2026-11-17 against the working tree (branch `phase-4-step-5`). Phas
 1. **File storage and the database are not atomic together.** Orphaned files can occur, and there is no automatic cleanup.
 2. **Post-commit file deletion runs in the web request.** A crash after commit leaves files without a record, and recovery information is still *Open*.
 3. **Locking safety rests on MySQL row locks without a database backstop** for "one In Progress engagement per person". It must be proven with MySQL concurrency tests.
-4. **Unique-index races** (a new person's phone) produce duplicate-key errors that are not retried. They need friendly handling.
+4. **Unique-index races** (a new person's phone) produce duplicate-key errors that are not retried. *Reconciled 2026-11-19*: Add Worker turns the error into a friendly "phone already used" message; the normal client form does not yet.
 5. **Retries detect lock-wait timeouts by English message text** (verified Laravel behaviour).
-6. **The production MySQL isolation level** has not been verified. REPEATABLE READ is assumed.
+6. **The production MySQL isolation level** has not been verified. REPEATABLE READ is assumed. `php artisan db:check-server` checks it, and the message language of risk 5, on the production server (Step 6, deferred).
 7. **Hired → Cancelled and the one In Progress engagement rule** (round 9): without a guard, cancelling a Hired application could leave a person with two In Progress engagements. The guard is decided (round 10): the cancellation is refused in that case.
-8. **Today's code is well behind the approved rules** (Section 13.3). It must not be read as the intended behaviour.
+8. *Resolved in the 2026-11-19 reconciliation:* the HLD and the code were reconciled; Section 13.3 lists what remains. (Superseded: "Today's code is well behind the approved rules".)
