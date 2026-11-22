@@ -37,6 +37,12 @@
         <server name="DB_CONNECTION" value="sqlite"/>
         <server name="DB_DATABASE" value=":memory:"/>
         <server name="DB_URL" value=""/>
+        <!--
+            The tests always use the local disks, whatever STORAGE_DRIVER the .env or the shell says, so they can never write to a
+            real Spaces bucket. Set the same way as the DB values above (env with force, plus server).
+        -->
+        <env name="STORAGE_DRIVER" value="local" force="true"/>
+        <server name="STORAGE_DRIVER" value="local"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

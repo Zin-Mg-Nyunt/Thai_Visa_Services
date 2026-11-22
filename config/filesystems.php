@@ -1,5 +1,13 @@
 <?php
 
+/*
+| STORAGE_DRIVER chooses where the two app disks below keep their files: "local" (the default, and the only value used in
+| development and tests) or "s3" (DigitalOcean Spaces). On Spaces the root must be empty: for the S3 driver Laravel uses the root
+| as a prefix of every object key and every public address, so a local path there would end up inside the keys.
+*/
+$storageDriver = env('STORAGE_DRIVER', 'local');
+$onSpaces = $storageDriver === 's3';
+
 return [
 
     /*
@@ -53,38 +61,51 @@ return [
         | images (logo, favicon, hero). STORAGE_DRIVER chooses the local disks in
         | development or DigitalOcean Spaces (S3-compatible) in production. The
         | database stores the same relative key either way.
+        |
+        | On Spaces each disk has its own bucket and its own access key, so each
+        | key can be limited to its bucket. The Spaces settings are used only when
+        | the driver is "s3": the local disks need no credentials.
+        |
+        | The checksum settings keep the AWS SDK to the checksums S3 requires
+        | (DO_SPACES_CHECKSUMS, default "when_required"), the behaviour S3-compatible
+        | services were built for; "when_supported" is the SDK's own default.
         */
 
         'private' => [
-            'driver' => env('STORAGE_DRIVER', 'local'),
-            'root' => storage_path('app/private'),
+            'driver' => $storageDriver,
+            'root' => $onSpaces ? '' : storage_path('app/private'),
             // Not served: documents are streamed by DeliverDocument after its checks, photos by their own signed route.
             'serve' => false,
             'url' => rtrim((string) env('APP_URL', 'http://localhost'), '/').'/private-files',
+            // Every object is written with the private ACL. The bucket itself must also stay private (no public listing, no policy).
             'visibility' => 'private',
-            'key' => env('DO_SPACES_KEY'),
-            'secret' => env('DO_SPACES_SECRET'),
+            'key' => env('DO_SPACES_PRIVATE_KEY'),
+            'secret' => env('DO_SPACES_PRIVATE_SECRET'),
             'region' => env('DO_SPACES_REGION'),
             'bucket' => env('DO_SPACES_PRIVATE_BUCKET'),
             'endpoint' => env('DO_SPACES_ENDPOINT'),
             'use_path_style_endpoint' => false,
+            'request_checksum_calculation' => env('DO_SPACES_CHECKSUMS', 'when_required'),
+            'response_checksum_validation' => env('DO_SPACES_CHECKSUMS', 'when_required'),
             'throw' => false,
             'report' => false,
         ],
 
         'public_assets' => [
-            'driver' => env('STORAGE_DRIVER', 'local'),
-            'root' => env('PUBLIC_ASSETS_ROOT') ?: storage_path('app/public'),
+            'driver' => $storageDriver,
+            'root' => $onSpaces ? '' : (env('PUBLIC_ASSETS_ROOT') ?: storage_path('app/public')),
             // An empty PUBLIC_ASSETS_URL counts as not set (`?:`, not the env() default), so a blank line in .env cannot leave the
             // base address empty and break every website image address. In production it is the public Spaces bucket's address.
             'url' => env('PUBLIC_ASSETS_URL') ?: rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
-            'key' => env('DO_SPACES_KEY'),
-            'secret' => env('DO_SPACES_SECRET'),
+            'key' => env('DO_SPACES_PUBLIC_KEY'),
+            'secret' => env('DO_SPACES_PUBLIC_SECRET'),
             'region' => env('DO_SPACES_REGION'),
             'bucket' => env('DO_SPACES_PUBLIC_BUCKET'),
             'endpoint' => env('DO_SPACES_ENDPOINT'),
             'use_path_style_endpoint' => false,
+            'request_checksum_calculation' => env('DO_SPACES_CHECKSUMS', 'when_required'),
+            'response_checksum_validation' => env('DO_SPACES_CHECKSUMS', 'when_required'),
             'throw' => false,
             'report' => false,
         ],
