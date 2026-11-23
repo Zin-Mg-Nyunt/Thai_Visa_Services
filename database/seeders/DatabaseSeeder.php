@@ -16,5 +16,10 @@ class DatabaseSeeder extends Seeder
     {
 
         $this->call(ServiceSeeder::class);
+
+        // Sample website content, for local development only (the seeder itself also refuses to run anywhere else).
+        if (app()->environment('local')) {
+            $this->call(SiteSettingSeeder::class);
+        }
     }
 }
