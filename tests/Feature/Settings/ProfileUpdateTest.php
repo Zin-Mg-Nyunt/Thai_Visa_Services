@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -74,3 +77,56 @@ test('the profile updated message follows the selected language', function (stri
     'my' => ['my', 'ပရိုဖိုင်ကို ပြင်ဆင်ပြီးပါပြီ။'],
     'en' => ['en', 'Profile updated.'],
 ]);
+
+test('changing the email makes it unverified and sends nothing', function () {
+    Mail::fake();
+    Notification::fake();
+    $user = User::factory()->create(['email' => 'old@example.com', 'google_id' => 'google-old']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => $user->name, 'email' => 'new@example.com'])
+        ->assertSessionHasNoErrors();
+
+    $user->refresh();
+    expect($user->email)->toBe('new@example.com')
+        ->and($user->email_verified_at)->toBeNull()
+        // The Google link is not touched here; it is checked against the new email at the next Google sign-in.
+        ->and($user->google_id)->toBe('google-old');
+
+    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
+    Notification::assertNothingSent();
+});
+
+test('a change of capital letters only keeps the email verified', function () {
+    $user = User::factory()->create(['email' => 'owner@example.com']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => $user->name, 'email' => 'Owner@Example.com'])
+        ->assertSessionHasNoErrors();
+
+    expect($user->fresh()->email_verified_at)->not->toBeNull();
+});
+
+test('the profile page shows the verified state from the database and offers no resend', function () {
+    $verified = User::factory()->create();
+
+    $this->actingAs($verified)->get(route('profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('auth.user.email_verified_at', fn ($at) => $at !== null)
+            ->missing('mustVerifyEmail')
+            ->missing('status'));
+
+    $unverified = User::factory()->unverified()->create();
+
+    $this->actingAs($unverified)->get(route('profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page->where('auth.user.email_verified_at', null));
+});
+
+test('an unverified user keeps access to the admin area and settings', function () {
+    $user = User::factory()->unverified()->create();
+
+    $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    $this->actingAs($user)->get(route('admin.settings'))->assertOk();
+    $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get(route('security.edit'))->assertOk();
+});

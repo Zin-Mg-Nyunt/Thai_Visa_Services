@@ -3,7 +3,6 @@ import { Form, Head, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
-import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -12,12 +11,10 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuthLayoutProps } from '@/composables/useAuthLayoutProps';
 import { redirect as googleRedirect } from '@/routes/auth/google';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
 import { pageTitle } from '@/lib/pageTitle';
 
 defineProps<{
     status?: string;
-    canResetPassword: boolean;
     googleEnabled: boolean;
 }>();
 
@@ -61,19 +58,7 @@ useAuthLayoutProps('login');
             </div>
 
             <div class="grid gap-2">
-                <div
-                    class="flex flex-wrap items-center justify-between gap-x-3"
-                >
-                    <Label for="password">{{ t('auth.password') }}</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        {{ t('auth.forgotPassword') }}
-                    </TextLink>
-                </div>
+                <Label for="password">{{ t('auth.password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"

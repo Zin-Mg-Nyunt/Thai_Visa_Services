@@ -76,10 +76,9 @@ test('users are rate limited', function () {
     $response->assertTooManyRequests();
 });
 
-test('sign-in and password reset pages live under the admin path', function () {
+test('the sign-in page lives under the admin path', function () {
     expect(route('login', absolute: false))->toBe('/admin/login')
-        ->and(route('logout', absolute: false))->toBe('/admin/logout')
-        ->and(route('password.request', absolute: false))->toBe('/admin/forgot-password');
+        ->and(route('logout', absolute: false))->toBe('/admin/logout');
 
     $this->get('/login')->assertNotFound();
     $this->get('/admin/login')->assertOk();

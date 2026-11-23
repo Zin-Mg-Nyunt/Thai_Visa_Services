@@ -55,7 +55,7 @@ Route::middleware(['guest', 'throttle:10,1'])
         Route::get('callback', [GoogleAuthController::class, 'callback'])->name('callback');
     });
 
-Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('admin/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {

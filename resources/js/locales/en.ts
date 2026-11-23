@@ -783,10 +783,12 @@ const en = {
             head: 'Profile settings',
             title: 'Profile',
             description: 'Update your name and email address',
-            unverified: 'Your email address is unverified.',
-            resend: 'Click here to re-send the verification email.',
-            linkSent:
-                'A new verification link has been sent to your email address.',
+            verified: 'Your email address is verified.',
+            unverified: 'This email address is not verified yet.',
+            verifyWithGoogle:
+                'To verify it, sign out and sign in again with the Google account that has this email address. No email is sent.',
+            googleNotAvailable:
+                'Verification needs Google sign-in, which is not set up on this site.',
         },
         security: {
             head: 'Security settings',
@@ -804,7 +806,6 @@ const en = {
         password: 'Password',
         confirmPassword: 'Confirm password',
         rememberMe: 'Remember me',
-        forgotPassword: 'Forgot your password?',
         showPassword: 'Show password',
         hidePassword: 'Hide password',
         login: {
@@ -815,35 +816,12 @@ const en = {
             google: 'Continue with Google',
             or: 'or',
         },
-        forgot: {
-            head: 'Forgot password',
-            title: 'Forgot password',
-            description: 'Enter your email to receive a password reset link',
-            submit: 'Email password reset link',
-            returnTo: 'Or, return to',
-            logIn: 'log in',
-        },
-        reset: {
-            head: 'Reset password',
-            title: 'Reset password',
-            description: 'Please enter your new password below',
-            submit: 'Reset password',
-        },
         confirm: {
             head: 'Confirm password',
             title: 'Confirm password',
             description:
                 'This is a secure area of the application. Please confirm your password before continuing.',
             submit: 'Confirm password',
-        },
-        verify: {
-            head: 'Email verification',
-            title: 'Email verification',
-            description:
-                'Please verify your email address by clicking on the link we just emailed to you.',
-            sent: 'A new verification link has been sent to the email address you provided during registration.',
-            resend: 'Resend verification email',
-            logOut: 'Log out',
         },
     },
     track: {

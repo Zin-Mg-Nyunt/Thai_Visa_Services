@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
-import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
@@ -9,7 +8,6 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { send } from '@/routes/verification';
 import { pageTitle } from '@/lib/pageTitle';
 
 const { t } = useI18n();
@@ -63,23 +61,25 @@ const user = computed(() => page.props.auth.user);
                 <InputError class="mt-2" :message="errors.email" />
             </div>
 
-            <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">
-                <p class="-mt-4 text-sm text-muted-foreground">
-                    {{ t('settings.profile.unverified') }}
-                    <Link
-                        :href="send()"
-                        as="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                    >
-                        {{ t('settings.profile.resend') }}
-                    </Link>
-                </p>
-
-                <div
-                    v-if="page.props.status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
+            <div class="-mt-4 text-sm" data-test="email-verification-state">
+                <p
+                    v-if="user.email_verified_at"
+                    class="font-medium text-green-600"
+                    data-test="email-verified"
                 >
-                    {{ t('settings.profile.linkSent') }}
+                    {{ t('settings.profile.verified') }}
+                </p>
+                <div v-else class="space-y-1" data-test="email-unverified">
+                    <p class="font-medium text-amber-600">
+                        {{ t('settings.profile.unverified') }}
+                    </p>
+                    <p class="text-muted-foreground">
+                        {{
+                            page.props.googleEnabled
+                                ? t('settings.profile.verifyWithGoogle')
+                                : t('settings.profile.googleNotAvailable')
+                        }}
+                    </p>
                 </div>
             </div>
 

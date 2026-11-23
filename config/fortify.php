@@ -1,7 +1,5 @@
 <?php
 
-use Laravel\Fortify\Features;
-
 return [
 
     /*
@@ -142,9 +140,9 @@ return [
     |
     */
 
-    'features' => [
-        Features::resetPasswords(),
-        Features::emailVerification(),
-    ],
+    // No feature that sends email is enabled: the app has no outgoing mail service. A changed email address is verified by
+    // signing in again with a matching Google account (see Auth\GoogleAuthController), and a forgotten password is not
+    // recovered by email.
+    'features' => [],
 
 ];
