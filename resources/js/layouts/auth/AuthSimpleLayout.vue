@@ -17,7 +17,7 @@ defineProps<{
         <div class="w-full max-w-md rounded-3xl bg-card p-5 shadow-xl sm:p-8">
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col gap-4">
-                    <Link :href="home()" class="w-fit">
+                    <Link :href="home()" class="w-fit self-center">
                         <AppLogoIcon class="size-16 rounded-2xl" />
                         <span class="sr-only">{{ title }}</span>
                     </Link>
