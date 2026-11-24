@@ -21,25 +21,25 @@ The application is well built and well tested, but it is **not ready to deploy y
 
 I listed `spaces-integration-test/` in both buckets, using read-only listing through the app's own disk configuration. Each bucket held exactly one object under that prefix. Both matched the keys created and reported in our earlier test runs, and both had the expected size of 32 bytes. Each bucket's only top-level folder was that prefix, so no application data was near them.
 
-| Bucket | Object key | Action | Verified |
-|---|---|---|---|
-| Private (`paingthu-visa-service-private`) | `spaces-integration-test/20261123-144905-67553dd0-private.txt` | Deleted | No longer exists; 0 objects remain under the prefix |
-| Public (`paingthu-visa-service-public`) | `spaces-integration-test/20261123-145352-c5a9ec43-public_assets.txt` | Deleted | No longer exists; 0 objects remain under the prefix; its public URL now returns 403 |
+| Bucket                                    | Object key                                                           | Action  | Verified                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| Private (`paingthu-visa-service-private`) | `spaces-integration-test/20261123-144905-67553dd0-private.txt`       | Deleted | No longer exists; 0 objects remain under the prefix                                 |
+| Public (`paingthu-visa-service-public`)   | `spaces-integration-test/20261123-145352-c5a9ec43-public_assets.txt` | Deleted | No longer exists; 0 objects remain under the prefix; its public URL now returns 403 |
 
 **Left behind: nothing.** The earlier failed public uploads (write permission was missing) and the permission diagnostic created no objects. Only those two keys were deleted. No bucket was emptied, and no key, permission or bucket setting was changed. The temporary scripts are in the session scratchpad, not in the project.
 
 ## 3. Production readiness status
 
-| Area | Status |
-|---|---|
-| A. Git and project state | WARNING |
-| B. Environment and configuration | FAIL (production values not defined) |
-| C. Database and migrations | WARNING |
-| D. Spaces and file storage | WARNING (the app works; the setup needs decisions) |
-| E. Security | WARNING |
-| F. Application functionality | PASS for tested workflows; WARNING for the rest |
-| G. Deployment and server | FAIL (nothing exists yet) |
-| H. Tests and quality | WARNING (PHPStan fails) |
+| Area                             | Status                                             |
+| -------------------------------- | -------------------------------------------------- |
+| A. Git and project state         | WARNING                                            |
+| B. Environment and configuration | FAIL (production values not defined)               |
+| C. Database and migrations       | WARNING                                            |
+| D. Spaces and file storage       | WARNING (the app works; the setup needs decisions) |
+| E. Security                      | WARNING                                            |
+| F. Application functionality     | PASS for tested workflows; WARNING for the rest    |
+| G. Deployment and server         | FAIL (nothing exists yet)                          |
+| H. Tests and quality             | WARNING (PHPStan fails)                            |
 
 ## 4. Findings by category
 
@@ -48,12 +48,14 @@ Severity is Critical / High / Medium / Low. "Before launch" says whether it must
 ### A. Project and Git state
 
 **A1. WARNING, Medium: uncommitted work that deployment preparation could lose or mix up. Before launch: yes (commit or discard).**
+
 - Source: `git status` shows modified `database/seeders/DatabaseSeeder.php`, `resources/css/app.css`, `resources/js/components/Heading.vue` and `resources/js/layouts/auth/AuthSimpleLayout.vue`, plus untracked `database/seeders/SiteSettingSeeder.php` and `tests/Feature/SiteSettingSeederTest.php`.
 - `SiteSettingSeeder` and its test are a finished, tested feature but are not committed. A deploy from a clean clone would not contain them.
 - The CSS, Vue and layout changes look like formatting-only edits (single quotes changed to double quotes in `Heading.vue`). Nobody has confirmed they are intended.
 - Action: review, then commit or discard in a separate step.
 
 **A2. WARNING, Medium: the CI workflow does not run on the default branch. Before launch: recommended.**
+
 - Source: `.github/workflows/tests.yml:3-8` runs on pushes to `main` and on pull requests. The repository's branch is `master`. Pushes to `master` run no CI; only pull requests do.
 - Action: change the trigger to `master`, or rename the branch.
 
@@ -65,24 +67,24 @@ Severity is Critical / High / Medium / Low. "Before launch" says whether it must
 
 The local `.env` is a development file, as expected (`APP_ENV=local`, `APP_DEBUG=true`, `APP_URL=http://localhost:8000`, `LOG_LEVEL=debug`, `MAIL_MAILER=log`, `GOOGLE_REDIRECT_URI` on localhost). The table lists what production needs. Values are reported as configured, missing or needing verification, with no secrets shown.
 
-| Setting | Production requirement | Status |
-|---|---|---|
-| `APP_ENV` | `production` | Not set for production; not verified |
-| `APP_DEBUG` | `false` | Not set for production |
-| `APP_URL` | real `https://` domain | Not set; a wrong value makes **every request return 400** (R1 in `PHASE_5_OPEN_RISKS.md`, `config/security.php`, `app/Support/TrustedHosts.php`) |
-| `TRUSTED_HOSTS` | `www` name and any health-check name | Not set; no domain decided |
-| `APP_KEY` | new key generated on the server | Local key set; the production key must be new and must never be the local one |
-| `DB_*` | production MySQL, utf8mb4 | Not configured; only the local database exists |
-| `SESSION_SECURE_COOKIE` | `true` | **Missing** from `.env` and `.env.example` (`config/session.php:172`) |
-| `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | `database` (as now) | Works on MySQL, but see G for the worker |
-| `LOG_STACK`, `LOG_LEVEL` | `daily`, `warning` or `error` | Local values are `single` and `debug` (no rotation, verbose) |
-| `MAIL_*` | a real SMTP service | Local value is `log`. **Missing for production** |
-| `STORAGE_DRIVER` | `s3` | Local `.env` already uses `s3` |
-| `DO_SPACES_*` | production keys, region `sgp1` | Configured locally (see D) |
-| `PUBLIC_ASSETS_URL` | public bucket address or CDN | Configured locally |
-| `GOOGLE_*` | production client and the production redirect URI | Local values only; the production URI must be added in the Google console |
-| `CSP_ENFORCE` | `true` once the browser console is clean | Still report-only |
-| `TRUSTED_PROXIES` | does not exist | The proxy list is hard-coded (see E) |
+| Setting                                             | Production requirement                            | Status                                                                                                                                           |
+| --------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_ENV`                                           | `production`                                      | Not set for production; not verified                                                                                                             |
+| `APP_DEBUG`                                         | `false`                                           | Not set for production                                                                                                                           |
+| `APP_URL`                                           | real `https://` domain                            | Not set; a wrong value makes **every request return 400** (R1 in `PHASE_5_OPEN_RISKS.md`, `config/security.php`, `app/Support/TrustedHosts.php`) |
+| `TRUSTED_HOSTS`                                     | `www` name and any health-check name              | Not set; no domain decided                                                                                                                       |
+| `APP_KEY`                                           | new key generated on the server                   | Local key set; the production key must be new and must never be the local one                                                                    |
+| `DB_*`                                              | production MySQL, utf8mb4                         | Not configured; only the local database exists                                                                                                   |
+| `SESSION_SECURE_COOKIE`                             | `true`                                            | **Missing** from `.env` and `.env.example` (`config/session.php:172`)                                                                            |
+| `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | `database` (as now)                               | Works on MySQL, but see G for the worker                                                                                                         |
+| `LOG_STACK`, `LOG_LEVEL`                            | `daily`, `warning` or `error`                     | Local values are `single` and `debug` (no rotation, verbose)                                                                                     |
+| `MAIL_*`                                            | a real SMTP service                               | Local value is `log`. **Missing for production**                                                                                                 |
+| `STORAGE_DRIVER`                                    | `s3`                                              | Local `.env` already uses `s3`                                                                                                                   |
+| `DO_SPACES_*`                                       | production keys, region `sgp1`                    | Configured locally (see D)                                                                                                                       |
+| `PUBLIC_ASSETS_URL`                                 | public bucket address or CDN                      | Configured locally                                                                                                                               |
+| `GOOGLE_*`                                          | production client and the production redirect URI | Local values only; the production URI must be added in the Google console                                                                        |
+| `CSP_ENFORCE`                                       | `true` once the browser console is clean          | Still report-only                                                                                                                                |
+| `TRUSTED_PROXIES`                                   | does not exist                                    | The proxy list is hard-coded (see E)                                                                                                             |
 
 **B1. FAIL, High: no production environment definition exists.** There is no `.env.production` template and `.env.example` carries development defaults (`APP_ENV=local`, `APP_DEBUG=true`, `LOG_LEVEL=debug`, `APP_URL=http://localhost:8000`). Open risk R6 is still waiting on the hosting answer. Action: write a production checklist or template from the table above. Must be resolved before launch.
 
@@ -108,19 +110,19 @@ The local `.env` is a development file, as expected (`APP_ENV=local`, `APP_DEBUG
 
 ### D. DigitalOcean Spaces and file storage
 
-| Check | Result |
-|---|---|
-| `private` disk to private bucket | PASS, tested: create, read, update, delete all worked (`config/filesystems.php`, `STORAGE_DRIVER=s3`, bucket `paingthu-visa-service-private`) |
-| `public_assets` disk to public bucket | PASS, tested: create, read, update, delete all worked; public URL returned 200 with the right content |
-| `public` disk to local public storage | PASS, source: unchanged, always local, not used by app code |
-| Separate bucket credentials | PASS, source and tested: separate keys, secrets and buckets per disk |
-| Region and endpoint | PASS, tested: `sgp1`, `https://sgp1.digitaloceanspaces.com` |
-| Public URL generation | PASS, tested: `https://paingthu-visa-service-public.sgp1.digitaloceanspaces.com/<key>` |
-| Private object anonymous access | PASS, tested: virtual-host URL, path-style URL and listing were all denied |
-| Private document download | PASS, source: `DeliverDocument` redirects to a signed URL valid for `Document::SIGNED_URL_MINUTES` (the audit report describes 2 minutes) after the policy checks; tested earlier (report) |
-| Client photos | PASS, source: served by a signed, one-hour route (`Client.php:75`, `routes/web.php`), not from a public URL |
-| No exposed credentials or private URLs | PASS, source: disks are resolved through model constants; keys come only from environment variables; no private bucket URL is built by hand |
-| Local fallback saving to the wrong place | WARNING, see D1 |
+| Check                                    | Result                                                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `private` disk to private bucket         | PASS, tested: create, read, update, delete all worked (`config/filesystems.php`, `STORAGE_DRIVER=s3`, bucket `paingthu-visa-service-private`)                                              |
+| `public_assets` disk to public bucket    | PASS, tested: create, read, update, delete all worked; public URL returned 200 with the right content                                                                                      |
+| `public` disk to local public storage    | PASS, source: unchanged, always local, not used by app code                                                                                                                                |
+| Separate bucket credentials              | PASS, source and tested: separate keys, secrets and buckets per disk                                                                                                                       |
+| Region and endpoint                      | PASS, tested: `sgp1`, `https://sgp1.digitaloceanspaces.com`                                                                                                                                |
+| Public URL generation                    | PASS, tested: `https://paingthu-visa-service-public.sgp1.digitaloceanspaces.com/<key>`                                                                                                     |
+| Private object anonymous access          | PASS, tested: virtual-host URL, path-style URL and listing were all denied                                                                                                                 |
+| Private document download                | PASS, source: `DeliverDocument` redirects to a signed URL valid for `Document::SIGNED_URL_MINUTES` (the audit report describes 2 minutes) after the policy checks; tested earlier (report) |
+| Client photos                            | PASS, source: served by a signed, one-hour route (`Client.php:75`, `routes/web.php`), not from a public URL                                                                                |
+| No exposed credentials or private URLs   | PASS, source: disks are resolved through model constants; keys come only from environment variables; no private bucket URL is built by hand                                                |
+| Local fallback saving to the wrong place | WARNING, see D1                                                                                                                                                                            |
 
 **D1. WARNING, Medium: an unset `STORAGE_DRIVER` falls back to `local`.** `config/filesystems.php` defaults to `local`. If the production `.env` loses this one line, documents and client photos would be written to the server's disk without any error. Action: put a check in the deployment checklist (and consider a boot-time guard later). Recommended before launch.
 
@@ -138,18 +140,18 @@ No upload or delete was done in the D checks of this audit. The results above ar
 
 Overall, source review matches the earlier `PHASE_5_SECURITY_PDPA_REVIEW.md` (13 findings, no Critical). Status of each:
 
-| Item | Status |
-|---|---|
-| Admin authentication and roles | PASS, source: admin routes sit behind `auth`, `verified` and `role:superadmin` (`routes/web.php`); one Super Admin only; Google sign-in cannot create accounts |
-| Registration | PASS, source: Fortify registration is not enabled (`config/fortify.php` features: reset passwords and email verification only) |
-| Client portal | PASS, source and tests: token in the URL plus a PIN; wrong PINs are counted per client under a lock; `client.session` middleware; 10 downloads a minute per client and address |
-| CSRF | PASS, source: standard `web` middleware group |
-| Rate limiting | PASS, source: login 5 a minute, tracking and landing 60, Google 10, worker lookups 30, password change 6 |
-| Upload validation | PASS, source: photos JPG only, 2 MB, type read from content; website images identified by their bytes (`IdentifyWebsiteImage`) |
-| IDOR | PASS, source: scoped bindings on nested routes; policies for client, document and service |
-| Error handling and logging | WARNING, see E4 |
-| Security headers | WARNING, see E3 |
-| Dependencies | PASS, tested: `composer audit` and `npm audit --omit=dev` found 0 advisories on 2026-11-23 |
+| Item                           | Status                                                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Admin authentication and roles | PASS, source: admin routes sit behind `auth`, `verified` and `role:superadmin` (`routes/web.php`); one Super Admin only; Google sign-in cannot create accounts                 |
+| Registration                   | PASS, source: Fortify registration is not enabled (`config/fortify.php` features: reset passwords and email verification only)                                                 |
+| Client portal                  | PASS, source and tests: token in the URL plus a PIN; wrong PINs are counted per client under a lock; `client.session` middleware; 10 downloads a minute per client and address |
+| CSRF                           | PASS, source: standard `web` middleware group                                                                                                                                  |
+| Rate limiting                  | PASS, source: login 5 a minute, tracking and landing 60, Google 10, worker lookups 30, password change 6                                                                       |
+| Upload validation              | PASS, source: photos JPG only, 2 MB, type read from content; website images identified by their bytes (`IdentifyWebsiteImage`)                                                 |
+| IDOR                           | PASS, source: scoped bindings on nested routes; policies for client, document and service                                                                                      |
+| Error handling and logging     | WARNING, see E4                                                                                                                                                                |
+| Security headers               | WARNING, see E3                                                                                                                                                                |
+| Dependencies                   | PASS, tested: `composer audit` and `npm audit --omit=dev` found 0 advisories on 2026-11-23                                                                                     |
 
 **E1. FAIL, High: trusted proxies are loopback only, and the proxy list cannot be set from the environment.** `bootstrap/app.php` trusts `127.0.0.1` and `::1`. If production sits behind a DigitalOcean load balancer or App Platform, the app sees plain http: HSTS is never sent (`SecurityHeaders.php`), generated links use `http://`, and every rate limit and the PIN and document logs see one shared proxy address. With Nginx on the same Droplet this is fine. Action: decide the hosting layout (R6), and if there is a load balancer, add a `TRUSTED_PROXIES` setting and test it on staging. Before launch: yes.
 
@@ -173,17 +175,17 @@ No intrusive security tests were run. No SQL injection or XSS pattern was found 
 
 I did not run any manual workflow in a browser in this audit. The statuses below come from the automated suites (tested: 1,405 passing) and from reading the routes. The Playwright suite last passed on 2026-11-23 00:31 (`test-results/.last-run.json`: "passed", report) but I did not rerun it, so it may not include the uncommitted CSS and Vue edits.
 
-| Workflow | Evidence | Status |
-|---|---|---|
-| Admin login (password and Google) | Feature and browser tests | PASS (production Google redirect URI needs adding) |
-| Services and sub-services, icons | Tests | PASS |
-| Person (client) management, unlock | Tests | PASS |
-| Client services, payments, balances, refunds | Tests; money uses `bcmath` | PASS (see F1) |
-| Job Search and worker assignment | Tests; business rules in `docs/JOB_SEARCH_BUSINESS_RULES.md` | PASS |
-| Client portal and PIN lock | Tests, browser test | PASS |
-| Website settings and landing page | Tests, browser test | PASS |
-| Logo and favicon upload | Tests, local disk only | WARNING: the Spaces path was tested at the storage level, not through the admin form (F2) |
-| Private documents and client photos | Tests (local disk), Spaces test (storage level) | WARNING: same as F2 |
+| Workflow                                     | Evidence                                                     | Status                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Admin login (password and Google)            | Feature and browser tests                                    | PASS (production Google redirect URI needs adding)                                        |
+| Services and sub-services, icons             | Tests                                                        | PASS                                                                                      |
+| Person (client) management, unlock           | Tests                                                        | PASS                                                                                      |
+| Client services, payments, balances, refunds | Tests; money uses `bcmath`                                   | PASS (see F1)                                                                             |
+| Job Search and worker assignment             | Tests; business rules in `docs/JOB_SEARCH_BUSINESS_RULES.md` | PASS                                                                                      |
+| Client portal and PIN lock                   | Tests, browser test                                          | PASS                                                                                      |
+| Website settings and landing page            | Tests, browser test                                          | PASS                                                                                      |
+| Logo and favicon upload                      | Tests, local disk only                                       | WARNING: the Spaces path was tested at the storage level, not through the admin form (F2) |
+| Private documents and client photos          | Tests (local disk), Spaces test (storage level)              | WARNING: same as F2                                                                       |
 
 **F1. WARNING, Low: the code never uses mock or placeholder content in production paths.** A search for `TODO`, `FIXME` and `XXX` in `app`, `resources/js`, `routes` and `database` found nothing. Burmese strings are unreviewed by a Burmese speaker (R9). Review is recommended before launch.
 
@@ -193,24 +195,24 @@ I did not run any manual workflow in a browser in this audit. The statuses below
 
 Nothing deployment-related exists in the repository: no Nginx or PHP-FPM configuration, no supervisor or systemd unit, no cron entry, no deploy or rollback script, no backup script, no Dockerfile.
 
-| Item | Status |
-|---|---|
-| PHP | `composer.json`: `^8.3`; developed and CI-tested on 8.5. Install 8.5 (or 8.3 or newer after a test run) |
-| PHP extensions | NOT VERIFIED for the server. The app needs at least `bcmath` (money maths), `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `curl`, `dom`/`xml`, `ctype`, `tokenizer`, `intl` is not required by `composer.json`. Run `composer check-platform-reqs` on the server |
-| Composer | `composer install --no-dev --optimize-autoloader` |
-| Node and build | Node 22 in CI (this machine runs 24). `npm ci`, then `npm run build` (Vite+). `public/build` is not in Git, so it must be built on the server or in a release step. `public/hot` exists on this machine and must **not** be on the server |
-| Nginx, PHP-FPM, HTTPS | Missing. Document root `public/`, deny dotfiles, `client_max_body_size` above the document size limit, TLS certificate (for example Let's Encrypt) and redirect to https |
-| Database | Missing: create the MySQL database and a user limited to it. Application user needs no DDL after migrating if you use a separate migration user (optional) |
-| Permissions | `storage/` and `bootstrap/cache/` writable by the PHP user; `.env` mode 600 |
-| Optimisation | `php artisan config:cache`, `route:cache`, `view:cache`, `event:cache`. Config caching also means `.env` is read once; remember to rebuild after any change |
-| Storage link | Not needed for the Spaces disks. Needed only if the local `public` disk is used, which the app does not |
-| Queue worker | Probably not needed: no queued jobs or queued notifications were found (only `User.php` mentions notifications, and Fortify's are sent immediately). Not verified in depth. If a worker is added, it needs supervisor |
-| Scheduler and cron | `routes/console.php` schedules nothing. No cron is required today. A retention job (finding 7) would need one |
-| Log rotation | The `daily` channel rotates by itself (14 files); `logrotate` is needed only for `single` |
-| Backups | Missing: MySQL dumps (daily, copied off the Droplet) and a copy or versioning plan for the two buckets. A restore has never been rehearsed |
-| Monitoring | Missing: disk space, MySQL, uptime check on `/up` (and its host name must be in `TRUSTED_HOSTS`, R2) |
-| Deploy and rollback | Missing: a written sequence (see section 11). Maintenance driver is `file`, which is fine for a single server |
-| Error reporting | None configured beyond log files |
+| Item                  | Status                                                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PHP                   | `composer.json`: `^8.3`; developed and CI-tested on 8.5. Install 8.5 (or 8.3 or newer after a test run)                                                                                                                                                            |
+| PHP extensions        | NOT VERIFIED for the server. The app needs at least `bcmath` (money maths), `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `curl`, `dom`/`xml`, `ctype`, `tokenizer`, `intl` is not required by `composer.json`. Run `composer check-platform-reqs` on the server |
+| Composer              | `composer install --no-dev --optimize-autoloader`                                                                                                                                                                                                                  |
+| Node and build        | Node 22 in CI (this machine runs 24). `npm ci`, then `npm run build` (Vite+). `public/build` is not in Git, so it must be built on the server or in a release step. `public/hot` exists on this machine and must **not** be on the server                          |
+| Nginx, PHP-FPM, HTTPS | Missing. Document root `public/`, deny dotfiles, `client_max_body_size` above the document size limit, TLS certificate (for example Let's Encrypt) and redirect to https                                                                                           |
+| Database              | Missing: create the MySQL database and a user limited to it. Application user needs no DDL after migrating if you use a separate migration user (optional)                                                                                                         |
+| Permissions           | `storage/` and `bootstrap/cache/` writable by the PHP user; `.env` mode 600                                                                                                                                                                                        |
+| Optimisation          | `php artisan config:cache`, `route:cache`, `view:cache`, `event:cache`. Config caching also means `.env` is read once; remember to rebuild after any change                                                                                                        |
+| Storage link          | Not needed for the Spaces disks. Needed only if the local `public` disk is used, which the app does not                                                                                                                                                            |
+| Queue worker          | Probably not needed: no queued jobs or queued notifications were found (only `User.php` mentions notifications, and Fortify's are sent immediately). Not verified in depth. If a worker is added, it needs supervisor                                              |
+| Scheduler and cron    | `routes/console.php` schedules nothing. No cron is required today. A retention job (finding 7) would need one                                                                                                                                                      |
+| Log rotation          | The `daily` channel rotates by itself (14 files); `logrotate` is needed only for `single`                                                                                                                                                                          |
+| Backups               | Missing: MySQL dumps (daily, copied off the Droplet) and a copy or versioning plan for the two buckets. A restore has never been rehearsed                                                                                                                         |
+| Monitoring            | Missing: disk space, MySQL, uptime check on `/up` (and its host name must be in `TRUSTED_HOSTS`, R2)                                                                                                                                                               |
+| Deploy and rollback   | Missing: a written sequence (see section 11). Maintenance driver is `file`, which is fine for a single server                                                                                                                                                      |
+| Error reporting       | None configured beyond log files                                                                                                                                                                                                                                   |
 
 **G1. FAIL, High: no deployment artefacts at all.** Must be created before launch.
 
@@ -218,20 +220,21 @@ Nothing deployment-related exists in the repository: no Nginx or PHP-FPM configu
 
 I ran these on 2026-11-23 against the SQLite in-memory test configuration (`phpunit.xml` forces `DB_DATABASE=:memory:` and `STORAGE_DRIVER=local`, with `MAIL_MAILER=array`), so neither the development database nor Spaces was touched.
 
-| Check | Result | Status |
-|---|---|---|
-| Pest, main suite | **Passed**: 1,468 tests, 1,405 passed, 63 skipped (mainly the two-factor tests, since two-factor is not enabled), 8,050 assertions, 149 s | PASS (tested) |
-| Pest, MySQL suite (`phpunit.mysql.xml`) | Not run now (needs the testing database password). Earlier: passed (report, Phase 4/5) | NOT VERIFIED for the current code |
-| Playwright browser tests | Not run now (needs a production build into `public/build`). Last run passed on 2026-11-23 00:31 (report) | NOT VERIFIED for the current code |
-| Laravel Pint | Passed | PASS (tested) |
-| PHPStan (level 7) | **Failed: 19 errors** | FAIL, see H1 |
-| `vue-tsc --noEmit` | Passed | PASS (tested) |
-| `vp check` (lint and format) | Not run; earlier report: fails on 4 Markdown docs and `my.ts` (R10) | NOT VERIFIED |
-| Production frontend build | Not run (it would write to `public/build`); a build is part of the Playwright script | NOT VERIFIED |
-| `composer validate` | Valid | PASS (tested) |
-| `composer audit`, `npm audit --omit=dev` | 0 advisories, 0 vulnerabilities | PASS (tested) |
+| Check                                    | Result                                                                                                                                    | Status                            |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Pest, main suite                         | **Passed**: 1,468 tests, 1,405 passed, 63 skipped (mainly the two-factor tests, since two-factor is not enabled), 8,050 assertions, 149 s | PASS (tested)                     |
+| Pest, MySQL suite (`phpunit.mysql.xml`)  | Not run now (needs the testing database password). Earlier: passed (report, Phase 4/5)                                                    | NOT VERIFIED for the current code |
+| Playwright browser tests                 | Not run now (needs a production build into `public/build`). Last run passed on 2026-11-23 00:31 (report)                                  | NOT VERIFIED for the current code |
+| Laravel Pint                             | Passed                                                                                                                                    | PASS (tested)                     |
+| PHPStan (level 7)                        | **Failed: 19 errors**                                                                                                                     | FAIL, see H1                      |
+| `vue-tsc --noEmit`                       | Passed                                                                                                                                    | PASS (tested)                     |
+| `vp check` (lint and format)             | Not run; earlier report: fails on 4 Markdown docs and `my.ts` (R10)                                                                       | NOT VERIFIED                      |
+| Production frontend build                | Not run (it would write to `public/build`); a build is part of the Playwright script                                                      | NOT VERIFIED                      |
+| `composer validate`                      | Valid                                                                                                                                     | PASS (tested)                     |
+| `composer audit`, `npm audit --omit=dev` | 0 advisories, 0 vulnerabilities                                                                                                           | PASS (tested)                     |
 
 **H1. FAIL, Medium: PHPStan reports 19 errors, and there is no baseline.** Earlier notes (R10) call this "a baseline of 19", but `phpstan.neon` contains no baseline and no baseline file is in the repository, so the errors are reported live. `composer test`, `composer types:check` and `composer ci:check` therefore fail, and so would the CI job if it ran. All 19 are **pre-existing**; none can be tied to the uncommitted changes:
+
 - 13 in `app/Actions/Dashboard/BusinessReport.php` and `app/Concerns/HandlesMoney.php` (`bcadd`/`bcsub` given `string` instead of `numeric-string`; one return-type mismatch).
 - `CreateSuperadmin.php:55` (`CarbonImmutable` assigned to a `Carbon` property).
 - `GoogleAuthController.php:23,46` (Socialite's interface lacks `with()` and `getRaw()`).
