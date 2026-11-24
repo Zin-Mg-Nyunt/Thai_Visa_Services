@@ -10,19 +10,29 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\InvalidStateException;
+use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
 
 class GoogleAuthController extends Controller
 {
     /**
      * Send the visitor to Google to sign in.
      */
-    public function redirect(): RedirectResponse
+    public function redirect(): SymfonyRedirectResponse
     {
         abort_unless(self::isConfigured(), 404);
 
-        return Socialite::driver('google')->with(['prompt' => 'select_account'])->redirect();
+        $driver = Socialite::driver('google');
+
+        // The real driver asks Google to show its account chooser. (Socialite's test fake wraps the real driver and offers no such call.)
+        if ($driver instanceof AbstractProvider) {
+            $driver = $driver->with(['prompt' => 'select_account']);
+        }
+
+        return $driver->redirect();
     }
 
     /**
@@ -55,7 +65,9 @@ class GoogleAuthController extends Controller
         $email = self::normalizeEmail($googleUser->getEmail());
 
         // The email claim must be explicitly true: missing, false or any other value is not a verification.
-        if ($subject === '' || $email === '' || ($googleUser->getRaw()['verified_email'] ?? false) !== true) {
+        $claims = $googleUser instanceof AbstractUser ? $googleUser->getRaw() : [];
+
+        if ($subject === '' || $email === '' || ($claims['verified_email'] ?? false) !== true) {
             return $this->denied('auth.google_unverified');
         }
 

@@ -12,7 +12,9 @@ use App\Models\ClientServiceRemark;
 use App\Models\Payment;
 use App\Models\Service;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * The numbers of the Business dashboard, worked out from client services, payments and refund remarks and never stored.
@@ -77,6 +79,8 @@ class BusinessReport
 
         // Adds money on a day (or takes it off, when negative): to the range totals and to the chart month.
         $book = function (string $day, int $serviceId, ?int $subServiceId, string $amount) use (&$received, &$buckets, &$months, $fromDate, $toDate): void {
+            $amount = $this->money($amount);
+
             if ($day >= $fromDate && $day <= $toDate) {
                 $received = bcadd($received, $amount, 2);
                 $bucket = $subServiceId ?? 0;
@@ -91,6 +95,8 @@ class BusinessReport
         };
 
         $refund = function (string $day, int $serviceId, ?int $subServiceId, string $amount) use ($book, &$refunded, $fromDate, $toDate): void {
+            $amount = $this->money($amount);
+
             $book($day, $serviceId, $subServiceId, bcsub('0', $amount, 2));
 
             if ($day >= $fromDate && $day <= $toDate) {
@@ -143,9 +149,11 @@ class BusinessReport
      * Payments added up in the database per day and per service, in whole satang. Only the days from $firstDay up to
      * (not including) $dayAfter are read, so older payments never leave the database.
      *
-     * @return iterable<int, object{day: string, service_id: int, sub_service_id: int|null, satang: int|float|string}>
+     * Each row has the columns day, service_id, sub_service_id and satang (a whole number of satang, as an int, float or string).
+     *
+     * @return Collection<int, stdClass>
      */
-    private function paymentsByDay(string $firstDay, string $dayAfter): iterable
+    private function paymentsByDay(string $firstDay, string $dayAfter): Collection
     {
         return Payment::query()
             ->toBase()
@@ -191,7 +199,7 @@ class BusinessReport
 
         foreach ($remarks as $remark) {
             $before = $explained[$remark->client_service_id] ?? '0.00';
-            $after = bcadd((string) ($remark->details['refund'] ?? '0'), '0', 2);
+            $after = $this->money($remark->details['refund'] ?? null);
             $explained[$remark->client_service_id] = $after;
 
             if ($remark->created_at >= $dayAfterLast || bccomp($after, $before, 2) === 0) {

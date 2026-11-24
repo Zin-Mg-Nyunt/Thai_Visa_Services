@@ -84,6 +84,10 @@ class Client extends Model
         $oldPath = $this->photo_path;
         $newPath = $photo->storeAs(self::PHOTO_DIRECTORY, Str::uuid().'.jpg', self::PHOTO_DISK);
 
+        if ($newPath === false) {
+            throw new RuntimeException('The new profile photo could not be stored.');
+        }
+
         try {
             $this->forceFill(['photo_path' => $newPath])->save();
         } catch (Throwable $exception) {

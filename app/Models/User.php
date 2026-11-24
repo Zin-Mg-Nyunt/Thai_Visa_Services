@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -15,7 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $name
  * @property string $email
- * @property Carbon|null $email_verified_at
+ * @property CarbonImmutable|null $email_verified_at
  * @property string $password
  * @property UserRole $role
  * @property string|null $two_factor_secret
@@ -56,6 +57,7 @@ class User extends Authenticatable
 
     public function isSuperadmin(): bool
     {
-        return $this->role === UserRole::Superadmin;
+        // The stored value, as the role middleware reads it: an unknown role is simply not a superadmin.
+        return ($this->getAttributes()['role'] ?? null) === UserRole::Superadmin->value;
     }
 }
