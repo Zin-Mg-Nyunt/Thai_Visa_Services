@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * The public website's settings: agency texts in English and Burmese, contact details, the three image keys, the numbers
+ * The public website's settings: the agency name (one name for every language, shown beside the logo everywhere), agency texts in English and Burmese, contact details, the three image keys, the numbers
  * approved for display and the publish switch. There is exactly one row, with id 1; read it through
  * {@see SiteSettings}, which caches it.
  *
@@ -23,7 +23,6 @@ use Illuminate\Support\Facades\Storage;
  *
  * @property int $id
  * @property string|null $agency_name
- * @property string|null $agency_name_my
  * @property string|null $hero_heading
  * @property string|null $hero_heading_my
  * @property string|null $hero_description
@@ -52,7 +51,7 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'agency_name', 'agency_name_my',
+    'agency_name',
     'hero_heading', 'hero_heading_my',
     'hero_description', 'hero_description_my',
     'overview', 'overview_my',

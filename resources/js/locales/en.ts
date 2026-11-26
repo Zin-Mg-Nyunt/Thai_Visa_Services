@@ -673,8 +673,8 @@ const en = {
             'Write both languages. If one is empty, the other is shown. Leave a text empty to hide it.',
         agency: {
             title: 'Agency',
-            nameEn: 'Agency name (English)',
-            nameMy: 'Agency name (Burmese)',
+            name: 'Agency name',
+            hint: 'One name for every language, shown beside the logo on every page. Leave it empty to show the logo alone.',
         },
         about: {
             title: 'About',

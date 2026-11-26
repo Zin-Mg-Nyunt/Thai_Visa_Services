@@ -15,7 +15,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The Website content screen (Section 4.10): the agency texts in English and Burmese, the contact details, the social links, which
+ * The Website content screen (Section 4.10): the agency name (one name, shown beside the logo everywhere), the agency texts in English and Burmese, the contact details, the social links, which
  * statistics may be shown. Publishing the website is a separate action (it cannot be done without a logo and a favicon, Section 4.11).
  *
  * A save is one transaction under a lock on the settings row; the cached settings are cleared once it has committed. If anything
@@ -28,7 +28,7 @@ class WebsiteContentController extends Controller
         Gate::authorize('manage-site-settings');
 
         $setting = $settings->get();
-        $text = [];
+        $text = ['agency_name' => $setting->agency_name ?? ''];
 
         foreach (array_keys(UpdateWebsiteContentRequest::TEXT_LIMITS) as $field) {
             $text[$field] = $setting->{$field} ?? '';
@@ -68,7 +68,7 @@ class WebsiteContentController extends Controller
                 }
             }
 
-            foreach (['phone', 'email', 'messaging_link'] as $column) {
+            foreach (['agency_name', 'phone', 'email', 'messaging_link'] as $column) {
                 if ($request->has($column)) {
                     $setting->{$column} = $this->clean($request->validated($column));
                 }

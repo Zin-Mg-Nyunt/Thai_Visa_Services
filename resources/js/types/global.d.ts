@@ -18,6 +18,8 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
+            /** The name beside the logo (the agency name from Website content); null shows the logo alone. */
+            logoName: string | null;
             locale: string;
             auth: Auth;
             sidebarOpen: boolean;

@@ -1,5 +1,6 @@
 export type TrackingCardOptions = {
-    siteName: string;
+    /** The name beside the logo; null draws the logo alone. */
+    siteName: string | null;
     clientName: string;
     hint: string;
     qrDataUrl: string;
@@ -165,12 +166,14 @@ export async function renderTrackingCard(
     context.textAlign = 'left';
     context.fillStyle = '#ffffff';
     context.font = `700 16px ${FONT_FAMILY}`;
-    context.fillText(
-        options.siteName,
-        PADDING + 36 + 12,
-        PADDING + 18,
-        CARD_WIDTH - PADDING * 2 - 48,
-    );
+    if (options.siteName) {
+        context.fillText(
+            options.siteName,
+            PADDING + 36 + 12,
+            PADDING + 18,
+            CARD_WIDTH - PADDING * 2 - 48,
+        );
+    }
     context.textAlign = 'center';
 
     context.fillStyle = '#ffffff';

@@ -20,7 +20,6 @@ import { pageTitle } from '@/lib/pageTitle';
 const props = defineProps<{
     content: {
         agency_name: string;
-        agency_name_my: string;
         overview: string;
         overview_my: string;
         experience: string;
@@ -46,7 +45,6 @@ const { t } = useI18n();
 
 const form = useForm({
     agency_name: props.content.agency_name,
-    agency_name_my: props.content.agency_name_my,
     overview: props.content.overview,
     overview_my: props.content.overview_my,
     experience: props.content.experience,
@@ -138,13 +136,13 @@ const submit = () => {
                     {{ t('websiteContent.agency.title') }}
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    {{ t('websiteContent.languageHint') }}
+                    {{ t('websiteContent.agency.hint') }}
                 </p>
             </div>
             <div class="grid gap-6 md:grid-cols-2">
                 <div class="grid gap-2">
                     <Label for="agency_name">{{
-                        t('websiteContent.agency.nameEn')
+                        t('websiteContent.agency.name')
                     }}</Label>
                     <Input
                         id="agency_name"
@@ -153,19 +151,6 @@ const submit = () => {
                         :aria-invalid="!!form.errors.agency_name"
                     />
                     <InputError :message="form.errors.agency_name" />
-                </div>
-                <div class="grid gap-2">
-                    <Label for="agency_name_my">{{
-                        t('websiteContent.agency.nameMy')
-                    }}</Label>
-                    <Input
-                        id="agency_name_my"
-                        v-model="form.agency_name_my"
-                        autocomplete="off"
-                        class="leading-relaxed"
-                        :aria-invalid="!!form.errors.agency_name_my"
-                    />
-                    <InputError :message="form.errors.agency_name_my" />
                 </div>
             </div>
         </section>
@@ -179,6 +164,7 @@ const submit = () => {
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
                     {{ t('websiteContent.about.hint') }}
+                    {{ t('websiteContent.languageHint') }}
                 </p>
             </div>
             <div

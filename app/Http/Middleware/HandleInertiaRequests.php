@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Site\SiteSettings;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -39,6 +40,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // The name beside the logo on every page (the agency name from Website content), or null to show the logo alone.
+            'logoName' => fn (): ?string => app(SiteSettings::class)->logoName(),
             'locale' => app()->getLocale(),
             'auth' => [
                 // Built only when a page is rendered. The raw role is read, as the role middleware does,

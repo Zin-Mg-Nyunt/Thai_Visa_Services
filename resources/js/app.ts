@@ -1,4 +1,4 @@
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, usePage } from '@inertiajs/vue3';
 import { initializeLocale } from '@/composables/useLocale';
 import { i18n } from '@/i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,8 +12,11 @@ import { initializeFlashToast } from '@/lib/flashToast';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+// Every tab title ends with the agency name from Website content, or the app name when that is empty.
+const brandName = (): string => usePage().props?.logoName || appName;
+
 void createInertiaApp({
-    title: (title) => documentTitle(title, appName),
+    title: (title) => documentTitle(title, brandName()),
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':

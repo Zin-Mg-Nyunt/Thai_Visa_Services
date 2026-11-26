@@ -72,7 +72,7 @@ describe('the page', function () {
 describe('saving', function () {
     test('every field is saved, trimmed, with who saved it, and the first save creates the row', function () {
         saveContent($this, [
-            'agency_name' => '  PaingThu  ', 'agency_name_my' => 'ပိုင်သူ', 'overview' => 'We help.', 'overview_my' => null,
+            'agency_name' => '  PaingThu  ', 'overview' => 'We help.', 'overview_my' => null,
             'experience' => 'Years.', 'mission' => 'Our mission', 'mission_my' => 'ရည်မှန်းချက်', 'how_we_help' => 'By phone.',
             'address' => '1 Road, Bangkok', 'address_my' => 'ဘန်ကောက်', 'phone' => '+66 2 123 4567', 'email' => 'hello@example.test',
             'messaging_link' => 'https://line.me/ti/p/abc',
@@ -82,7 +82,7 @@ describe('saving', function () {
 
         $setting = SiteSetting::query()->sole();
 
-        expect($setting->agency_name)->toBe('PaingThu')->and($setting->agency_name_my)->toBe('ပိုင်သူ')
+        expect($setting->agency_name)->toBe('PaingThu')
             ->and($setting->overview)->toBe('We help.')->and($setting->overview_my)->toBeNull()
             ->and($setting->mission_my)->toBe('ရည်မှန်းချက်')->and($setting->address)->toBe('1 Road, Bangkok')
             ->and($setting->phone)->toBe('+66 2 123 4567')->and($setting->email)->toBe('hello@example.test')
@@ -272,5 +272,53 @@ describe('when something goes wrong', function () {
         expect(fn () => saveContent($this, ['agency_name' => 'Lost', 'mission' => 'Lost too']))->toThrow(RuntimeException::class, 'database is down');
 
         expect($setting->fresh()->agency_name)->toBe('Old')->and($setting->fresh()->mission)->toBe('Old mission');
+    });
+});
+
+describe('the name beside the logo', function () {
+    test('every page gets the agency name as the logo name, and the form has one name only', function () {
+        SiteSetting::factory()->create(['agency_name' => 'Min Min']);
+
+        $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('logoName', 'Min Min'));
+        $this->get(route('login'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('logoName', 'Min Min'));
+        $this->actingAs($this->admin)->get(route('admin.settings.content.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('logoName', 'Min Min')
+                ->where('content.agency_name', 'Min Min')->missing('content.agency_name_my'));
+    });
+
+    test('a saved name changes the logo name at once, and an empty name shows the logo alone', function () {
+        SiteSetting::factory()->create(['agency_name' => 'Before']);
+
+        saveContent($this, ['agency_name' => '  Min Min  ']);
+        $this->actingAs($this->admin)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('logoName', 'Min Min'));
+
+        saveContent($this, ['agency_name' => '']);
+        $this->actingAs($this->admin)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('logoName', null));
+    });
+
+    test('with no settings row the logo name is empty', function () {
+        $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('logoName', null));
+    });
+
+    test('a Burmese name is no longer accepted or stored', function () {
+        SiteSetting::factory()->create(['agency_name' => 'Keep']);
+
+        saveContent($this, ['agency_name_my' => 'ပိုင်သူ'])->assertRedirect();
+
+        expect(SiteSetting::query()->sole()->getAttributes())->not->toHaveKey('agency_name_my')
+            ->and(SiteSetting::query()->sole()->agency_name)->toBe('Keep');
+    });
+});
+
+describe('the tab title', function () {
+    test('the first title of a page is the agency name, or the app name when it is empty', function () {
+        config(['app.name' => 'PaingThu']);
+
+        $this->get(route('login'))->assertSee('<title>PaingThu</title>', false);
+
+        SiteSetting::factory()->create(['agency_name' => 'Min Min']);
+        Cache::forget(SiteSettings::CACHE_KEY);
+
+        $this->get(route('login'))->assertSee('<title>Min Min</title>', false)->assertDontSee('<title>PaingThu</title>', false);
     });
 });

@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Landing\LandingSeo;
 use App\Actions\Site\SiteSettings;
 use App\Models\Client;
 use App\Models\SiteSetting;
@@ -53,29 +52,22 @@ describe('the title', function () {
         expect(titleOf(landingHtml()))->toBe('PaingThu Visa Services');
     });
 
-    test('with another agency name, the app name follows it', function () {
+    test('with another agency name, the title is that name alone, without the app name', function () {
         SiteSetting::factory()->create(['agency_name' => 'Acme Agency']);
 
-        expect(titleOf(landingHtml()))->toBe('Acme Agency - PaingThu');
+        expect(titleOf(landingHtml()))->toBe('Acme Agency');
     });
 
-    test('the Burmese name is used in Burmese, the English one when there is none', function () {
-        SiteSetting::factory()->create(['agency_name' => 'Acme Agency', 'agency_name_my' => 'အက်မီ']);
+    test('the agency name is one name, the same in English and Burmese', function () {
+        SiteSetting::factory()->create(['agency_name' => 'Acme Agency']);
 
-        expect(titleOf(landingHtml('my')))->toBe('အက်မီ - PaingThu')->and(titleOf(landingHtml('en')))->toBe('Acme Agency - PaingThu');
-
-        SiteSetting::query()->update(['agency_name_my' => null]);
-        Cache::forget(SiteSettings::CACHE_KEY);
-
-        expect(titleOf(landingHtml('my')))->toBe('Acme Agency - PaingThu');
+        expect(titleOf(landingHtml('my')))->toBe('Acme Agency')->and(titleOf(landingHtml('en')))->toBe('Acme Agency');
     });
 
-    test('the title helper never repeats the app name, and the browser title uses the same rule', function () {
-        expect(LandingSeo::title('PaingThu', 'PaingThu'))->toBe('PaingThu')->and(LandingSeo::title('paingthu visas', 'PaingThu'))->toBe('paingthu visas')
-            ->and(LandingSeo::title('Acme', 'PaingThu'))->toBe('Acme - PaingThu');
-
-        expect(file_get_contents(resource_path('js/app.ts')))->toContain('documentTitle(title, appName)');
-        expect(file_get_contents(resource_path('js/lib/documentTitle.ts')))->toContain('.includes(appName.toLowerCase())');
+    test('every browser tab title ends with the agency name, or the app name when there is none, and never repeats it', function () {
+        expect(file_get_contents(resource_path('js/app.ts')))->toContain('documentTitle(title, brandName())')
+            ->toContain('usePage().props?.logoName || appName');
+        expect(file_get_contents(resource_path('js/lib/documentTitle.ts')))->toContain('.includes(brandName.toLowerCase())');
         expect(file_get_contents(resource_path('js/pages/Welcome.vue')))->toContain('<Head :title="name" />')->toContain('agencyName(props.site');
     });
 });
@@ -132,7 +124,7 @@ describe('the meta description', function () {
 
         expect($html)->not->toContain('<script>alert(1)</script>')->not->toContain('<b>Agency</b>')
             ->and(metaOf($html, 'name', 'description'))->toBe('"><script>alert(1)</script>')
-            ->and(titleOf($html))->toBe('A "quoted" <b>Agency</b> - PaingThu');
+            ->and(titleOf($html))->toBe('A "quoted" <b>Agency</b>');
     });
 });
 
@@ -142,10 +134,10 @@ describe('the link preview', function () {
 
         $html = landingHtml();
 
-        expect(metaOf($html, 'property', 'og:title'))->toBe('Acme Agency - PaingThu')->and(metaOf($html, 'property', 'og:site_name'))->toBe('Acme Agency')
+        expect(metaOf($html, 'property', 'og:title'))->toBe('Acme Agency')->and(metaOf($html, 'property', 'og:site_name'))->toBe('Acme Agency')
             ->and(metaOf($html, 'property', 'og:type'))->toBe('website')->and(metaOf($html, 'property', 'og:url'))->toBe(route('home'))
             ->and(metaOf($html, 'property', 'og:locale'))->toBe('en_US')->and(metaOf($html, 'property', 'og:locale:alternate'))->toBe('my_MM')
-            ->and(metaOf($html, 'name', 'twitter:title'))->toBe('Acme Agency - PaingThu')
+            ->and(metaOf($html, 'name', 'twitter:title'))->toBe('Acme Agency')
             ->and($html)->toContain('<link rel="canonical" href="'.route('home').'">');
     });
 
@@ -180,7 +172,7 @@ describe('the link preview', function () {
 
         $html = landingHtml();
 
-        expect(metaOf($html, 'property', 'og:title'))->toBe('Acme Agency - PaingThu')->and(metaOf($html, 'property', 'og:image'))->toContain('site/hero.jpg')
+        expect(metaOf($html, 'property', 'og:title'))->toBe('Acme Agency')->and(metaOf($html, 'property', 'og:image'))->toContain('site/hero.jpg')
             ->and(metaOf($html, 'property', 'og:description'))->toBeNull();
     });
 });

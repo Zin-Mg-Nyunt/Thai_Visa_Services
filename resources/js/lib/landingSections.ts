@@ -3,13 +3,13 @@ import { serviceIconName } from '@/lib/serviceIcons';
 import type { PublicSite } from '@/types/site';
 
 /**
- * The agency name the visitor sees: the name from the website settings in their language (or the other language), else the app name.
+ * The agency name for the tab title and footer: the name from the website settings (one name for every language), else the app name.
  */
 export function agencyName(
     site: PublicSite | undefined,
     appName: string,
 ): string {
-    return localized(site?.agency_name, site?.agency_name_my) || appName;
+    return site?.agency_name || appName;
 }
 
 export type LandingService = {

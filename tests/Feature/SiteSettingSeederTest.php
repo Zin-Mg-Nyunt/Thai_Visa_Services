@@ -91,7 +91,6 @@ describe('what it seeds (local)', function () {
 
     test('it invents no agency name and approves no statistic, and adds no hero image', function () {
         expect($this->setting->agency_name)->toBeNull()
-            ->and($this->setting->agency_name_my)->toBeNull()
             ->and($this->setting->approved_statistics)->toBeNull()
             ->and($this->setting->hero_image_key)->toBeNull();
     });

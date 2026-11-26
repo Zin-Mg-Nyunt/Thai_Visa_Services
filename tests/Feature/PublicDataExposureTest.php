@@ -122,7 +122,7 @@ describe('the landing page', function () {
     test('it sends exactly the props the page needs and the services have only their public fields', function () {
         $props = pageProps($this->get(route('home'))->assertOk());
 
-        expect(array_keys($props))->toEqualCanonicalizing(['errors', 'name', 'locale', 'auth', 'sidebarOpen', 'statistics', 'services', 'site'])
+        expect(array_keys($props))->toEqualCanonicalizing(['errors', 'name', 'logoName', 'locale', 'auth', 'sidebarOpen', 'statistics', 'services', 'site'])
             ->and($props['auth']['user'])->toBeNull()
             ->and(array_keys($props['services'][0]))->toBe(['id', 'title', 'title_my', 'public_description', 'public_description_my', 'icon']);
     });
@@ -163,7 +163,7 @@ describe('the tracking page', function () {
     test('it sends only the token and the lock time', function () {
         $props = pageProps($this->get(route('track.show', $this->alice->unique_token))->assertOk());
 
-        expect(array_keys($props))->toEqualCanonicalizing(['errors', 'name', 'locale', 'auth', 'sidebarOpen', 'token', 'lockedMinutes'])
+        expect(array_keys($props))->toEqualCanonicalizing(['errors', 'name', 'logoName', 'locale', 'auth', 'sidebarOpen', 'token', 'lockedMinutes'])
             ->and($props['token'])->toBe($this->alice->unique_token)->and($props['auth']['user'])->toBeNull();
     });
 

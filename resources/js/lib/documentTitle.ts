@@ -1,13 +1,14 @@
 /**
- * The browser tab title: the page's own title followed by the app name, unless the title already contains the app name. This keeps
- * the landing page, whose title is the agency name (often the app name itself), from showing "PaingThu - PaingThu".
+ * The browser tab title: the page's own title followed by the brand name (the agency name, or the app name when there is none),
+ * unless the title already contains it. This keeps the landing page, whose title is the brand name itself, from showing
+ * "Min Min - Min Min".
  */
-export function documentTitle(title: string, appName: string): string {
+export function documentTitle(title: string, brandName: string): string {
     if (!title) {
-        return appName;
+        return brandName;
     }
 
-    return title.toLowerCase().includes(appName.toLowerCase())
+    return title.toLowerCase().includes(brandName.toLowerCase())
         ? title
-        : `${title} - ${appName}`;
+        : `${title} - ${brandName}`;
 }

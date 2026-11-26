@@ -13,7 +13,9 @@ import { edit as editProfile } from '@/routes/profile';
 
 const { t } = useI18n();
 const page = usePage();
-const siteName = page.props.name;
+// The visible name beside the logo is the agency name (none when it is empty); the link's label falls back to the app name.
+const logoName = computed(() => page.props.logoName);
+const siteName = computed(() => logoName.value ?? page.props.name);
 const user = computed(() => page.props.auth.user);
 
 const handleLogout = () => {
@@ -29,9 +31,10 @@ const handleLogout = () => {
             <Link :href="dashboard()" class="flex w-fit items-center gap-2">
                 <AppLogoIcon variant="white" class="size-12 rounded-xl" />
                 <span
+                    v-if="logoName"
                     class="hidden text-lg font-bold text-sidebar-foreground sm:inline"
                 >
-                    {{ siteName }}
+                    {{ logoName }}
                 </span>
             </Link>
             <AdminNav class="min-h-0 flex-1" />
@@ -48,9 +51,10 @@ const handleLogout = () => {
             >
                 <AppLogoIcon variant="white" class="size-10 rounded-lg" />
                 <span
+                    v-if="logoName"
                     class="hidden text-lg font-bold text-sidebar-foreground sm:inline"
                 >
-                    {{ siteName }}
+                    {{ logoName }}
                 </span>
             </Link>
 

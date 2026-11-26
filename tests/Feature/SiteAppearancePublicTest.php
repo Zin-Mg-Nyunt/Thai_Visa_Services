@@ -34,15 +34,15 @@ test('with nothing set the page sends empty values and shows the built-in logo, 
     $this->get(route('home'))->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Welcome')
-            ->where('site.agency_name', null)->where('site.agency_name_my', null)->where('site.logo_url', null)
+            ->where('site.agency_name', null)->missing('site.agency_name_my')->where('site.logo_url', null)
             ->where('site.favicon_url', null)->where('site.hero_image_url', null))
         ->assertSee('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', false);
 });
 
-test('the logo, the hero image, the name in both languages and the favicon come from the settings', function () {
+test('the logo, the hero image, the name and the favicon come from the settings', function () {
     $row = appearanceRow(
         ['logo_key' => 'site/logo.png', 'favicon_key' => 'site/fav.png', 'hero_image_key' => 'site/hero.jpg'],
-        ['agency_name' => 'PaingThu', 'agency_name_my' => 'ပိုင်သူ'],
+        ['agency_name' => 'PaingThu'],
     );
     $version = $row->fresh()->updated_at->getTimestamp();
     $disk = Storage::disk(SiteSetting::DISK);
@@ -51,7 +51,6 @@ test('the logo, the hero image, the name in both languages and the favicon come 
 
     $response->assertInertia(fn (Assert $page) => $page
         ->where('site.agency_name', 'PaingThu')
-        ->where('site.agency_name_my', 'ပိုင်သူ')
         ->where('site.logo_url', $disk->url('site/logo.png').'?v='.$version)
         ->where('site.hero_image_url', $disk->url('site/hero.jpg').'?v='.$version)
         ->where('site.favicon_url', $disk->url('site/fav.png').'?v='.$version));
@@ -60,10 +59,10 @@ test('the logo, the hero image, the name in both languages and the favicon come 
 });
 
 test('an ICO favicon is declared as an icon and an empty name falls back', function () {
-    appearanceRow(['favicon_key' => 'site/fav.ico'], ['agency_name' => '   ', 'agency_name_my' => null]);
+    appearanceRow(['favicon_key' => 'site/fav.ico'], ['agency_name' => '   ']);
 
     $this->get(route('home'))->assertSee('type="image/x-icon"', false)
-        ->assertInertia(fn (Assert $page) => $page->where('site.agency_name', null)->where('site.agency_name_my', null));
+        ->assertInertia(fn (Assert $page) => $page->where('site.agency_name', null)->where('logoName', null));
 });
 
 test('the favicon is used on every page, not only the landing page', function () {
@@ -118,6 +117,6 @@ test('the layout draws the logo and the name from the settings and keeps the bui
 
     expect($layout)->toContain('v-if="site?.logo_url"')->toContain(':src="site.logo_url"')->toContain('v-else')
         ->toContain('AppLogoIcon')->toContain('agencyName(site.value')
-        ->and(file_get_contents(resource_path('js/lib/landingSections.ts')))->toContain('localized(site?.agency_name, site?.agency_name_my) || appName')
+        ->and(file_get_contents(resource_path('js/lib/landingSections.ts')))->toContain('site?.agency_name || appName')
         ->and($welcome)->toContain('v-if="site.hero_image_url"')->toContain(':src="site.hero_image_url"')->toContain('<HeroIllustration v-else />');
 });

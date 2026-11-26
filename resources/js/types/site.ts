@@ -3,8 +3,8 @@
  * the admin's texts and contact details. No storage keys. A text that is empty is null; before publishing the texts are all null.
  */
 export type PublicSite = {
+    /** One name for every language; also shown beside the logo on every page. */
     agency_name: string | null;
-    agency_name_my: string | null;
     logo_url: string | null;
     favicon_url: string | null;
     hero_image_url: string | null;

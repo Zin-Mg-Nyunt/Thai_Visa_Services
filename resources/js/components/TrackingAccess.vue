@@ -3,7 +3,7 @@ import { usePage } from '@inertiajs/vue3';
 import { Check, Copy, Download, QrCode } from '@lucide/vue';
 import { useClipboard } from '@vueuse/core';
 import QRCode from 'qrcode';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import ClientAvatar from '@/components/ClientAvatar.vue';
@@ -24,7 +24,9 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const siteName = usePage().props.name;
+const page = usePage();
+// The name beside the logo (the agency name), or null to show the logo alone.
+const siteName = computed(() => page.props.logoName);
 
 const { copy, copied } = useClipboard({ copiedDuring: 2000 });
 
@@ -43,7 +45,7 @@ const headerRef = ref<HTMLElement | null>(null);
 
 const downloadCard = async () => {
     const blob = await renderTrackingCard({
-        siteName: siteName as string,
+        siteName: siteName.value,
         clientName: props.clientName,
         hint: t('clients.tracking.scanHint'),
         qrDataUrl: qrDataUrl.value,
@@ -96,9 +98,11 @@ const downloadCard = async () => {
                         variant="white"
                         class="size-8 rounded-lg sm:size-9"
                     />
-                    <span class="truncate text-base font-bold text-white">{{
-                        siteName
-                    }}</span>
+                    <span
+                        v-if="siteName"
+                        class="truncate text-base font-bold text-white"
+                        >{{ siteName }}</span
+                    >
                 </div>
             </div>
 

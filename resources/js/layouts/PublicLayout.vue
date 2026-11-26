@@ -16,6 +16,8 @@ const page = usePage();
 // The logo and the agency name the admin set in the website settings; without them, the built-in logo and the app name.
 const site = computed(() => page.props.site as PublicSite | undefined);
 const name = computed(() => agencyName(site.value, page.props.name as string));
+// The name beside the logo: the agency name, or nothing (the logo alone) when it is empty.
+const logoName = computed(() => page.props.logoName);
 
 // The links to the page sections that are on the page.
 const sections = computed(() =>
@@ -48,9 +50,10 @@ const sections = computed(() =>
                         class="size-10 rounded-lg"
                     />
                     <span
+                        v-if="logoName"
                         class="hidden truncate text-lg font-bold sm:inline"
                         data-test="site-name"
-                        >{{ name }}</span
+                        >{{ logoName }}</span
                     >
                 </Link>
                 <nav

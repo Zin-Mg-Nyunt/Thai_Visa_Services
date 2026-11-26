@@ -36,7 +36,7 @@ describe('the table', function () {
         $columns = Schema::getColumnListing('site_settings');
 
         expect($columns)->toContain(
-            'id', 'agency_name', 'agency_name_my', 'hero_heading', 'hero_heading_my', 'hero_description', 'hero_description_my',
+            'id', 'agency_name', 'hero_heading', 'hero_heading_my', 'hero_description', 'hero_description_my',
             'overview', 'overview_my', 'experience', 'experience_my', 'mission', 'mission_my', 'how_we_help', 'how_we_help_my',
             'logo_key', 'favicon_key', 'hero_image_key', 'phone', 'email', 'address', 'address_my', 'messaging_link',
             'social_links', 'approved_statistics', 'is_published', 'updated_by', 'created_at', 'updated_at',

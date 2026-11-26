@@ -34,7 +34,7 @@ const props = defineProps<{
     services: LandingService[];
 }>();
 
-// The tab title is the agency name (the app name when there is none); documentTitle() adds the app name only if it is not already in it.
+// The tab title is the agency name (the app name when there is none); documentTitle() adds nothing more, as the name is already in it.
 const page = usePage();
 const name = computed(() => agencyName(props.site, page.props.name as string));
 

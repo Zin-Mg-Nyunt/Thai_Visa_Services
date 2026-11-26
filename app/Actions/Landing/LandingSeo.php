@@ -11,8 +11,8 @@ use Throwable;
  * What search engines and link previews (Facebook, LINE, ...) read from the public landing page: the title, a short description and
  * a preview image, built from the website settings (Section 4.10).
  *
- * - Title: the agency name in the visitor's language, or the app name when there is none; the app name is added after it only when
- *   it is not already part of it, so the title never repeats itself.
+ * - Title: the agency name (one name for every language), or the app name when there is none. It is the same name every tab title
+ *   ends with, so the website's title is the name alone.
  * - Description: the hero description, or else the overview, in the visitor's language, but only once the website is published
  *   (an unpublished text is not shown on the page, so it is not given to search engines either). Nothing is invented: with no text,
  *   there is no description.
@@ -43,7 +43,7 @@ class LandingSeo
         try {
             $setting = $this->settings->get();
 
-            $name = $setting->text('agency_name') ?? $appName;
+            $name = trim((string) $setting->agency_name) !== '' ? (string) $setting->agency_name : $appName;
             $description = $setting->is_published ? $this->describe($setting) : null;
             $image = $this->absolute($setting->imageUrl($setting->hero_image_key ?? $setting->logo_key));
         } catch (Throwable $exception) {
@@ -51,7 +51,7 @@ class LandingSeo
         }
 
         return [
-            'title' => self::title($name, $appName),
+            'title' => $name,
             'description' => $description,
             'image' => $image,
             'url' => route('home'),
@@ -59,12 +59,6 @@ class LandingSeo
             'locale' => $this->openGraphLocale($locale),
             'alternate_locale' => $this->openGraphLocale($locale === 'my' ? 'en' : 'my'),
         ];
-    }
-
-    /** The title of the page: the agency name, followed by the app name unless the name already contains it. */
-    public static function title(string $name, string $appName): string
-    {
-        return $appName === '' || Str::contains($name, $appName, ignoreCase: true) ? $name : $name.' - '.$appName;
     }
 
     private function describe(SiteSetting $setting): ?string

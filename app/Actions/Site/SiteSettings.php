@@ -40,7 +40,7 @@ class SiteSettings
 
     /** What the public pages get when nothing can be read: the built-in logo, favicon, name and texts. */
     private const EMPTY = [
-        'agency_name' => null, 'agency_name_my' => null, 'logo_url' => null, 'favicon_url' => null, 'hero_image_url' => null,
+        'agency_name' => null, 'logo_url' => null, 'favicon_url' => null, 'hero_image_url' => null,
         'hero_heading' => null, 'hero_heading_my' => null, 'hero_description' => null, 'hero_description_my' => null,
         'overview' => null, 'overview_my' => null, 'experience' => null, 'experience_my' => null, 'mission' => null, 'mission_my' => null,
         'how_we_help' => null, 'how_we_help_my' => null, 'address' => null, 'address_my' => null,
@@ -51,7 +51,7 @@ class SiteSettings
      * What the public pages need from the settings. Nothing else leaves the server: no storage key, no disk path, no admin, no
      * unpublished text.
      *
-     * - Always: the agency name in both languages and the public addresses of the logo, the favicon and the hero image. They are
+     * - Always: the agency name and the public addresses of the logo, the favicon and the hero image. They are
      *   the look of the website, not claims about the agency.
      * - Only when the website is published: the texts the admin wrote (hero heading and description, overview, the three About
      *   cards, address), the phone number, the email address, the messaging link and the social links. Until then they are all empty, so the page falls
@@ -73,7 +73,6 @@ class SiteSettings
             $page = [
                 ...self::EMPTY,
                 'agency_name' => $this->filled($setting->agency_name),
-                'agency_name_my' => $this->filled($setting->agency_name_my),
                 'logo_url' => $setting->imageUrl($setting->logo_key),
                 'favicon_url' => $setting->imageUrl($setting->favicon_key),
                 'hero_image_url' => $setting->imageUrl($setting->hero_image_key),
@@ -101,6 +100,21 @@ class SiteSettings
             report($exception);
 
             return self::EMPTY;
+        }
+    }
+
+    /**
+     * The name shown beside the logo on every page: the agency name (one name for every language), or null when it is empty, and
+     * then only the logo is shown. It never throws: if the settings cannot be read, the error is reported and null is returned.
+     */
+    public function logoName(): ?string
+    {
+        try {
+            return $this->filled($this->get()->agency_name);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
         }
     }
 
